@@ -1,0 +1,48 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/master/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "datasource",
+  "name": "Trino",
+  "id": "starburst-data-trino",
+  "metrics": true,
+  "backend": true,
+  "executable": "gpx_Trino",
+  "info": {
+    "description": "The Trino datasource allows to query and visualize Trino data from within Grafana.",
+    "author": {
+      "name": "Starburst Data",
+      "url": "https://www.starburst.io/"
+    },
+    "keywords": [
+      "sql",
+      "trino",
+      "presto",
+      "prestosql",
+      "hive",
+      "hadoop",
+      "query federation",
+      "ansii sql",
+      "big data"
+    ],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [
+      {
+        "name": "Website",
+        "url": "https://github.com/grafana/grafana-starter-datasource-backend"
+      },
+      {
+        "name": "License",
+        "url": "https://github.com/grafana/grafana-starter-datasource-backend/blob/master/LICENSE"
+      }
+    ],
+    "screenshots": [],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=7.0.0",
+    "plugins": []
+  }
+}

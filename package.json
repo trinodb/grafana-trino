@@ -1,0 +1,31 @@
+{
+  "name": "starburst-data-trino",
+  "version": "1.0.0",
+  "description": "The Trino datasource allows to query and visualize Trino data from within Grafana.",
+  "scripts": {
+    "build": "grafana-toolkit plugin:build",
+    "test": "grafana-toolkit plugin:test",
+    "dev": "grafana-toolkit plugin:dev",
+    "watch": "grafana-toolkit plugin:dev --watch",
+    "sign": "grafana-toolkit plugin:sign",
+    "start": "yarn watch"
+  },
+  "author": {
+    "name": "Starburst Data",
+    "url": "https://www.starburst.io/"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@grafana/data": "latest",
+    "@grafana/toolkit": "latest",
+    "@grafana/runtime": "latest",
+    "@grafana/ui": "latest",
+    "@types/lodash": "latest"
+  },
+  "resolutions": {
+    "rxjs": "7.3.0"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
