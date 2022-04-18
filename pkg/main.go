@@ -5,9 +5,8 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-	"github.com/grafana/grafana-starter-datasource-backend/pkg/plugin"
 	"github.com/grafana/sqlds/v2"
-	"github.com/grafana/trino/pkg/trino"
+	"github.com/starburstdata/grafana-trino/pkg/trino"
 )
 
 func main() {
@@ -16,13 +15,13 @@ func main() {
 	// to exit by itself using os.Exit. Manage automatically manages life cycle
 	// of datasource instances. It accepts datasource instance factory as first
 	// argument. This factory will be automatically called on incoming request
-	// from Grafana to create different instances of SampleDatasource (per datasource
+	// from Grafana to create different instances of TrinoDatasource (per datasource
 	// ID). When datasource configuration changed Dispose method will be called and
-	// new datasource instance created using NewSampleDatasource factory.
-	s := &trino.TrinoDataSource{}
+	// new datasource instance created using New factory.
+	s := &trino.TrinoDatasource{}
 	ds := sqlds.NewDatasource(s)
 	ds.Completable = s
-	if err := datasource.Manage("grafana-trino-datasource", ds.NewDatasource, datasource.ManageOpts{}); err != nil {
+	if err := datasource.Manage("starburst-data-trino", ds.NewDatasource, datasource.ManageOpts{}); err != nil {
 		log.DefaultLogger.Error(err.Error())
 		os.Exit(1)
 	}

@@ -1,26 +1,40 @@
-import { DataQuery, DataSourceJsonData } from '@grafana/data';
+import { DataQuery, DataSourceJsonData, SelectableValue } from '@grafana/data';
 
-export interface MyQuery extends DataQuery {
-  queryText?: string;
-  constant: number;
-  withStreaming: boolean;
+export enum FormatOptions {
+  TimeSeries,
+  Table,
+  Logs,
+}
+export interface TrinoQuery extends DataQuery {
+  rawSQL?: string;
+  format?: FormatOptions;
 }
 
-export const defaultQuery: Partial<MyQuery> = {
-  constant: 6.5,
-  withStreaming: false,
+export const SelectableFormatOptions: Array<SelectableValue<FormatOptions>> = [
+  {
+    label: 'Time Series',
+    value: FormatOptions.TimeSeries,
+  },
+  {
+    label: 'Table',
+    value: FormatOptions.Table,
+  },
+  {
+    label: 'Logs',
+    value: FormatOptions.Logs,
+  },
+];
+
+export const defaultQuery: Partial<TrinoQuery> = {
+  rawSQL: 'show catalogs',
+  format: FormatOptions.Table,
 };
 
 /**
  * These are options configured for each DataSource instance.
  */
-export interface MyDataSourceOptions extends DataSourceJsonData {
-  path?: string;
-}
 
+export interface TrinoDataSourceOptions extends DataSourceJsonData {}
 /**
  * Value that is used in the backend, but never sent over HTTP to the frontend
  */
-export interface MySecureJsonData {
-  apiKey?: string;
-}

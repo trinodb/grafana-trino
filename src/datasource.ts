@@ -1,9 +1,9 @@
 import { DataSourceInstanceSettings } from '@grafana/data';
 import { DataSourceWithBackend } from '@grafana/runtime';
-import { MyDataSourceOptions, MyQuery } from './types';
+import { TrinoDataSourceOptions, TrinoQuery } from './types';
 
-export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptions> {
-  constructor(instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>) {
+export class DataSource extends DataSourceWithBackend<TrinoQuery, TrinoDataSourceOptions> {
+  constructor(instanceSettings: DataSourceInstanceSettings<TrinoDataSourceOptions>) {
     super(instanceSettings);
   }
 }
