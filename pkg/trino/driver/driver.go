@@ -3,9 +3,7 @@ package driver
 import (
 	"crypto/tls"
 	"database/sql"
-	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/starburstdata/grafana-trino/pkg/trino/models"
@@ -17,22 +15,24 @@ const DriverName string = "trino"
 
 // Open registers a new driver with a unique name
 func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
-	serverURL, err := url.Parse(settings.URL)
-	if err != nil {
-		return nil, err
+	skipVerify := false
+	if settings.Opts.TLS != nil {
+		skipVerify = settings.Opts.TLS.InsecureSkipVerify
 	}
-
-	grafana := &http.Client{
+	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: settings.Opts.TLS.InsecureSkipVerify,
+				InsecureSkipVerify: skipVerify,
 			},
 		},
 	}
-	trino.RegisterCustomClient("grafana", grafana)
+	err := trino.RegisterCustomClient("grafana", client)
+	if err != nil {
+		return nil, err
+	}
 	config := trino.Config{
-		ServerURI:        fmt.Sprintf("%s://%s@%s", serverURL.Scheme, settings.User, serverURL.Host),
-		Source:           "trino-grafana",
+		ServerURI:        settings.URL.String(),
+		Source:           "grafana",
 		CustomClientName: "grafana",
 	}
 

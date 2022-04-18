@@ -9,7 +9,6 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/data/sqlutil"
 )
 
-// TODO: Avoid duplicate code and optimise to use originals in sqlutil
 var (
 	// NullStringConverter creates a *string using the scan type of `sql.NullString`
 	NullStringConverter = sqlutil.Converter{
