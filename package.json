@@ -23,7 +23,7 @@
     "@types/lodash": "4.14.181"
   },
   "resolutions": {
-    "rxjs": "7.3.0"
+    "rxjs": "7.5.5"
   },
   "engines": {
     "node": ">=14"
