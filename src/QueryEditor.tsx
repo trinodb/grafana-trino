@@ -1,58 +1,40 @@
-import { defaults } from 'lodash';
-
-import React, { ChangeEvent, PureComponent, SyntheticEvent } from 'react';
-import { LegacyForms } from '@grafana/ui';
+import React from 'react';
 import { QueryEditorProps } from '@grafana/data';
 import { DataSource } from './datasource';
-import { defaultQuery, MyDataSourceOptions, MyQuery } from './types';
+import { TrinoDataSourceOptions, TrinoQuery, defaultQuery, SelectableFormatOptions } from './types';
+import { InlineSegmentGroup } from '@grafana/ui';
+import { FormatSelect, QueryCodeEditor } from '@grafana/aws-sdk';
 
-const { FormField, Switch } = LegacyForms;
+type Props = QueryEditorProps<DataSource, TrinoQuery, TrinoDataSourceOptions>;
 
-type Props = QueryEditorProps<DataSource, MyQuery, MyDataSourceOptions>;
-
-export class QueryEditor extends PureComponent<Props> {
-  onQueryTextChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onChange, query } = this.props;
-    onChange({ ...query, queryText: event.target.value });
+export function QueryEditor(props: Props) {
+  const queryWithDefaults = {
+    ...defaultQuery,
+    ...props.query,
   };
 
-  onConstantChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onChange, query, onRunQuery } = this.props;
-    onChange({ ...query, constant: parseFloat(event.target.value) });
-    // executes the query
-    onRunQuery();
-  };
-
-  onWithStreamingChange = (event: SyntheticEvent<HTMLInputElement>) => {
-    const { onChange, query, onRunQuery } = this.props;
-    onChange({ ...query, withStreaming: event.currentTarget.checked });
-    // executes the query
-    onRunQuery();
-  };
-
-  render() {
-    const query = defaults(this.props.query, defaultQuery);
-    const { queryText, constant, withStreaming } = query;
-
-    return (
-      <div className="gf-form">
-        <FormField
-          width={4}
-          value={constant}
-          onChange={this.onConstantChange}
-          label="Constant"
-          type="number"
-          step="0.1"
-        />
-        <FormField
-          labelWidth={8}
-          value={queryText || ''}
-          onChange={this.onQueryTextChange}
-          label="Query Text"
-          tooltip="Not used yet"
-        />
-        <Switch checked={withStreaming || false} label="Enable streaming (v8+)" onChange={this.onWithStreamingChange} />
-      </div>
-    );
-  }
+  return (
+    <>
+      <InlineSegmentGroup>
+        <div className="gf-form-group">
+          <h6>Frames</h6>
+          <FormatSelect
+            query={props.query}
+            options={SelectableFormatOptions}
+            onChange={props.onChange}
+            onRunQuery={props.onRunQuery}
+          />
+        </div>
+        <div style={{ minWidth: '400px', marginLeft: '10px', flex: 1 }}>
+          <QueryCodeEditor
+            language="sql"
+            query={queryWithDefaults}
+            onChange={props.onChange}
+            onRunQuery={props.onRunQuery}
+            getSuggestions={() => []}
+          />
+        </div>
+      </InlineSegmentGroup>
+    </>
+  );
 }
