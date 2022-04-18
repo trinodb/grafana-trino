@@ -30,11 +30,11 @@
     "links": [
       {
         "name": "Website",
-        "url": "https://github.com/grafana/grafana-starter-datasource-backend"
+        "url": "https://github.com/starburstdata/grafana-trino"
       },
       {
         "name": "License",
-        "url": "https://github.com/grafana/grafana-starter-datasource-backend/blob/master/LICENSE"
+        "url": "https://github.com/starburstdata/grafana-trino/blob/master/LICENSE"
       }
     ],
     "screenshots": [],
