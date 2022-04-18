@@ -1102,13 +1102,13 @@
   resolved "https://registry.yarnpkg.com/@grafana/aws-sdk/-/aws-sdk-0.0.35.tgz#ef1a1294decdb859f04f170f33cf45277703bb87"
   integrity sha512-EUi4hF0NQ7c9+XfUvRfrCkxPVkzRFv4VdSMlUOyyg7FynKq4Do9HF+4gR30Krt0ct6zmloPIx2AAIHL5898g7A==
 
-"@grafana/data@8.4.4", "@grafana/data@latest":
-  version "8.4.4"
-  resolved "https://registry.yarnpkg.com/@grafana/data/-/data-8.4.4.tgz#4d741c903bd66f97cdc1d39ce0a73c36c97bfc0b"
-  integrity sha512-Lub1BaMTHsrHvGMpLK/a72YbB70amUaBPREB8a/pbPa68MogsXywBXAqVfSq6iW9HNWSy0xY0v6rIyRwR6nLnA==
+"@grafana/data@8.4.6":
+  version "8.4.6"
+  resolved "https://registry.yarnpkg.com/@grafana/data/-/data-8.4.6.tgz#af2ce7c202a654d0fb8eb80a09dfbb39de9c168b"
+  integrity sha512-BCOBhhxLpdQIYHHTdXy/YSqE08/lxxRNTwke5cQ9D5a+TlStXqWB/dT4Umt2n7TDkB01QP9+/t2DQGwoH1iKzw==
   dependencies:
     "@braintree/sanitize-url" "5.0.2"
-    "@grafana/schema" "8.4.4"
+    "@grafana/schema" "8.4.6"
     "@types/d3-interpolate" "^1.4.0"
     d3-interpolate "1.4.0"
     date-fns "2.28.0"
@@ -1127,10 +1127,10 @@
     uplot "1.6.19"
     xss "1.0.10"
 
-"@grafana/e2e-selectors@8.4.4":
-  version "8.4.4"
-  resolved "https://registry.yarnpkg.com/@grafana/e2e-selectors/-/e2e-selectors-8.4.4.tgz#1a501b829f3c2f9e5476016efc0ad974010e3678"
-  integrity sha512-tkk4gs7DvnW47Xt8oq0k0bOhW23lU7NuxVpqhCSdMmTJOnwTzJinS+gpgk5Zokhc3Fl3u2ZKq7FKEApENaj+ew==
+"@grafana/e2e-selectors@8.4.6":
+  version "8.4.6"
+  resolved "https://registry.yarnpkg.com/@grafana/e2e-selectors/-/e2e-selectors-8.4.6.tgz#4794d61ac736663b20119c04484e63458ce10b5d"
+  integrity sha512-EIxeQ09+4v+l++vjiSbMTIR3tX+N4fs/jj6TYzpfEdvOdVyzZRmKQP2zgaiV8JvQ45ILEPXkUpYw61CjEnI3Zw==
   dependencies:
     "@grafana/tsconfig" "^1.0.0-rc1"
     tslib "2.3.1"
@@ -1152,14 +1152,14 @@
     prettier "2.5.1"
     typescript "4.4.4"
 
-"@grafana/runtime@latest":
-  version "8.4.4"
-  resolved "https://registry.yarnpkg.com/@grafana/runtime/-/runtime-8.4.4.tgz#937741840616a5def7d2780fa81ab705deb4b3af"
-  integrity sha512-Fx29NecMzf4G1fwmy8Kv+fZZIz2qEMBkjk0lJOqRTH6HoqitSQKuVDH/MAaZCxaEfIqkkwU8A98jxq2rIcbYrA==
+"@grafana/runtime@8.4.6":
+  version "8.4.6"
+  resolved "https://registry.yarnpkg.com/@grafana/runtime/-/runtime-8.4.6.tgz#1448ea9302b1220239e86f5bf0f71cf563fef45e"
+  integrity sha512-eA+Dzp/Nn+N/kabEIFwgByTTRgYGEY/ZEp2hqG+HZUi8uHU0rjh5DY3eu9Vz3jZoQZo5bfmVIXDo2lxsuLfK2Q==
   dependencies:
-    "@grafana/data" "8.4.4"
-    "@grafana/e2e-selectors" "8.4.4"
-    "@grafana/ui" "8.4.4"
+    "@grafana/data" "8.4.6"
+    "@grafana/e2e-selectors" "8.4.6"
+    "@grafana/ui" "8.4.6"
     "@sentry/browser" "6.17.2"
     history "4.10.1"
     lodash "4.17.21"
@@ -1169,10 +1169,10 @@
     systemjs "0.20.19"
     tslib "2.3.1"
 
-"@grafana/schema@8.4.4":
-  version "8.4.4"
-  resolved "https://registry.yarnpkg.com/@grafana/schema/-/schema-8.4.4.tgz#4b2ddbd58114ad1d795f73bb9c24b3d6147d160d"
-  integrity sha512-honchh5iTznxpF8MnB8rX96jR4+3bqO2kH6HwePQD2UgGfT4igW3uWlXLxSG3EDmBVc7mgb2ycxG95TQRw7gKg==
+"@grafana/schema@8.4.6":
+  version "8.4.6"
+  resolved "https://registry.yarnpkg.com/@grafana/schema/-/schema-8.4.6.tgz#a80371e10ddad4410d67c453674cb52cb26beb03"
+  integrity sha512-slFMwC9140Fo24tWqQi6k8ngzGUNPaY8lMxS42XTLMDF6H3nxNCSREZKjJ0HAqMDx3TvHIXL7BMkLBMmrF+jGg==
   dependencies:
     tslib "2.3.1"
 
@@ -1198,17 +1198,17 @@
     tiny-invariant "^1.0.1"
     tiny-warning "^0.0.3"
 
-"@grafana/toolkit@latest":
-  version "8.4.4"
-  resolved "https://registry.yarnpkg.com/@grafana/toolkit/-/toolkit-8.4.4.tgz#a2692f05e296817c5cda872320c212e3bb502579"
-  integrity sha512-dALn1Fn5kdrnlwXZEWI9H44QGgw0n8Jq6tV653faMQVJ8Q7BQ7wyk72U3REodo9vULmdEN+2ufMFRq1C5ekftA==
+"@grafana/toolkit@8.4.6":
+  version "8.4.6"
+  resolved "https://registry.yarnpkg.com/@grafana/toolkit/-/toolkit-8.4.6.tgz#e3638d0d170aec69fc943685e176c31ae0344ffe"
+  integrity sha512-X+LjLydwleo2k0/r/18wRglDJoSKxVMYmwz2jheVjkRh17np+UYmrlaUxIo7bpehroRj8t3N5g01/MpfcgKwzw==
   dependencies:
     "@babel/core" "7.13.14"
     "@babel/preset-env" "7.13.12"
-    "@grafana/data" "8.4.4"
+    "@grafana/data" "8.4.6"
     "@grafana/eslint-config" "2.5.2"
     "@grafana/tsconfig" "^1.0.0-rc1"
-    "@grafana/ui" "8.4.4"
+    "@grafana/ui" "8.4.6"
     "@jest/core" "26.6.3"
     "@rushstack/eslint-patch" "1.0.6"
     "@types/command-exists" "^1.2.0"
@@ -1286,17 +1286,17 @@
   resolved "https://registry.yarnpkg.com/@grafana/tsconfig/-/tsconfig-1.0.0-rc1.tgz#d07ea16755a50cae21000113f30546b61647a200"
   integrity sha512-nucKPGyzlSKYSiJk5RA8GzMdVWhdYNdF+Hh65AXxjD9PlY69JKr5wANj8bVdQboag6dgg0BFKqgKPyY+YtV4Iw==
 
-"@grafana/ui@8.4.4", "@grafana/ui@latest":
-  version "8.4.4"
-  resolved "https://registry.yarnpkg.com/@grafana/ui/-/ui-8.4.4.tgz#077ed58e7d27ba387800c5ce427b7df176d60257"
-  integrity sha512-t4BbkCPA/LeoPj+IE8AD1nUIfYuz5wg1XFi6qrPrW4f3b61kRnn7Vn2V1Rys5aQkgHmwu7Nn05S3tjWClpr/jw==
+"@grafana/ui@8.4.6":
+  version "8.4.6"
+  resolved "https://registry.yarnpkg.com/@grafana/ui/-/ui-8.4.6.tgz#cac2c72939058a850e076cb0f14413e04bb9c0f5"
+  integrity sha512-ncjK+LPiXuyRskOOWoT9k5VPmjCTco3S93pb50IbMwQP1oa2cBM+APSiIXa5o9svpGH9rnyloBaFrN+4CFeRxg==
   dependencies:
     "@emotion/css" "11.7.1"
     "@emotion/react" "11.7.1"
     "@grafana/aws-sdk" "0.0.31"
-    "@grafana/data" "8.4.4"
-    "@grafana/e2e-selectors" "8.4.4"
-    "@grafana/schema" "8.4.4"
+    "@grafana/data" "8.4.6"
+    "@grafana/e2e-selectors" "8.4.6"
+    "@grafana/schema" "8.4.6"
     "@grafana/slate-react" "0.22.10-grafana"
     "@monaco-editor/react" "4.3.1"
     "@popperjs/core" "2.11.2"
@@ -2369,10 +2369,10 @@
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.149.tgz#1342d63d948c6062838fbf961012f74d4e638440"
   integrity sha512-ijGqzZt/b7BfzcK9vTrS6MFljQRPn5BFWOx8oE0GYxribu6uV+aA9zZuXI1zc/etK9E8nrgdoF2+LgUw7+9tJQ==
 
-"@types/lodash@latest":
-  version "4.14.180"
-  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.180.tgz#4ab7c9ddfc92ec4a887886483bc14c79fb380670"
-  integrity sha512-XOKXa1KIxtNXgASAnwj7cnttJxS4fksBRywK/9LzRV5YxrF80BXZIGeQSuoESQ/VkUj30Ae0+YcuHc15wJCB2g==
+"@types/lodash@4.14.181":
+  version "4.14.181"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.181.tgz#d1d3740c379fda17ab175165ba04e2d03389385d"
+  integrity sha512-n3tyKthHJbkiWhDZs3DkhkCzt2MexYHXlX0td5iMplyfwketaOeKboEVBqzceH7juqvEg3q5oUoBFxSLu7zFag==
 
 "@types/mime@^1":
   version "1.3.2"
