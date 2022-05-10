@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"regexp"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -56,14 +57,22 @@ func (s *TrinoDatasource) Connect(config backend.DataSourceInstanceSettings, que
 }
 
 func (s *TrinoDatasource) Converters() (sc []sqlutil.Converter) {
+	nullStringConverter := sqlutil.NullStringConverter
+	nullStringConverter.InputTypeRegex = regexp.MustCompile("char|varchar|varbinary|json|interval year to month|interval day to second|decimal|ipaddress|unknown")
+	nullDecimalConverter := sqlutil.NullDecimalConverter
+	nullDecimalConverter.InputTypeRegex = regexp.MustCompile("real|double")
+	nullInt64Converter := sqlutil.NullInt64Converter
+	nullInt64Converter.InputTypeRegex = regexp.MustCompile("tinyint|smallint|integer|bigint")
+	nullTimeConverter := sqlutil.NullTimeConverter
+	nullTimeConverter.InputTypeRegex = regexp.MustCompile("date|time|time with time zone|timestamp|timestamp with time zone")
+	nullBoolConverter := sqlutil.NullBoolConverter
+	nullBoolConverter.InputTypeName = "boolean"
 	return []sqlutil.Converter{
-		NullStringConverter,
-		NullDecimalConverter,
-		NullInt64Converter,
-		NullInt32Converter,
-		NullTimeConverter,
-		NullBoolConverter,
-		NullDateConverter,
+		nullStringConverter,
+		nullDecimalConverter,
+		nullInt64Converter,
+		nullTimeConverter,
+		nullBoolConverter,
 	}
 }
 
