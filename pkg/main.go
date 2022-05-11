@@ -21,7 +21,7 @@ func main() {
 	s := &trino.TrinoDatasource{}
 	ds := sqlds.NewDatasource(s)
 	ds.Completable = s
-	if err := datasource.Manage("starburst-data-trino", ds.NewDatasource, datasource.ManageOpts{}); err != nil {
+	if err := datasource.Manage("trino-datasource", ds.NewDatasource, datasource.ManageOpts{}); err != nil {
 		log.DefaultLogger.Error(err.Error())
 		os.Exit(1)
 	}

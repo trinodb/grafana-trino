@@ -1,5 +1,5 @@
 {
-  "name": "starburst-data-trino",
+  "name": "trino-datasource",
   "version": "1.0.0",
   "description": "The Trino datasource allows to query and visualize Trino data from within Grafana.",
   "scripts": {
