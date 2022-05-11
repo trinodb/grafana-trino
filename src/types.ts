@@ -26,7 +26,16 @@ export const SelectableFormatOptions: Array<SelectableValue<FormatOptions>> = [
 ];
 
 export const defaultQuery: Partial<TrinoQuery> = {
-  rawSQL: 'show catalogs',
+  rawSQL: `SELECT
+  $__timeEpoch(<time_column>),
+  <value column> as value,
+  <series name column> as metric
+FROM
+  <catalog name>.<schema name>.<table name>
+WHERE
+  $__timeFilter(time_column)
+ORDER BY
+  <time_column> ASC`,
   format: FormatOptions.Table,
 };
 
