@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"net/url"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -17,6 +18,12 @@ func (s *TrinoDatasourceSettings) Load(config backend.DataSourceInstanceSettings
 	opts, err := config.HTTPClientOptions()
 	if err != nil {
 		return err
+	}
+	if len(opts.Headers) != 0 {
+		return errors.New("Custom headers are not supported and must be not set")
+	}
+	if len(opts.CustomOptions) != 0 {
+		return errors.New("Custom options are not supported and must be not set")
 	}
 	log.DefaultLogger.Info("Loading Trino data source settings")
 	s.URL, err = url.Parse(config.URL)
