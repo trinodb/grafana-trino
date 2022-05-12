@@ -27,16 +27,19 @@ export const SelectableFormatOptions: Array<SelectableValue<FormatOptions>> = [
 
 export const defaultQuery: Partial<TrinoQuery> = {
   rawSQL: `SELECT
-  $__timeEpoch(<time_column>),
-  <value column> as value,
-  <series name column> as metric
+  $__timeGroup(time_column, '1h'),
+  value_column as value,
+  series_column as metric
 FROM
-  <catalog name>.<schema name>.<table name>
+  catalog_name.schema_name.table_name
 WHERE
   $__timeFilter(time_column)
+GROUP BY
+  1, 3
 ORDER BY
-  <time_column> ASC`,
-  format: FormatOptions.Table,
+  1
+`,
+  format: FormatOptions.TimeSeries,
 };
 
 /**

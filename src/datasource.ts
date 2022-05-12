@@ -15,17 +15,19 @@ export class DataSource extends DataSourceWithBackend<TrinoQuery, TrinoDataSourc
         .fetch({
           url: '/api/ds/query',
           method: 'POST',
+          requestId: 'A',
           data: {
             from: '5m',
             to: 'now',
             queries: [
               {
                 refId: 'A',
+                key: 'A',
                 intervalMs: 1,
                 maxDataPoints: 1,
                 datasource: this.getRef(),
-                rawSql: 'SELECT 1',
-                format: 'table',
+                rawSQL: 'SELECT 1',
+                format: 0,
               },
             ],
           },
