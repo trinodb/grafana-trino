@@ -2,13 +2,27 @@ import { of } from 'rxjs';
 import { TestScheduler } from 'rxjs/testing';
 
 import { dataFrameToJSON, DataSourceInstanceSettings, dateTime, MutableDataFrame } from '@grafana/data';
-import { BackendSrv, DataSourceSrv, FetchResponse, setBackendSrv, setDataSourceSrv } from '@grafana/runtime';
+import {
+  BackendSrv,
+  DataSourceSrv,
+  FetchResponse,
+  setBackendSrv,
+  setDataSourceSrv,
+  TemplateSrv,
+  setTemplateSrv,
+} from '@grafana/runtime';
 
 import { DataSource } from '../datasource';
 import { TrinoDataSourceOptions } from '../types';
 
 const mockBackend = { fetch: () => {} };
 setBackendSrv(mockBackend as unknown as BackendSrv);
+const mockTemplate = {
+  replace: (target: any) => {
+    return target;
+  },
+};
+setTemplateSrv(mockTemplate as unknown as TemplateSrv);
 const mockDataSource = {
   getInstanceSettings: () => ({ id: 8674 }),
 };
@@ -17,6 +31,7 @@ setDataSourceSrv(mockDataSource as unknown as DataSourceSrv);
 jest.mock('@grafana/runtime', () => ({
   ...(jest.requireActual('@grafana/runtime') as unknown as object),
   getBackendSrv: () => mockBackend,
+  getTemplateSrv: () => mockTemplate,
   getDataSourceSrv: () => mockDataSource,
 }));
 

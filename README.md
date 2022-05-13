@@ -43,6 +43,38 @@ Plugin supports the following marcos:
 
 A description of macros is available by typing their names in Raw Editor
 
+## Templating
+
+### Using Variables in Queries
+
+Template variable values are only quoted when the template variable is a `multi-value`.
+
+If the variable is a multi-value variable then use the `IN` comparison operator
+rather than `=` to match against multiple values.
+
+Example with a template variable named hostname:
+
+```sql
+SELECT
+  atimestamp as time,
+  aint as value
+FROM table
+WHERE $__timeFilter(atimestamp) and hostname in($hostname)
+ORDER BY atimestamp ASC
+```
+
+### Disabling quoting for multi-value variables
+
+Grafana automatically creates a quoted, comma-separated string for multi-value variables.
+For example: if `server01` and `server02` are selected then it will be formatted as:
+`'server01', 'server02'`. To disable quoting, use the `csv` formatting option for variables:
+
+```
+${servers:csv}
+```
+
+Read more about variable formatting options in the [Variables](https://grafana.com/docs/grafana/latest/variables/#advanced-formatting-options) documentation.
+
 # Contributing
 
 If you have any idea for an improvement or found a bug do not hesitate to open an issue or submit a pull request.
