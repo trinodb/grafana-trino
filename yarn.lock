@@ -1109,6 +1109,31 @@
     uplot "1.6.19"
     xss "1.0.11"
 
+"@grafana/data@8.5.3":
+  version "8.5.3"
+  resolved "https://registry.yarnpkg.com/@grafana/data/-/data-8.5.3.tgz#5d2405bd0902a8a8fa2d4abb1dade9a5ebb95cd9"
+  integrity sha512-WeK2y3IHMbJJ9GjRoCSb5rwZK1QSOsMjRjH/jFtTx1s7XXWFPvgE4L/1HUVMRkoNMGx1qgAiqe1hMbIjo51mmQ==
+  dependencies:
+    "@braintree/sanitize-url" "6.0.0"
+    "@grafana/schema" "8.5.3"
+    "@types/d3-interpolate" "^1.4.0"
+    d3-interpolate "1.4.0"
+    date-fns "2.28.0"
+    eventemitter3 "4.0.7"
+    lodash "4.17.21"
+    marked "4.0.12"
+    moment "2.29.2"
+    moment-timezone "0.5.34"
+    ol "6.14.1"
+    papaparse "5.3.2"
+    react "17.0.2"
+    react-dom "17.0.2"
+    regenerator-runtime "0.13.9"
+    rxjs "7.5.5"
+    tslib "2.3.1"
+    uplot "1.6.19"
+    xss "1.0.11"
+
 "@grafana/e2e-selectors@8.5.1":
   version "8.5.1"
   resolved "https://registry.yarnpkg.com/@grafana/e2e-selectors/-/e2e-selectors-8.5.1.tgz#4be33edb9bf01d283f8ab649b4997c4ecaf10bf6"
@@ -1155,6 +1180,13 @@
   version "8.5.1"
   resolved "https://registry.yarnpkg.com/@grafana/schema/-/schema-8.5.1.tgz#fffdd58dbcda3925d71aaaa8c8490d081ae12511"
   integrity sha512-dmQKjuln0PcevX09LYV78XkPr/KI7RSI1BsPrkxJ6vqfkIC/Ty5443LryFZ+PxA8Mle3tQWA/2Qz9FzJeZHG/A==
+  dependencies:
+    tslib "2.3.1"
+
+"@grafana/schema@8.5.3":
+  version "8.5.3"
+  resolved "https://registry.yarnpkg.com/@grafana/schema/-/schema-8.5.3.tgz#b132b956c271176c189f44dee526a405e095e63c"
+  integrity sha512-mqDmHQlVvpC7lmtQoYAL7HPulR/2PJDJjP77Oki7UUmxd/YvBjSQkF7Eg4fJHEdrUsX6nsAiSmgED+0/yzqxgA==
   dependencies:
     tslib "2.3.1"
 
@@ -8375,15 +8407,10 @@ moment-timezone@0.5.34:
   dependencies:
     moment ">= 2.9.0"
 
-moment@2.29.2:
+moment@2.29.2, moment@2.x, "moment@>= 2.9.0":
   version "2.29.2"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.2.tgz#00910c60b20843bcba52d37d58c628b47b1f20e4"
   integrity sha512-UgzG4rvxYpN15jgCmVJwac49h9ly9NurikMWGPdVxm8GZD6XjkKPxDTjQQ43gtGgnV3X0cAyWDdP2Wexoquifg==
-
-moment@2.x, "moment@>= 2.9.0":
-  version "2.29.1"
-  resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.1.tgz#b2be769fa31940be9eeea6469c075e35006fa3d3"
-  integrity sha512-kHmoybcPV8Sqy59DwNDY3Jefr64lK/by/da0ViFcuA4DH0vQg5Q6Ze5VimxkfQNSC+Mls/Kx53s7TjP1RhFEDQ==
 
 monaco-editor@^0.31.1:
   version "0.31.1"
