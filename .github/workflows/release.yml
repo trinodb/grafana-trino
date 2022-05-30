@@ -30,13 +30,13 @@ jobs:
         run: yarn build
 
       - name: Test backend
-        uses: magefile/mage-action@v1
+        uses: magefile/mage-action@v2
         with:
           version: latest
           args: coverage
 
       - name: Build backend
-        uses: magefile/mage-action@v1
+        uses: magefile/mage-action@v2
         with:
           version: latest
           args: buildAll
