@@ -2,7 +2,6 @@ import React from 'react';
 import { QueryEditorProps } from '@grafana/data';
 import { DataSource } from './datasource';
 import { TrinoDataSourceOptions, TrinoQuery, defaultQuery, SelectableFormatOptions } from './types';
-import { InlineSegmentGroup } from '@grafana/ui';
 import { FormatSelect, QueryCodeEditor } from '@grafana/aws-sdk';
 
 type Props = QueryEditorProps<DataSource, TrinoQuery, TrinoDataSourceOptions>;
@@ -15,7 +14,6 @@ export function QueryEditor(props: Props) {
 
   return (
     <>
-      <InlineSegmentGroup>
         <div className="gf-form-group">
           <h6>Frames</h6>
           <FormatSelect
@@ -34,7 +32,6 @@ export function QueryEditor(props: Props) {
             getSuggestions={() => []}
           />
         </div>
-      </InlineSegmentGroup>
     </>
   );
 }

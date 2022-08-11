@@ -6,7 +6,7 @@
   "category": "sql",
   "alerting": false,
   "annotations": false,
-  "metrics": false,
+  "metrics": true,
   "logs": false,
   "backend": true,
   "executable": "gpx_Trino",
@@ -46,7 +46,7 @@
     "updated": "%TODAY%"
   },
   "dependencies": {
-    "grafanaDependency": ">=7.0.0",
+    "grafanaDependency": ">=8.2.0",
     "plugins": []
   }
 }
