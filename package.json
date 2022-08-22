@@ -20,7 +20,7 @@
     "@grafana/runtime": "9.0.7",
     "@grafana/toolkit": "9.0.7",
     "@grafana/ui": "9.0.7",
-    "@types/lodash": "4.14.182"
+    "@types/lodash": "4.14.184"
   },
   "resolutions": {
     "rxjs": "7.5.5"
