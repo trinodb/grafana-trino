@@ -555,8 +555,8 @@ github.com/stretchr/testify v1.7.2/go.mod h1:R6va5+xMeoiuVRoj+gSkQ7d3FALtqAAGI1F
 github.com/stretchr/testify v1.8.0 h1:pSgiaMZlXftHpm5L7V1+rVB+AZJydKsMxsQBIJw4PKk=
 github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635/go.mod h1:hkRG7XYTFWNJGYcbNJQlaLq0fg1yr4J4t/NcTQtrfww=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20170815181823-89b8d40f7ca8/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
-github.com/trinodb/trino-go-client v0.302.0 h1:nCoZZwX5tTISLNIEOOjYN36aY5q2SfACQKfQpXkY0j0=
-github.com/trinodb/trino-go-client v0.302.0/go.mod h1:b3wyshZj60DHd7JsULwPvaq+JD6e3v+tQugVKZ+SqBw=
+github.com/trinodb/trino-go-client v0.308.0 h1:JXO1Kt8XktqCG5cuFmArqlwz1OiBAYHhNm8cggn12vI=
+github.com/trinodb/trino-go-client v0.308.0/go.mod h1:b3wyshZj60DHd7JsULwPvaq+JD6e3v+tQugVKZ+SqBw=
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
 github.com/urfave/cli v1.22.1/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYppBueQtXaqoE=
