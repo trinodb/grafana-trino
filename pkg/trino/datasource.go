@@ -12,8 +12,8 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/data/sqlutil"
 	"github.com/grafana/sqlds/v2"
 	"github.com/pkg/errors"
-	"github.com/starburstdata/grafana-trino/pkg/trino/driver"
-	"github.com/starburstdata/grafana-trino/pkg/trino/models"
+	"github.com/trinodb/grafana-trino/pkg/trino/driver"
+	"github.com/trinodb/grafana-trino/pkg/trino/models"
 )
 
 type TrinoDatasource struct {

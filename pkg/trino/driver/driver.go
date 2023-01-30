@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-	"github.com/starburstdata/grafana-trino/pkg/trino/models"
+	"github.com/trinodb/grafana-trino/pkg/trino/models"
 	"github.com/trinodb/trino-go-client/trino"
 	_ "github.com/trinodb/trino-go-client/trino"
 )

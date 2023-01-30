@@ -1,6 +1,6 @@
 # Trino Grafana Data Source Plugin
 
-[![Build](https://github.com/starburstdata/grafana-trino/workflows/CI/badge.svg)](https://github.com/grafana/grafana-datasource-backend/actions?query=workflow%3A%22CI%22)
+[![Build](https://github.com/trinodb/grafana-trino/workflows/CI/badge.svg)](https://github.com/grafana/grafana-datasource-backend/actions?query=workflow%3A%22CI%22)
 
 The Trino datasource allows to query and visualize [Trino](https://trino.io/) data from within Grafana.
 
@@ -82,8 +82,8 @@ We will appreciate any help from the community.
 
 # Development
 
-See [DEVELOPMENT.md](https://github.com/starburstdata/grafana-trino/blob/main/DEVELOPMENT.md) for development instructions.
+See [DEVELOPMENT.md](https://github.com/trinodb/grafana-trino/blob/main/DEVELOPMENT.md) for development instructions.
 
 # License
 
-Apache 2.0 License, please see [LICENSE](https://github.com/starburstdata/grafana-trino/blob/main/LICENSE) for details.
+Apache 2.0 License, please see [LICENSE](https://github.com/trinodb/grafana-trino/blob/main/LICENSE) for details.

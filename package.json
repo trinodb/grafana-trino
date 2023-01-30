@@ -11,8 +11,8 @@
     "start": "yarn watch"
   },
   "author": {
-    "name": "Starburst Data",
-    "url": "https://www.starburst.io/"
+    "name": "Trino",
+    "url": "https://trino.io/"
   },
   "license": "Apache-2.0",
   "devDependencies": {

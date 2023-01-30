@@ -6,7 +6,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/sqlds/v2"
-	"github.com/starburstdata/grafana-trino/pkg/trino"
+	"github.com/trinodb/grafana-trino/pkg/trino"
 )
 
 func main() {

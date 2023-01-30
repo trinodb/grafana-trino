@@ -13,8 +13,8 @@
   "info": {
     "description": "The Trino datasource allows to query and visualize Trino data from within Grafana.",
     "author": {
-      "name": "Starburst Data",
-      "url": "https://www.starburst.io/"
+      "name": "Trino",
+      "url": "https://trino.io/"
     },
     "keywords": [
       "sql",
@@ -34,11 +34,11 @@
     "links": [
       {
         "name": "Website",
-        "url": "https://github.com/starburstdata/grafana-trino"
+        "url": "https://github.com/trinodb/grafana-trino"
       },
       {
         "name": "License",
-        "url": "https://github.com/starburstdata/grafana-trino/blob/master/LICENSE"
+        "url": "https://github.com/trinodb/grafana-trino/blob/master/LICENSE"
       }
     ],
     "screenshots": [],
