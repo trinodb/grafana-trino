@@ -1,4 +1,4 @@
-module github.com/starburstdata/grafana-trino
+module github.com/trinodb/grafana-trino
 
 go 1.18
 
