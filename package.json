@@ -29,6 +29,6 @@
     "node": ">=14"
   },
   "dependencies": {
-    "@grafana/aws-sdk": "^0.0.37"
+    "@grafana/aws-sdk": "^0.0.42"
   }
 }
