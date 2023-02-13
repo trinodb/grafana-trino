@@ -1294,15 +1294,25 @@
   dependencies:
     tslib "2.4.0"
 
+"@grafana/async-query-data@0.1.4":
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/@grafana/async-query-data/-/async-query-data-0.1.4.tgz#ac24e32822a8032dd1ee10ce7dcb8c2e276c58b0"
+  integrity sha512-3d7fm2sf5x/+JKTt4T6MSS/veB2J/YGfQp5Ck0Tbqtc5YIoI0p1JY+vFWfCstEHyVd1H0Ep/q/VSxf4VAs9YKQ==
+  dependencies:
+    tslib "^2.4.1"
+
 "@grafana/aws-sdk@0.0.36":
   version "0.0.36"
   resolved "https://registry.npmjs.org/@grafana/aws-sdk/-/aws-sdk-0.0.36.tgz"
   integrity sha512-Vtj8WXKI52R4wLfbDASbHWTfgnG7XG1cgKsibAl5hT1BWKqs5chW3zRzpjo4xOqaBDCsweMwLlF/wWzlg1vrFQ==
 
-"@grafana/aws-sdk@^0.0.37":
-  version "0.0.37"
-  resolved "https://registry.npmjs.org/@grafana/aws-sdk/-/aws-sdk-0.0.37.tgz"
-  integrity sha512-KAESRygY6U5TaGc/CXzLTEI6TEvmlbdOCYIehPjXjnjQnXQh9HVTLosWOptYy3zu5liZXO/+AR/Q4EEPOwC56w==
+"@grafana/aws-sdk@^0.0.43":
+  version "0.0.43"
+  resolved "https://registry.yarnpkg.com/@grafana/aws-sdk/-/aws-sdk-0.0.43.tgz#6dbb2d75f96ef124dd530e55535c449089cf45f1"
+  integrity sha512-v2/WuQwLW/eiJFNPhhf0hk2rcBKwUazsylT4ImAEmcf1PDxxg5VniXQIyOJXiAH3FY+R0HVd+2UwgGIR16NXgw==
+  dependencies:
+    "@grafana/async-query-data" "0.1.4"
+    "@grafana/experimental" "1.1.0"
 
 "@grafana/data@9.0.7":
   version "9.0.7"
@@ -1351,6 +1361,14 @@
     eslint-plugin-react "7.29.4"
     eslint-plugin-react-hooks "4.3.0"
     typescript "4.6.4"
+
+"@grafana/experimental@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@grafana/experimental/-/experimental-1.1.0.tgz#36b9644b1e61c782ed42b4805c5e297f2cc3f8bf"
+  integrity sha512-pQhYhw+jB7Q+t8rLcd1jcx91BiFDNslBATJkNIgO9I2Bah+ww+2RH1hUGVoJNPL84vW7WRU7w9k/L7FJs7/L6Q==
+  dependencies:
+    "@types/uuid" "^8.3.3"
+    uuid "^8.3.2"
 
 "@grafana/runtime@9.0.7":
   version "9.0.7"
@@ -2656,6 +2674,11 @@
   integrity sha512-O3MmRAk6ZuAKa9CHgg0Pr0+lUOqoMLpc9AS4R8ano2auvsg7IE8syF3Xh/NPr26TWklxYcqoEEFdzLLs1fV9PQ==
   dependencies:
     source-map "^0.6.1"
+
+"@types/uuid@^8.3.3":
+  version "8.3.4"
+  resolved "https://registry.yarnpkg.com/@types/uuid/-/uuid-8.3.4.tgz#bd86a43617df0594787d38b735f55c805becf1bc"
+  integrity sha512-c/I8ZRb51j+pYGAu5CrFMRxqZ2ke4y2grEBO5AUjgSkSk+qT2Ea+OdWElz/OiMf5MNpn2b17kuVBwZLQJXzihw==
 
 "@types/webpack-dev-server@3":
   version "3.11.6"
@@ -9159,6 +9182,11 @@ tslib@^1.8.1, tslib@^1.9.3:
   version "1.14.1"
   resolved "https://registry.npmjs.org/tslib/-/tslib-1.14.1.tgz"
   integrity sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==
+
+tslib@^2.4.1:
+  version "2.5.0"
+  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.5.0.tgz#42bfed86f5787aeb41d031866c8f402429e0fddf"
+  integrity sha512-336iVw3rtn2BUK7ORdIAHTyxHGRIHVReokCR3XjbckJMK7ms8FysBfhLR8IXnAgy7T0PTPNBWKiH514FOW/WSg==
 
 tsutils@^3.21.0:
   version "3.21.0"
