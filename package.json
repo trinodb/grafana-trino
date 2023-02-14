@@ -16,11 +16,11 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "@grafana/data": "9.0.7",
-    "@grafana/runtime": "9.0.7",
-    "@grafana/toolkit": "9.0.7",
-    "@grafana/ui": "9.0.7",
-    "@types/lodash": "4.14.182"
+    "@grafana/data": "9.3.6",
+    "@grafana/runtime": "9.3.6",
+    "@grafana/toolkit": "9.3.6",
+    "@grafana/ui": "9.3.6",
+    "@types/lodash": "4.14.191"
   },
   "resolutions": {
     "rxjs": "7.5.5"
@@ -29,6 +29,6 @@
     "node": ">=14"
   },
   "dependencies": {
-    "@grafana/aws-sdk": "^0.0.37"
+    "@grafana/aws-sdk": "^0.0.43"
   }
 }
