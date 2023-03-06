@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/grafana/grafana-plugin-sdk-go v0.149.1
-	github.com/grafana/sqlds/v2 v2.3.21
+	github.com/grafana/sqlds/v2 v2.4.0
 	github.com/pkg/errors v0.9.1
 	github.com/trinodb/trino-go-client v0.309.0
 )
