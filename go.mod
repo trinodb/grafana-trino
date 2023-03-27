@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/grafana/grafana-plugin-sdk-go v0.149.1
-	github.com/grafana/sqlds/v2 v2.3.21
+	github.com/grafana/sqlds/v2 v2.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/trinodb/trino-go-client v0.309.0
 )
@@ -70,6 +70,7 @@ require (
 	github.com/unknwon/log v0.0.0-20200308114134-929b1006e34a // indirect
 	github.com/urfave/cli v1.22.12 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
+	golang.org/x/exp v0.0.0-20230307190834-24139beb5833 // indirect
 	golang.org/x/net v0.0.0-20220809184613-07c6da5e1ced // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
