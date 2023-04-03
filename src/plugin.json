@@ -41,7 +41,12 @@
         "url": "https://github.com/trinodb/grafana-trino/blob/master/LICENSE"
       }
     ],
-    "screenshots": [],
+    "screenshots": [
+      {
+        "name": "Explore",
+        "path": "img/explore.png"
+      }
+    ],
     "version": "%VERSION%",
     "updated": "%TODAY%"
   },
