@@ -3,7 +3,7 @@ module github.com/trinodb/grafana-trino
 go 1.18
 
 require (
-	github.com/grafana/grafana-plugin-sdk-go v0.157.0
+	github.com/grafana/grafana-plugin-sdk-go v0.159.0
 	github.com/grafana/sqlds/v2 v2.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/trinodb/trino-go-client v0.310.0
@@ -74,6 +74,7 @@ require (
 	github.com/unknwon/log v0.0.0-20200308114134-929b1006e34a // indirect
 	github.com/urfave/cli v1.22.12 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.40.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.37.0 // indirect
 	go.opentelemetry.io/contrib/propagators/jaeger v1.15.0 // indirect
 	go.opentelemetry.io/otel v1.14.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.14.0 // indirect
