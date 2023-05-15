@@ -19,7 +19,7 @@
     "@grafana/data": "9.4.7",
     "@grafana/runtime": "9.4.7",
     "@grafana/toolkit": "9.4.7",
-    "@grafana/ui": "9.4.7",
+    "@grafana/ui": "9.5.2",
     "@types/lodash": "4.14.192",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
