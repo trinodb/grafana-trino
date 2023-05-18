@@ -3,6 +3,8 @@ package driver
 import (
 	"crypto/tls"
 	"database/sql"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
@@ -17,14 +19,28 @@ const DriverName string = "trino"
 func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 	skipVerify := false
 	sslCert := ""
+	var clientCert []tls.Certificate
 	if settings.Opts.TLS != nil {
 		skipVerify = settings.Opts.TLS.InsecureSkipVerify
 		sslCert = settings.Opts.TLS.CACertificate
+	}
+	if settings.Opts.TLS.ClientCertificate != "" {
+		if settings.Opts.TLS.ClientKey == "" {
+			return nil, errors.New("client certificate was configured without a client key")
+		}
+		cert, err := tls.X509KeyPair(
+			[]byte(settings.Opts.TLS.ClientCertificate),
+			[]byte(settings.Opts.TLS.ClientKey))
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client certificate: %w", err)
+		}
+		clientCert = append(clientCert, cert)
 	}
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: skipVerify,
+				Certificates:       clientCert,
 			},
 		},
 	}
