@@ -1,6 +1,6 @@
 {
   "name": "trino-datasource",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "The Trino datasource allows to query and visualize Trino data from within Grafana.",
   "scripts": {
     "build": "grafana-toolkit plugin:build",
