@@ -2,6 +2,7 @@ package driver
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -18,29 +19,33 @@ const DriverName string = "trino"
 // Open registers a new driver with a unique name
 func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 	skipVerify := false
-	sslCert := ""
+	var certPool *x509.CertPool
 	var clientCert []tls.Certificate
 	if settings.Opts.TLS != nil {
 		skipVerify = settings.Opts.TLS.InsecureSkipVerify
-		sslCert = settings.Opts.TLS.CACertificate
-	}
-	if settings.Opts.TLS.ClientCertificate != "" {
-		if settings.Opts.TLS.ClientKey == "" {
-			return nil, errors.New("client certificate was configured without a client key")
+		if settings.Opts.TLS.CACertificate != "" {
+			certPool := x509.NewCertPool()
+			certPool.AppendCertsFromPEM([]byte(settings.Opts.TLS.CACertificate))
 		}
-		cert, err := tls.X509KeyPair(
-			[]byte(settings.Opts.TLS.ClientCertificate),
-			[]byte(settings.Opts.TLS.ClientKey))
-		if err != nil {
-			return nil, fmt.Errorf("failed to load client certificate: %w", err)
+		if settings.Opts.TLS.ClientCertificate != "" {
+			if settings.Opts.TLS.ClientKey == "" {
+				return nil, errors.New("client certificate was configured without a client key")
+			}
+			cert, err := tls.X509KeyPair(
+				[]byte(settings.Opts.TLS.ClientCertificate),
+				[]byte(settings.Opts.TLS.ClientKey))
+			if err != nil {
+				return nil, fmt.Errorf("failed to load client certificate: %w", err)
+			}
+			clientCert = append(clientCert, cert)
 		}
-		clientCert = append(clientCert, cert)
 	}
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: skipVerify,
 				Certificates:       clientCert,
+				RootCAs:            certPool,
 			},
 		},
 	}
@@ -52,7 +57,6 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 		ServerURI:        settings.URL.String(),
 		Source:           "grafana",
 		CustomClientName: "grafana",
-		SSLCert:          sslCert,
 	}
 
 	dsn, err := config.FormatDSN()
