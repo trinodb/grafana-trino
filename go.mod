@@ -3,7 +3,7 @@ module github.com/trinodb/grafana-trino
 go 1.18
 
 require (
-	github.com/grafana/grafana-plugin-sdk-go v0.162.0
+	github.com/grafana/grafana-plugin-sdk-go v0.172.0
 	github.com/grafana/sqlds/v2 v2.5.1
 	github.com/pkg/errors v0.9.1
 	github.com/trinodb/trino-go-client v0.312.0
@@ -18,7 +18,7 @@ require (
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/chromedp/cdproto v0.0.0-20230329100754-6125fc8d7142 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
-	github.com/elazarl/goproxy v0.0.0-20221015165544-a0805db90819 // indirect
+	github.com/elazarl/goproxy v0.0.0-20230731152917-f99041a5c027 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/getkin/kin-openapi v0.115.0 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
@@ -84,12 +84,12 @@ require (
 	go.opentelemetry.io/otel/sdk v1.15.1 // indirect
 	go.opentelemetry.io/otel/trace v1.15.1 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
-	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc // indirect
-	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/net v0.12.0 // indirect
+	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/term v0.10.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	google.golang.org/grpc v1.55.0 // indirect
