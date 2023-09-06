@@ -4,7 +4,7 @@
   "name": "Trino",
   "id": "trino-datasource",
   "category": "sql",
-  "alerting": false,
+  "alerting": true,
   "annotations": false,
   "metrics": true,
   "logs": false,
