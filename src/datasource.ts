@@ -1,6 +1,7 @@
 import { DataSourceInstanceSettings, ScopedVars } from '@grafana/data';
 import { DataSourceWithBackend, getBackendSrv, getTemplateSrv, toDataQueryError } from '@grafana/runtime';
 import { TrinoDataSourceOptions, TrinoQuery } from './types';
+import { TrinoDataVariableSupport } from './variable';
 import { lastValueFrom, of } from 'rxjs';
 import { catchError, mapTo } from 'rxjs/operators';
 import { map } from 'lodash';
