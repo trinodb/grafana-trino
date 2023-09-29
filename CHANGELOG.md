@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4
+
+* Add query variable support
+* Enable alerting
+
 ## 1.0.3
 
 * Use the custom CA in the custom http client
