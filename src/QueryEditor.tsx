@@ -19,7 +19,7 @@ export function QueryEditor(props: Props) {
           <FormatSelect
             query={props.query}
             options={SelectableFormatOptions}
-            onChange={props.onChange}
+            onChange={() => []}
             onRunQuery={props.onRunQuery}
           />
         </div>
@@ -27,7 +27,7 @@ export function QueryEditor(props: Props) {
           <QueryCodeEditor
             language="sql"
             query={queryWithDefaults}
-            onChange={props.onChange}
+            onChange={() => []}
             onRunQuery={props.onRunQuery}
             getSuggestions={() => []}
           />
