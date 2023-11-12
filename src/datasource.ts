@@ -1,5 +1,5 @@
 import { DataSourceInstanceSettings, ScopedVars } from '@grafana/data';
-import { DataSourceWithBackend, getBackendSrv, getTemplateSrv, toDataQueryError } from '@grafana/runtime';
+import { DataSourceWithBackend, getBackendSrv, getTemplateSrv } from '@grafana/runtime';
 import { TrinoDataSourceOptions, TrinoQuery } from './types';
 import { TrinoDataVariableSupport } from './variable';
 import { lastValueFrom, of } from 'rxjs';
@@ -40,7 +40,10 @@ export class DataSource extends DataSourceWithBackend<TrinoQuery, TrinoDataSourc
         .pipe(
           mapTo({ status: 'success', message: 'Database Connection OK' }),
           catchError((err) => {
-            return of(toDataQueryError(err));
+            return of({
+              status: 'error',
+              message: err.error ? err.error : (err.statusText ? ("Query error: " + err.statusText) : "Error connecting to Trino"),
+            });
           })
         )
     );

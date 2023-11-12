@@ -54,8 +54,8 @@ describe('Trino datasource', () => {
 
       const ds = new DataSource({ name: '', id: 0, jsonData: {} } as any);
       const result = await ds.testDatasource();
-      expect(result.status).toEqual(400);
-      expect(result.message).toEqual('Query error: 400 Bad Request');
+      expect(result.status).toEqual("error");
+      expect(result.message).toEqual('Query error: Bad Request');
     });
   });
 });
