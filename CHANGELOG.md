@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.5
+
+* Don't execute query with every focus change
+* Fix connection error handling
+
 ## 1.0.4
 
 * Add query variable support
