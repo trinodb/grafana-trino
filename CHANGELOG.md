@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.6
+
+* Revert focus change actions from last version to fix running queries
+
 ## 1.0.5
 
 * Don't execute query with every focus change
