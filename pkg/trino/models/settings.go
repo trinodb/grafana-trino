@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"net/url"
 
@@ -10,8 +11,9 @@ import (
 )
 
 type TrinoDatasourceSettings struct {
-	URL  *url.URL
-	Opts httpclient.Options
+	URL                 *url.URL           `json:"-"`
+	Opts                httpclient.Options `json:"-"`
+	EnableImpersonation bool               `json:"enableImpersonation"`
 }
 
 func (s *TrinoDatasourceSettings) Load(config backend.DataSourceInstanceSettings) error {
@@ -37,5 +39,9 @@ func (s *TrinoDatasourceSettings) Load(config backend.DataSourceInstanceSettings
 		s.URL.User = url.User("grafana")
 	}
 	s.Opts = opts
+	err = json.Unmarshal(config.JSONData, &s)
+	if err != nil {
+		return err
+	}
 	return nil
 }
