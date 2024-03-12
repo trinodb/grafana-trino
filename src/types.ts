@@ -46,7 +46,9 @@ ORDER BY
  * These are options configured for each DataSource instance.
  */
 
-export interface TrinoDataSourceOptions extends DataSourceJsonData {}
+export interface TrinoDataSourceOptions extends DataSourceJsonData {
+  enableImpersonation?: boolean;
+}
 /**
  * Value that is used in the backend, but never sent over HTTP to the frontend
  */
