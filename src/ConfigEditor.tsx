@@ -26,7 +26,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
           <div className="gf-form-inline">
             <InlineField
               label="Impersonate logged in user"
-              tooltip="If enabled, set X-Trino-User to the current Grafana user"
+              tooltip="If enabled, set the Trino session user to the current Grafana user"
             >
               <InlineSwitch
                 id="trino-settings-enable-impersonation"
