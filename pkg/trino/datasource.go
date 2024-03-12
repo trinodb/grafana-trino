@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"regexp"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -21,8 +22,9 @@ type TrinoDatasource struct {
 }
 
 var (
-	_ sqlds.Driver      = (*TrinoDatasource)(nil)
-	_ sqlds.Completable = (*TrinoDatasource)(nil)
+	_ sqlds.Driver         = (*TrinoDatasource)(nil)
+	_ sqlds.QueryArgSetter = (*TrinoDatasource)(nil)
+	_ sqlds.Completable    = (*TrinoDatasource)(nil)
 )
 
 func New() *TrinoDatasource {
@@ -74,6 +76,11 @@ func (s *TrinoDatasource) Converters() (sc []sqlutil.Converter) {
 		nullTimeConverter,
 		nullBoolConverter,
 	}
+}
+
+func (s *TrinoDatasource) SetQueryArgs(ctx context.Context, headers http.Header) []interface{} {
+	pluginContext := ctx.Value("plugin-context").(backend.PluginContext)
+	return []interface{}{sql.Named("X-Trino-User", string(pluginContext.User.Login))}
 }
 
 func (s *TrinoDatasource) Schemas(ctx context.Context, options sqlds.Options) ([]string, error) {

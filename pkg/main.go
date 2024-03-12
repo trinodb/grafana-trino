@@ -5,7 +5,6 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-	"github.com/grafana/sqlds/v2"
 	"github.com/trinodb/grafana-trino/pkg/trino"
 )
 
@@ -19,7 +18,7 @@ func main() {
 	// ID). When datasource configuration changed Dispose method will be called and
 	// new datasource instance created using New factory.
 	s := &trino.TrinoDatasource{}
-	ds := sqlds.NewDatasource(s)
+	ds := trino.NewDatasource(s)
 	ds.Completable = s
 	if err := datasource.Manage("trino-datasource", ds.NewDatasource, datasource.ManageOpts{}); err != nil {
 		log.DefaultLogger.Error(err.Error())
