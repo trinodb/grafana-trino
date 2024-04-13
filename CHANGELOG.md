@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.7
+
+* Add support for user impersonation
+
 ## 1.0.6
 
 * Revert focus change actions from last version to fix running queries
