@@ -5,9 +5,9 @@
   "id": "trino-datasource",
   "category": "sql",
   "alerting": true,
-  "annotations": false,
+  "annotations": true,
   "metrics": true,
-  "logs": false,
+  "logs": true,
   "backend": true,
   "executable": "gpx_Trino",
   "info": {
