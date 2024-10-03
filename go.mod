@@ -3,7 +3,7 @@ module github.com/trinodb/grafana-trino
 go 1.18
 
 require (
-	github.com/grafana/grafana-plugin-sdk-go v0.162.0
+	github.com/grafana/grafana-plugin-sdk-go v0.251.0
 	github.com/grafana/sqlds/v2 v2.7.2
 	github.com/pkg/errors v0.9.1
 	github.com/trinodb/trino-go-client v0.312.0
