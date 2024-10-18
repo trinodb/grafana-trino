@@ -53,10 +53,11 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 		return nil, err
 	}
 	config := trino.Config{
-		ServerURI:        settings.URL.String(),
-		Source:           "grafana",
-		CustomClientName: "grafana",
-		AccessToken:      settings.AccessToken,
+		ServerURI:                  settings.URL.String(),
+		Source:                     "grafana",
+		CustomClientName:           "grafana",
+		ForwardAuthorizationHeader: true,
+		AccessToken:                settings.AccessToken,
 	}
 
 	dsn, err := config.FormatDSN()
