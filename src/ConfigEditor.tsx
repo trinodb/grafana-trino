@@ -1,5 +1,5 @@
 import React, { ChangeEvent, PureComponent } from 'react';
-import { DataSourceHttpSettings, InlineField, InlineSwitch } from '@grafana/ui';
+import { DataSourceHttpSettings, InlineField, InlineSwitch, SecretFormField } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import { TrinoDataSourceOptions } from './types';
 
@@ -12,6 +12,9 @@ export class ConfigEditor extends PureComponent<Props, State> {
     const { options, onOptionsChange } = this.props;
     const onEnableImpersonationChange = (event: ChangeEvent<HTMLInputElement>) => {
       onOptionsChange({...options, jsonData: {...options.jsonData, enableImpersonation: event.target.checked}})
+    }
+    const onTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
+      onOptionsChange({...options, jsonData: {...options.jsonData, accessToken: event.target.value}})
     }
     return (
       <div className="gf-form-group">
@@ -32,6 +35,19 @@ export class ConfigEditor extends PureComponent<Props, State> {
                 id="trino-settings-enable-impersonation"
                 value={options.jsonData?.enableImpersonation ?? false}
                 onChange={onEnableImpersonationChange}
+              />
+            </InlineField>
+
+            <InlineField
+              label="JWT Access Token"
+              tooltip="If set, use the JWT Access Token for authentication to Trino"
+            >
+              <SecretFormField
+                isConfigured={options.jsonData?.accessToken == nil ?? false)}
+                value={options.jsonData.accessToken || ''}
+                inputWidth={18}
+                labelWidth={10}
+                onChange={onTokenChange}
               />
             </InlineField>
           </div>
