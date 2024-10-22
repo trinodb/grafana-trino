@@ -57,6 +57,7 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 		ServerURI:        settings.URL.String(),
 		Source:           "grafana",
 		CustomClientName: "grafana",
+		AccessToken:      settings.JWTAccessToken,
 	}
 
 	dsn, err := config.FormatDSN()
