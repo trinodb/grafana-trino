@@ -14,7 +14,7 @@ type TrinoDatasourceSettings struct {
 	URL                 *url.URL           `json:"-"`
 	Opts                httpclient.Options `json:"-"`
 	EnableImpersonation bool               `json:"enableImpersonation"`
-	JWTAccessToken      string             `json:"accessToken"`
+	JWTAccessToken      string             `json:"jwtAccessToken"`
 }
 
 func (s *TrinoDatasourceSettings) Load(config backend.DataSourceInstanceSettings) error {
