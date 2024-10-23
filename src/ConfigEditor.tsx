@@ -1,7 +1,8 @@
 import React, { ChangeEvent, PureComponent } from 'react';
-import { DataSourceHttpSettings, InlineField, InlineSwitch, SecretFormField } from '@grafana/ui';
+import { DataSourceHttpSettings, InlineField, InlineSwitch, LegacyForms } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import { TrinoDataSourceOptions } from './types';
+const { FormField } = LegacyForms;
 
 interface Props extends DataSourcePluginOptionsEditorProps<TrinoDataSourceOptions> {}
 
@@ -14,7 +15,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
       onOptionsChange({...options, jsonData: {...options.jsonData, enableImpersonation: event.target.checked}})
     }
     const onTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
-      onOptionsChange({...options, jsonData: {...options.jsonData, accessToken: event.target.value}})
+      onOptionsChange({...options, jsonData: {...options.jsonData, jwtAccessToken: event.target.value}})
     }
     return (
       <div className="gf-form-group">
@@ -37,19 +38,16 @@ export class ConfigEditor extends PureComponent<Props, State> {
                 onChange={onEnableImpersonationChange}
               />
             </InlineField>
-
-            <InlineField
-              label="JWT Access Token"
+          </div>
+          <div className="gf-form-inline">
+            <FormField
+              label="Test"
               tooltip="If set, use the JWT Access Token for authentication to Trino"
-            >
-              <SecretFormField
-                isConfigured={options.jsonData?.accessToken == nil ?? false)}
-                value={options.jsonData.accessToken || ''}
-                inputWidth={18}
-                labelWidth={10}
-                onChange={onTokenChange}
-              />
-            </InlineField>
+              value={options.jsonData?.jwtAccessToken || ''}
+              inputWidth={18}
+              labelWidth={10}
+              onChange={onTokenChange}
+            />
           </div>
         </div>
       </div>
