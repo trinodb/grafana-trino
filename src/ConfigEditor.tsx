@@ -41,7 +41,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
           </div>
           <div className="gf-form-inline">
             <FormField
-              label="Test"
+              label="JWT Access Token"
               tooltip="If set, use the JWT Access Token for authentication to Trino"
               value={options.jsonData?.jwtAccessToken || ''}
               inputWidth={18}
