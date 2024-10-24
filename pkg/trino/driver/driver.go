@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
@@ -61,7 +62,11 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 	}
 
 	dsn, err := config.FormatDSN()
-	log.DefaultLogger.Info("Connecting to Trino", "dsn", dsn)
+	dsnlog := dsn
+	if settings.JWTAccessToken != "" {
+	    dsnlog = strings.Replace(dsnlog, settings.JWTAccessToken, "<scrubbedToken>", -1)
+	}
+	log.DefaultLogger.Info("Connecting to Trino", "dsn", dsnlog)
 	if err != nil {
 		return nil, err
 	}
