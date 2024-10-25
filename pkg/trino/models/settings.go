@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/url"
@@ -17,11 +18,11 @@ type TrinoDatasourceSettings struct {
 }
 
 func (s *TrinoDatasourceSettings) Load(config backend.DataSourceInstanceSettings) error {
-	opts, err := config.HTTPClientOptions()
+	opts, err := config.HTTPClientOptions(context.Background())
 	if err != nil {
 		return err
 	}
-	if len(opts.Headers) != 0 {
+	if len(opts.Header) != 0 {
 		return errors.New("Custom headers are not supported and must be not set")
 	}
 	log.DefaultLogger.Info("Loading Trino data source settings")
