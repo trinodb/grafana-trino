@@ -48,6 +48,7 @@ ORDER BY
 
 export interface TrinoDataSourceOptions extends DataSourceJsonData {
   enableImpersonation?: boolean;
+  accessToken?: string;
 }
 /**
  * Value that is used in the backend, but never sent over HTTP to the frontend

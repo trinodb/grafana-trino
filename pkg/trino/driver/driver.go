@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
 	"github.com/trinodb/trino-go-client/trino"
 	_ "github.com/trinodb/trino-go-client/trino"
@@ -58,10 +57,10 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 		Source:                     "grafana",
 		CustomClientName:           "grafana",
 		ForwardAuthorizationHeader: true,
+		AccessToken:                settings.AccessToken,
 	}
 
 	dsn, err := config.FormatDSN()
-	log.DefaultLogger.Info("Connecting to Trino", "dsn", dsn)
 	if err != nil {
 		return nil, err
 	}
