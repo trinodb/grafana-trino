@@ -1431,6 +1431,34 @@
     uplot "1.6.24"
     xss "^1.0.14"
 
+"@grafana/data@9.5.3":
+  version "9.5.3"
+  resolved "https://registry.yarnpkg.com/@grafana/data/-/data-9.5.3.tgz#2a6930cce1aa1a1f469c510c745cf4cb59158a2d"
+  integrity sha512-JO441E1puweeXO6bSu3QE6a2v5x3ZOyYlcHd66TBo4OOEvaqJOMz8P+uD2B9MKpnN+1VkSo83/MUNuQaQ2yJtA==
+  dependencies:
+    "@braintree/sanitize-url" "6.0.2"
+    "@grafana/schema" "9.5.3"
+    "@types/d3-interpolate" "^3.0.0"
+    d3-interpolate "3.0.1"
+    date-fns "2.29.3"
+    dompurify "^2.4.3"
+    eventemitter3 "5.0.0"
+    fast_array_intersect "1.1.0"
+    history "4.10.1"
+    lodash "4.17.21"
+    marked "4.2.12"
+    moment "2.29.4"
+    moment-timezone "0.5.41"
+    ol "7.2.2"
+    papaparse "5.3.2"
+    react-use "17.4.0"
+    regenerator-runtime "0.13.11"
+    rxjs "7.8.0"
+    tinycolor2 "1.6.0"
+    tslib "2.5.0"
+    uplot "1.6.24"
+    xss "^1.0.14"
+
 "@grafana/e2e-selectors@9.5.2":
   version "9.5.2"
   resolved "https://registry.yarnpkg.com/@grafana/e2e-selectors/-/e2e-selectors-9.5.2.tgz#8d56e0c11d7dfb85e0b9a908397abb58cfbc2325"
@@ -1500,6 +1528,13 @@
   version "9.5.2"
   resolved "https://registry.yarnpkg.com/@grafana/schema/-/schema-9.5.2.tgz#336587ceb9cb1391b3d07d9e0372a7812cb7b215"
   integrity sha512-EbJLpdS4Zt7e8p40DVWOdGrTz0M8LRrCHGuHZnpz7xcFmwWTwu5bh/i1n4i98QYmF5cD+oAcRaHqRqT15HYORw==
+  dependencies:
+    tslib "2.5.0"
+
+"@grafana/schema@9.5.3":
+  version "9.5.3"
+  resolved "https://registry.yarnpkg.com/@grafana/schema/-/schema-9.5.3.tgz#dc873536000adf80287006fd2b35c1c8968e0d15"
+  integrity sha512-Ol0bRg/uI8jGyWfqxFcOJVcJoscpkIIGFt2IXzBgoeXLQLKc23HoUXFq2UEvWAu8heJUQC8Fk7L6i3MUGINq3g==
   dependencies:
     tslib "2.5.0"
 
