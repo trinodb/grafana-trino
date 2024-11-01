@@ -3,6 +3,7 @@
 ## 1.0.8
 
 * Add support for OAuth
+* Add support for annotations
 
 ## 1.0.7
 
