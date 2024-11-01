@@ -15,7 +15,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
       onOptionsChange({...options, jsonData: {...options.jsonData, enableImpersonation: event.target.checked}})
     }
     const onTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
-      onOptionsChange({...options, jsonData: {...options.jsonData, jwtAccessToken: event.target.value}})
+      onOptionsChange({...options, jsonData: {...options.jsonData, accessToken: event.target.value}})
     }
     return (
       <div className="gf-form-group">
@@ -31,6 +31,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
             <InlineField
               label="Impersonate logged in user"
               tooltip="If enabled, set the Trino session user to the current Grafana user"
+              labelWidth={26}
             >
               <InlineSwitch
                 id="trino-settings-enable-impersonation"
@@ -40,14 +41,17 @@ export class ConfigEditor extends PureComponent<Props, State> {
             </InlineField>
           </div>
           <div className="gf-form-inline">
-            <FormField
-              label="JWT Access Token"
-              tooltip="If set, use the JWT Access Token for authentication to Trino"
-              value={options.jsonData?.jwtAccessToken || ''}
-              inputWidth={18}
-              labelWidth={10}
-              onChange={onTokenChange}
-            />
+            <InlineField
+                label="Access Token"
+                tooltip="If set, use the Access Token for authentication to Trino"
+                labelWidth={26}
+              >
+                <Input 
+                  value={options.jsonData?.accessToken || ''}
+                  onChange={onTokenChange}
+                  width={40}
+                />
+            </InlineField>
           </div>
         </div>
       </div>
