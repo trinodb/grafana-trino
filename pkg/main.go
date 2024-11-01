@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"os"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
@@ -20,7 +23,10 @@ func main() {
 	s := &trino.TrinoDatasource{}
 	ds := trino.NewDatasource(s)
 	ds.Completable = s
-	if err := datasource.Manage("trino-datasource", ds.NewDatasource, datasource.ManageOpts{}); err != nil {
+	dsInstanceFactory := func(ctx context.Context, settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+		return ds.NewDatasource(settings)
+	}
+	if err := datasource.Manage("trino-datasource", dsInstanceFactory, datasource.ManageOpts{}); err != nil {
 		log.DefaultLogger.Error(err.Error())
 		os.Exit(1)
 	}

@@ -79,11 +79,20 @@ func (s *TrinoDatasource) Converters() (sc []sqlutil.Converter) {
 }
 
 func (s *TrinoDatasource) SetQueryArgs(ctx context.Context, headers http.Header) []interface{} {
-	user := ctx.Value("X-Trino-User")
-	if user == nil {
-		return []interface{}{}
+	var args []interface{}
+
+	user := ctx.Value(trinoUserHeader)
+	accessToken := ctx.Value(accessTokenKey)
+
+	if user != nil {
+		args = append(args, sql.Named(trinoUserHeader, string(user.(*backend.User).Login)))
 	}
-	return []interface{}{sql.Named("X-Trino-User", string(user.(*backend.User).Login))}
+
+	if accessToken != nil {
+		args = append(args, sql.Named(accessTokenKey, accessToken.(string)))
+	}
+
+	return args
 }
 
 func (s *TrinoDatasource) Schemas(ctx context.Context, options sqlds.Options) ([]string, error) {

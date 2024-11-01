@@ -10,6 +10,7 @@ export class DataSource extends DataSourceWithBackend<TrinoQuery, TrinoDataSourc
   constructor(instanceSettings: DataSourceInstanceSettings<TrinoDataSourceOptions>) {
     super(instanceSettings);
     this.variables = new TrinoDataVariableSupport();
+    this.annotations={};
     // give interpolateQueryStr access to this
     this.interpolateQueryStr = this.interpolateQueryStr.bind(this);
   }

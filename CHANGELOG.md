@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.8
+
+* Add support for OAuth
+* Add support for annotations
+* Use UTC timestamps in macroTimeFilter
+
 ## 1.0.7
 
 * Add support for user impersonation
