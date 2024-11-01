@@ -1,8 +1,7 @@
 import React, { ChangeEvent, PureComponent } from 'react';
-import { DataSourceHttpSettings, InlineField, InlineSwitch, LegacyForms } from '@grafana/ui';
+import { DataSourceHttpSettings, InlineField, InlineSwitch, Input } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import { TrinoDataSourceOptions } from './types';
-const { FormField } = LegacyForms;
 
 interface Props extends DataSourcePluginOptionsEditorProps<TrinoDataSourceOptions> {}
 
