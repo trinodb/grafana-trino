@@ -4,6 +4,7 @@
 
 * Add support for OAuth
 * Add support for annotations
+* Use UTC timestamps in macroTimeFilter
 
 ## 1.0.7
 
