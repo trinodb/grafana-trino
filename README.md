@@ -22,6 +22,8 @@ docker run -d -p 3000:3000 \
 * Authentication:
   * HTTP Basic
   * TLS client authentication
+  * Access token (JWT)
+  * OAuth
 * Raw SQL editor only, no query builder yet
 * Macros
 

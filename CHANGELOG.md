@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.9
+
+* Add support for access token (JWT) authentication
+
 ## 1.0.8
 
 * Add support for OAuth
