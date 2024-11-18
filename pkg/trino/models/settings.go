@@ -45,5 +45,8 @@ func (s *TrinoDatasourceSettings) Load(config backend.DataSourceInstanceSettings
 	if err != nil {
 		return err
 	}
+	if token, ok := config.DecryptedSecureJSONData["accessToken"]; ok {
+		s.AccessToken = token
+	}
 	return nil
 }

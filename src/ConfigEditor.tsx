@@ -1,9 +1,9 @@
 import React, { ChangeEvent, PureComponent } from 'react';
-import { DataSourceHttpSettings, InlineField, InlineSwitch, Input } from '@grafana/ui';
+import { DataSourceHttpSettings, InlineField, InlineSwitch, SecretInput } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
-import { TrinoDataSourceOptions } from './types';
+import {TrinoDataSourceOptions, TrinoSecureJsonData} from './types';
 
-interface Props extends DataSourcePluginOptionsEditorProps<TrinoDataSourceOptions> {}
+interface Props extends DataSourcePluginOptionsEditorProps<TrinoDataSourceOptions, TrinoSecureJsonData> {}
 
 interface State {}
 
@@ -14,8 +14,11 @@ export class ConfigEditor extends PureComponent<Props, State> {
       onOptionsChange({...options, jsonData: {...options.jsonData, enableImpersonation: event.target.checked}})
     }
     const onTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
-      onOptionsChange({...options, jsonData: {...options.jsonData, accessToken: event.target.value}})
+      onOptionsChange({...options, secureJsonData: {...options.secureJsonData, accessToken: event.target.value}})
     }
+    const onResetToken = () => {
+      onOptionsChange({...options, secureJsonFields: {...options.secureJsonFields, accessToken: false }, secureJsonData: {...options.secureJsonData, accessToken: '' }});
+    };
     return (
       <div className="gf-form-group">
         <DataSourceHttpSettings
@@ -41,14 +44,16 @@ export class ConfigEditor extends PureComponent<Props, State> {
           </div>
           <div className="gf-form-inline">
             <InlineField
-                label="Access Token"
-                tooltip="If set, use the Access Token for authentication to Trino"
+                label="Access token"
+                tooltip="If set, use the access token for authentication to Trino"
                 labelWidth={26}
               >
-                <Input 
-                  value={options.jsonData?.accessToken || ''}
+                <SecretInput
+                  value={options.secureJsonData?.accessToken ?? ''}
+                  isConfigured={options.secureJsonFields?.accessToken}
                   onChange={onTokenChange}
                   width={40}
+                  onReset={onResetToken}
                 />
             </InlineField>
           </div>
