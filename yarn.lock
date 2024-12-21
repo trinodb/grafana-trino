@@ -2119,6 +2119,16 @@
   resolved "https://registry.yarnpkg.com/@petamoriken/float16/-/float16-3.7.1.tgz#4a0cc0854a3a101cc2d697272f120e1a05975ce5"
   integrity sha512-oXZOc+aePd0FnhTWk15pyqK+Do87n0TyLV1nxdEougE95X/WXWDqmQobfhgnSY7QsWn5euZUWuDVeTQvoQ5VNw==
 
+"@playwright/test@1.33.0":
+  version "1.33.0"
+  resolved "https://registry.yarnpkg.com/@playwright/test/-/test-1.33.0.tgz#669ef859efb81b143dfc624eef99d1dd92a81b67"
+  integrity sha512-YunBa2mE7Hq4CfPkGzQRK916a4tuZoVx/EpLjeWlTVOnD4S2+fdaQZE0LJkbfhN5FTSKNLdcl7MoT5XB37bTkg==
+  dependencies:
+    "@types/node" "*"
+    playwright-core "1.33.0"
+  optionalDependencies:
+    fsevents "2.3.2"
+
 "@popperjs/core@2.11.6", "@popperjs/core@^2.11.5":
   version "2.11.6"
   resolved "https://registry.yarnpkg.com/@popperjs/core/-/core-2.11.6.tgz#cee20bd55e68a1720bdab363ecf0c821ded4cd45"
@@ -5482,7 +5492,7 @@ fs.realpath@^1.0.0:
   resolved "https://registry.yarnpkg.com/fs.realpath/-/fs.realpath-1.0.0.tgz#1504ad2523158caa40db4a2787cb01411994ea4f"
   integrity sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==
 
-fsevents@^2.3.2, fsevents@~2.3.2:
+fsevents@2.3.2, fsevents@^2.3.2, fsevents@~2.3.2:
   version "2.3.2"
   resolved "https://registry.yarnpkg.com/fsevents/-/fsevents-2.3.2.tgz#8a526f78b8fdf4623b709e0b975c52c24c02fd1a"
   integrity sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==
@@ -7693,6 +7703,11 @@ pkg-up@^3.1.0:
   integrity sha512-nDywThFk1i4BQK4twPQ6TA4RT8bDY96yeuCVBWL3ePARCiEKDRSrNGbFIgUJpLp+XeIR65v8ra7WuJOFUBtkMA==
   dependencies:
     find-up "^3.0.0"
+
+playwright-core@1.33.0:
+  version "1.33.0"
+  resolved "https://registry.yarnpkg.com/playwright-core/-/playwright-core-1.33.0.tgz#269efe29a927cd6d144d05f3c2d2f72bd72447a1"
+  integrity sha512-aizyPE1Cj62vAECdph1iaMILpT0WUDCq3E6rW6I+dleSbBoGbktvJtzS6VHkZ4DKNEOG9qJpiom/ZxO+S15LAw==
 
 pngjs@^6.0.0:
   version "6.0.0"

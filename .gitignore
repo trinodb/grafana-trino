@@ -29,3 +29,7 @@ e2e-results/
 # Editor
 .idea
 .vscode
+
+# Playwright
+playwright-report/
+test-results

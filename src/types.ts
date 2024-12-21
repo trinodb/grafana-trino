@@ -27,13 +27,13 @@ export const SelectableFormatOptions: Array<SelectableValue<FormatOptions>> = [
 
 export const defaultQuery: Partial<TrinoQuery> = {
   rawSQL: `SELECT
-  $__timeGroup(time_column, '1h'),
-  value_column as value,
-  series_column as metric
+  $__timeGroup(orderdate, '1w'),
+  sum(totalprice) as value,
+  orderstatus as metric
 FROM
-  catalog_name.schema_name.table_name
+  tpch.tiny.orders
 WHERE
-  $__timeFilter(time_column)
+  $__timeFilter(orderdate)
 GROUP BY
   1, 3
 ORDER BY
