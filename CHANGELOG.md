@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.10
+
+* Store access token securely
+* Update dependencies
+
 ## 1.0.9
 
 * Add support for access token (JWT) authentication
