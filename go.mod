@@ -5,7 +5,7 @@ go 1.23
 toolchain go1.23.4
 
 require (
-	github.com/grafana/grafana-plugin-sdk-go v0.260.3
+	github.com/grafana/grafana-plugin-sdk-go v0.261.0
 	github.com/grafana/sqlds/v2 v2.7.2
 	github.com/pkg/errors v0.9.1
 	github.com/trinodb/trino-go-client v0.320.0
@@ -20,7 +20,7 @@ require (
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/chromedp/cdproto v0.0.0-20241222144035-c16d098c0fb6 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
-	github.com/elazarl/goproxy v0.0.0-20241221210044-9faedc2f9e9f // indirect
+	github.com/elazarl/goproxy v1.2.6 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/getkin/kin-openapi v0.128.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
