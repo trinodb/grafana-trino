@@ -1,5 +1,5 @@
 import React, { ChangeEvent, PureComponent } from 'react';
-import { DataSourceHttpSettings, InlineField, InlineSwitch, SecretInput } from '@grafana/ui';
+import { DataSourceHttpSettings, InlineField, InlineSwitch, SecretInput, Input } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import {TrinoDataSourceOptions, TrinoSecureJsonData} from './types';
 
@@ -18,6 +18,21 @@ export class ConfigEditor extends PureComponent<Props, State> {
     }
     const onResetToken = () => {
       onOptionsChange({...options, secureJsonFields: {...options.secureJsonFields, accessToken: false }, secureJsonData: {...options.secureJsonData, accessToken: '' }});
+    };
+    const onTokenUrlChange = (event: ChangeEvent<HTMLInputElement>) => {
+      onOptionsChange({...options, jsonData: {...options.jsonData, tokenUrl: event.target.value}})
+    };
+    const onClientIdChange = (event: ChangeEvent<HTMLInputElement>) => {
+      onOptionsChange({...options, jsonData: {...options.jsonData, clientId: event.target.value}})
+    };
+    const onClientSecretChange = (event: ChangeEvent<HTMLInputElement>) => {
+      onOptionsChange({...options, secureJsonData: {...options.secureJsonData, clientSecret: event.target.value}})
+    };
+    const onResetClientSecret = () => {
+      onOptionsChange({...options, secureJsonFields: {...options.secureJsonFields, clientSecret: false}, secureJsonData: {...options.secureJsonData, clientSecret: ''}});
+    };
+    const onImpersonationUserChange = (event: ChangeEvent<HTMLInputElement>) => {
+      onOptionsChange({...options, jsonData: {...options.jsonData, impersonationUser: event.target.value}})
     };
     return (
       <div className="gf-form-group">
@@ -55,6 +70,64 @@ export class ConfigEditor extends PureComponent<Props, State> {
                   width={40}
                   onReset={onResetToken}
                 />
+            </InlineField>
+          </div>
+        </div>
+
+        <h3 className="page-heading">OAuth Trino Authentication</h3>
+        <div className="gf-form-group">
+          <div className="gf-form-inline">
+            <InlineField
+              label="Token URL"
+              tooltip="If set, token is retrieved by client credentials flow before request to Trino is sent"
+              labelWidth={26}
+            >
+              <Input
+                value={options.jsonData?.tokenUrl ?? ''}
+                onChange={onTokenUrlChange}
+                width={60}
+              />
+            </InlineField>
+          </div>
+          <div className="gf-form-inline">
+            <InlineField
+              label="Client id"
+              tooltip="Required if Token URL is set"
+              labelWidth={26}
+            >
+              <Input
+                value={options.jsonData?.clientId ?? ''}
+                onChange={onClientIdChange}
+                width={60}
+              />
+            </InlineField>
+          </div>
+          <div className="gf-form-inline">
+            <InlineField
+              label="Client secret"
+              tooltip="Required if Token URL is set"
+              labelWidth={26}
+            >
+              <SecretInput
+                value={options.secureJsonData?.clientSecret ?? ''}
+                isConfigured={options.secureJsonFields?.clientSecret}
+                onChange={onClientSecretChange}
+                width={60}
+                onReset={onResetClientSecret}
+              />
+            </InlineField>
+          </div>
+          <div className="gf-form-inline">
+            <InlineField
+              label="Impersonation user"
+              tooltip="If set, this user will be used for impersonation in Trino"
+              labelWidth={26}
+            >
+              <Input
+                value={options.jsonData?.impersonationUser ?? ''}
+                onChange={onImpersonationUserChange}
+                width={60}
+              />
             </InlineField>
           </div>
         </div>

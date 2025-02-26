@@ -1,0 +1,18 @@
+{
+  "id": "trino-realm",
+  "realm": "trino-realm",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "grafana-client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "grafana-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true
+    }
+  ]
+}
