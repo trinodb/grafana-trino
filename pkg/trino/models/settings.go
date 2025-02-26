@@ -16,6 +16,10 @@ type TrinoDatasourceSettings struct {
 	Opts                httpclient.Options `json:"-"`
 	EnableImpersonation bool               `json:"enableImpersonation"`
 	AccessToken         string             `json:"accessToken"`
+	TokenUrl            string             `json:"tokenUrl"`
+	ClientId            string             `json:"clientId"`
+	ClientSecret        string             `json:"clientSecret"`
+	ImpersonationUser   string             `json:"impersonationUser"`
 }
 
 func (s *TrinoDatasourceSettings) Load(config backend.DataSourceInstanceSettings) error {
@@ -47,6 +51,9 @@ func (s *TrinoDatasourceSettings) Load(config backend.DataSourceInstanceSettings
 	}
 	if token, ok := config.DecryptedSecureJSONData["accessToken"]; ok {
 		s.AccessToken = token
+	}
+	if clientSecret, ok := config.DecryptedSecureJSONData["clientSecret"]; ok {
+		s.ClientSecret = clientSecret
 	}
 	return nil
 }

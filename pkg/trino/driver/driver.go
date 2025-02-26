@@ -6,7 +6,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	trinoClient "github.com/trinodb/grafana-trino/pkg/trino/client"
 	"net/http"
+	"strings"
 
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
 	"github.com/trinodb/trino-go-client/trino"
@@ -14,6 +16,17 @@ import (
 )
 
 const DriverName string = "trino"
+
+// just compile time assertion
+var _ http.RoundTripper = &customTransport{}
+
+type customTransport struct {
+	client *trinoClient.Client
+}
+
+func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	return t.client.Do(req)
+}
 
 // Open registers a new driver with a unique name
 func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
@@ -47,6 +60,35 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 				RootCAs:            certPool,
 			},
 		},
+	}
+	if settings.TokenUrl != "" || settings.ClientId != "" || settings.ClientSecret != "" {
+		if settings.AccessToken != "" {
+			return nil, errors.New("access token must not be set within 'OAuth Trino Authentication' settings")
+		}
+		var missingParams []string
+		if settings.TokenUrl == "" {
+			missingParams = append(missingParams, "Token URL")
+		}
+		if settings.ClientId == "" {
+			missingParams = append(missingParams, "Client id")
+		}
+		if settings.ClientSecret == "" {
+			missingParams = append(missingParams, "Client secret")
+		}
+		if len(missingParams) > 0 {
+			return nil, fmt.Errorf("missing parameters for 'OAuth Trino Authentication': %v", strings.Join(missingParams, ", "))
+		}
+		client = &http.Client{
+			Transport: &customTransport{
+				client: &trinoClient.Client{
+					Client:            client,
+					ClientId:          settings.ClientId,
+					ClientSecret:      settings.ClientSecret,
+					Url:               settings.TokenUrl,
+					ImpersonationUser: settings.ImpersonationUser,
+				},
+			},
+		}
 	}
 	err := trino.RegisterCustomClient("grafana", client)
 	if err != nil {
