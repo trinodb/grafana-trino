@@ -50,9 +50,11 @@ export class DataSource extends DataSourceWithBackend<TrinoQuery, TrinoDataSourc
     );
   }
 
-  applyTemplateVariables(query: TrinoQuery, scopedVars: ScopedVars): Record<string, any> {
-    query.rawSQL = getTemplateSrv().replace(query.rawSQL, scopedVars, this.interpolateQueryStr);
-    return query;
+  applyTemplateVariables(query: TrinoQuery, scopedVars: ScopedVars) {
+    return {
+      ...query,
+      rawSQL: getTemplateSrv().replace(query.rawSQL, scopedVars, this.interpolateQueryStr),
+    };
   }
 
   interpolateQueryStr(value: any, variable: { multi: any; includeAll: any }, defaultFormatFn: any) {
