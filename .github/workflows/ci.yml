@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -42,25 +43,63 @@ jobs:
           version: latest
           args: buildAll
 
-      - name: End to end test
+      - name: Setup services (Trino, Grafana, PostgreSQL, Keycloak)
         run: |
           docker network create trino
 
-          docker run \
-            --rm --detach \
+          echo "Starting PostgreSQL..."
+          docker run --rm --detach \
+            --name postgres \
+            --net trino \
+            --env POSTGRES_USER=keycloak \
+            --env POSTGRES_PASSWORD=keycloak \
+            --env POSTGRES_DB=keycloak \
+            postgres:17.4
+          
+          echo "Starting Keycloak..."
+          docker run --rm --detach \
+            --name keycloak \
+            --net trino \
+            --publish 18080:8080 \
+            --env KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+            --env KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+            --env KC_DB=postgres \
+            --env KC_DB_URL_HOST=postgres \
+            --env KC_DB_URL_DATABASE=keycloak \
+            --env KC_DB_USERNAME=keycloak \
+            --env KC_DB_PASSWORD=keycloak \
+            --volume "$(pwd)/test-data/test-keycloak-realm.json:/opt/keycloak/data/import/realm.json" \
+            quay.io/keycloak/keycloak:26.1.4 \
+            start-dev --import-realm
+
+          echo "Waiting for Keycloak to be ready..."
+          while true; do
+            if curl -s http://localhost:18080/realms/master | grep -q "realm"; then
+              echo "Keycloak is ready!"
+             break
+           fi
+            echo "Waiting for Keycloak..."
+           sleep 5
+          done
+
+          echo "Starting Trino..."
+          docker run --rm --detach \
             --name trino \
             --net trino \
+            --volume "$(pwd)/test-data/test-trino-config.properties:/etc/trino/config.properties" \
             trinodb/trino:468
 
-          docker run \
-            --rm --detach \
+          echo "Starting Grafana..."
+          docker run --rm --detach \
             --name grafana \
             --net trino \
             --publish 3000:3000 \
             --volume "$(pwd):/var/lib/grafana/plugins/trino" \
             --env "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=trino-datasource" \
-           grafana/grafana:11.4.0
+            grafana/grafana:11.4.0
 
-           npx tsc -p tsconfig.json --noEmit
-           npx playwright install
-           npx playwright test
+      - name: End to end test
+        run: |
+          npx tsc -p tsconfig.json --noEmit
+          npx playwright install
+          npx playwright test
