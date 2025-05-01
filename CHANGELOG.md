@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.12
+
+* Add support for OAuth2 client-credentials flow
+
 ## 1.0.11
 
 * Don't overwrite Grafana variables when editing existing dashboard queries
