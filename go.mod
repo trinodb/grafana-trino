@@ -1,11 +1,10 @@
 module github.com/trinodb/grafana-trino
 
 go 1.23.5
-
 toolchain go1.24.2
 
 require (
-	github.com/grafana/grafana-plugin-sdk-go v0.274.0
+	github.com/grafana/grafana-plugin-sdk-go v0.277.0
 	github.com/grafana/sqlds/v2 v2.7.2
 	github.com/pkg/errors v0.9.1
 	github.com/trinodb/trino-go-client v0.323.0
