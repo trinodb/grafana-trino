@@ -93,3 +93,25 @@ jobs:
           npx tsc -p tsconfig.json --noEmit
           npx playwright install
           npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 5
+
+      - name: Dump logs
+        if: always()
+        run: |
+          echo "::group::Trino logs"
+          docker logs trino
+          echo "::endgroup::"
+
+          echo "::group::Keycloak logs"
+          docker logs keycloak
+          echo "::endgroup::"
+
+          echo "::group::Grafana logs"
+          docker logs grafana
+          echo "::endgroup::"
