@@ -97,7 +97,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.grafana }}
           path: playwright-report/
           retention-days: 5
 
