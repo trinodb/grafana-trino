@@ -11,6 +11,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        grafana: ['9.5.0', '11.6.1']
     steps:
       - uses: actions/checkout@v4
 
@@ -43,19 +47,10 @@ jobs:
           version: latest
           args: buildAll
 
-      - name: Setup services (Trino, Grafana, PostgreSQL, Keycloak)
+      - name: Setup services (Trino, Grafana, Keycloak)
         run: |
           docker network create trino
 
-          echo "Starting PostgreSQL..."
-          docker run --rm --detach \
-            --name postgres \
-            --net trino \
-            --env POSTGRES_USER=keycloak \
-            --env POSTGRES_PASSWORD=keycloak \
-            --env POSTGRES_DB=keycloak \
-            postgres:17.4
-          
           echo "Starting Keycloak..."
           docker run --rm --detach \
             --name keycloak \
@@ -63,11 +58,6 @@ jobs:
             --publish 18080:8080 \
             --env KC_BOOTSTRAP_ADMIN_USERNAME=admin \
             --env KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
-            --env KC_DB=postgres \
-            --env KC_DB_URL_HOST=postgres \
-            --env KC_DB_URL_DATABASE=keycloak \
-            --env KC_DB_USERNAME=keycloak \
-            --env KC_DB_PASSWORD=keycloak \
             --volume "$(pwd)/test-data/test-keycloak-realm.json:/opt/keycloak/data/import/realm.json" \
             quay.io/keycloak/keycloak:26.1.4 \
             start-dev --import-realm
@@ -96,10 +86,32 @@ jobs:
             --publish 3000:3000 \
             --volume "$(pwd):/var/lib/grafana/plugins/trino" \
             --env "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=trino-datasource" \
-            grafana/grafana:11.4.0
+            grafana/grafana:${{ matrix.grafana }}
 
       - name: End to end test
         run: |
           npx tsc -p tsconfig.json --noEmit
           npx playwright install
           npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-${{ matrix.grafana }}
+          path: playwright-report/
+          retention-days: 5
+
+      - name: Dump logs
+        if: always()
+        run: |
+          echo "::group::Trino logs"
+          docker logs trino
+          echo "::endgroup::"
+
+          echo "::group::Keycloak logs"
+          docker logs keycloak
+          echo "::endgroup::"
+
+          echo "::group::Grafana logs"
+          docker logs grafana
+          echo "::endgroup::"
