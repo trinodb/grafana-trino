@@ -11,6 +11,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        grafana: ['9.5.0', '11.6.1']
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +59,7 @@ jobs:
             --env POSTGRES_PASSWORD=keycloak \
             --env POSTGRES_DB=keycloak \
             postgres:17.4
-          
+
           echo "Starting Keycloak..."
           docker run --rm --detach \
             --name keycloak \
@@ -96,7 +100,7 @@ jobs:
             --publish 3000:3000 \
             --volume "$(pwd):/var/lib/grafana/plugins/trino" \
             --env "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=trino-datasource" \
-            grafana/grafana:11.4.0
+            grafana/grafana:${{ matrix.grafana }}
 
       - name: End to end test
         run: |
