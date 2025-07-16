@@ -23,6 +23,7 @@ type Client struct {
 	ClientSecret      string
 	Url               string
 	ImpersonationUser string
+	ClientTags        string
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
@@ -33,6 +34,9 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
 	if c.ImpersonationUser != "" {
 		req.Header.Set("X-Trino-User", c.ImpersonationUser)
+	}
+	if c.ClientTags != "" {
+		req.Header.Set("X-Trino-Client-Tags", c.ClientTags)
 	}
 	return c.Client.Do(req)
 }

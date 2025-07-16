@@ -86,6 +86,7 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 					ClientSecret:      settings.ClientSecret,
 					Url:               settings.TokenUrl,
 					ImpersonationUser: settings.ImpersonationUser,
+					ClientTags:        settings.ClientTags,
 				},
 			},
 		}

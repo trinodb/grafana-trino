@@ -8,7 +8,7 @@ require (
 	github.com/grafana/grafana-plugin-sdk-go v0.274.0
 	github.com/grafana/sqlds/v2 v2.7.2
 	github.com/pkg/errors v0.9.1
-	github.com/trinodb/trino-go-client v0.323.0
+	github.com/trinodb/trino-go-client v0.326.0
 )
 
 require (
@@ -75,6 +75,7 @@ require (
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
+	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
