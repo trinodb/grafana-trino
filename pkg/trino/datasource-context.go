@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	accessTokenKey  = "accessToken"
-	trinoUserHeader = "X-Trino-User"
-	bearerPrefix    = "Bearer "
+	accessTokenKey     = "accessToken"
+	trinoUserHeader    = "X-Trino-User"
+	trinoClientTagsKey = "X-Trino-Client-Tags"
+	bearerPrefix       = "Bearer "
 )
 
 type SQLDatasourceWithTrinoUserContext struct {
@@ -38,6 +39,10 @@ func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req 
 		}
 
 		ctx = context.WithValue(ctx, trinoUserHeader, user)
+	}
+
+	if settings.ClientTags != "" {
+		ctx = context.WithValue(ctx, trinoClientTagsKey, settings.ClientTags)
 	}
 
 	return ds.SQLDatasource.QueryData(ctx, req)
