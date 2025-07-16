@@ -21,7 +21,7 @@ async function goToTrinoSettings(page: Page) {
 
 async function setupDataSourceWithAccessToken(page: Page) {
     await page.getByTestId('data-testid Datasource HTTP settings url').fill('http://trino:8080');
-    await page.locator('div').filter({hasText: /^Impersonate logged in userAccess token$/}).getByLabel('Toggle switch').click();
+    await page.locator('div').filter({hasText: /^Impersonate logged in user$/}).getByLabel('Toggle switch').click();
     await page.locator('div').filter({hasText: /^Access token$/}).locator('input[type="password"]').fill('aaa');
     await page.getByTestId('data-testid Data source settings page Save and Test button').click();
 }
@@ -32,6 +32,14 @@ async function setupDataSourceWithClientCredentials(page: Page, clientId: string
     await page.locator('div').filter({hasText: /^Client id$/}).locator('input').fill(clientId);
     await page.locator('div').filter({hasText: /^Client secret$/}).locator('input[type="password"]').fill('grafana-secret');
     await page.locator('div').filter({hasText: /^Impersonation user$/}).locator('input').fill('service-account-grafana-client');
+    await page.getByTestId('data-testid Data source settings page Save and Test button').click();
+}
+
+async function setupDataSourceWithClientTags(page: Page, clientTags: string) {
+    await page.getByTestId('data-testid Datasource HTTP settings url').fill('http://trino:8080');
+    await page.locator('div').filter({hasText: /^Impersonate logged in user$/}).getByLabel('Toggle switch').click();
+    await page.locator('div').filter({hasText: /^Access token$/}).locator('input[type="password"]').fill('aaa');
+    await page.locator('div').filter({hasText: /^Client Tags$/}).locator('input').fill(clientTags);
     await page.getByTestId('data-testid Data source settings page Save and Test button').click();
 }
 
@@ -75,4 +83,11 @@ test('test client credentials flow with configured access token', async ({ page 
     await page.locator('div').filter({hasText: /^Access token$/}).locator('input[type="password"]').fill('aaa');
     await setupDataSourceWithClientCredentials(page, GRAFANA_CLIENT);
     await expect(page.getByLabel(EXPORT_DATA)).toHaveCount(0);
+});
+
+test('test with client tags', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    await setupDataSourceWithClientTags(page, 'tag1,tag2,tag3');
+    await runQueryAndCheckResults(page);
 });
