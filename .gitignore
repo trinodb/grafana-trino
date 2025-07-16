@@ -26,6 +26,7 @@ work/
 ci/
 e2e-results/
 trino-datasource/
+trino-datasource.zip
 
 # Editor
 .idea
