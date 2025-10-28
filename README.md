@@ -90,3 +90,5 @@ See [DEVELOPMENT.md](https://github.com/trinodb/grafana-trino/blob/main/DEVELOPM
 # License
 
 Apache 2.0 License, please see [LICENSE](https://github.com/trinodb/grafana-trino/blob/main/LICENSE) for details.
+
+noop
