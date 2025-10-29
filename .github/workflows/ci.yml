@@ -88,6 +88,16 @@ jobs:
             --env "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=trino-datasource" \
             grafana/grafana:${{ matrix.grafana }}
 
+          echo "Waiting for Grafana to be ready..."
+          while true; do
+            if curl -s http://localhost:3000/api/health | grep -q "ok"; then
+              echo "Grafana is ready!"
+              break
+            fi
+            echo "Waiting for Grafana..."
+            sleep 5
+          done
+
       - name: End to end test
         run: |
           npx tsc -p tsconfig.json --noEmit
