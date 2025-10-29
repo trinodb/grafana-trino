@@ -2,6 +2,7 @@ package trino
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -12,9 +13,10 @@ import (
 )
 
 const (
-	accessTokenKey  = "accessToken"
-	trinoUserHeader = "X-Trino-User"
-	bearerPrefix    = "Bearer "
+	accessTokenKey     = "accessToken"
+	trinoUserHeader    = "X-Trino-User"
+	trinoClientTagsKey = "X-Trino-Client-Tags"
+	bearerPrefix       = "Bearer "
 )
 
 type SQLDatasourceWithTrinoUserContext struct {
@@ -36,11 +38,46 @@ func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req 
 		if user == nil {
 			return nil, fmt.Errorf("user can't be nil if impersonation is enabled")
 		}
-
 		ctx = context.WithValue(ctx, trinoUserHeader, user)
 	}
 
+	ctx = ds.injectClientTags(ctx, req, settings)
+
 	return ds.SQLDatasource.QueryData(ctx, req)
+}
+
+func (ds *SQLDatasourceWithTrinoUserContext) injectClientTags(contextWithTags context.Context, req *backend.QueryDataRequest, settings models.TrinoDatasourceSettings) context.Context {
+	type queryClientTag struct {
+		ClientTags string `json:"clientTags"`
+	}
+
+	for i := range req.Queries {
+		var queryTags queryClientTag
+		if err := json.Unmarshal(req.Queries[i].JSON, &queryTags); err != nil {
+			continue
+		}
+		if queryTags.ClientTags != "" {
+			contextWithTags = context.WithValue(contextWithTags, trinoClientTagsKey, queryTags.ClientTags)
+			return contextWithTags
+		}
+	}
+
+	if contextWithTags.Value(trinoClientTagsKey) == nil && settings.ClientTags != "" {
+		contextWithTags = context.WithValue(contextWithTags, trinoClientTagsKey, settings.ClientTags)
+	}
+
+	return contextWithTags
+}
+
+func injectAccessToken(ctx context.Context, req *backend.QueryDataRequest) context.Context {
+	header := req.GetHTTPHeader(backend.OAuthIdentityTokenHeaderName)
+
+	if strings.HasPrefix(header, bearerPrefix) {
+		token := strings.TrimPrefix(header, bearerPrefix)
+		return context.WithValue(ctx, accessTokenKey, token)
+	}
+
+	return ctx
 }
 
 func (ds *SQLDatasourceWithTrinoUserContext) NewDatasource(settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
@@ -54,15 +91,4 @@ func (ds *SQLDatasourceWithTrinoUserContext) NewDatasource(settings backend.Data
 func NewDatasource(c sqlds.Driver) *SQLDatasourceWithTrinoUserContext {
 	base := sqlds.NewDatasource(c)
 	return &SQLDatasourceWithTrinoUserContext{*base}
-}
-
-func injectAccessToken(ctx context.Context, req *backend.QueryDataRequest) context.Context {
-	header := req.GetHTTPHeader(backend.OAuthIdentityTokenHeaderName)
-
-	if strings.HasPrefix(header, bearerPrefix) {
-		token := strings.TrimPrefix(header, bearerPrefix)
-		return context.WithValue(ctx, accessTokenKey, token)
-	}
-
-	return ctx
 }
