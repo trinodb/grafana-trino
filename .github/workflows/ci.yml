@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - test-old-grafana
   pull_request:
     branches:
       - main
+      - test-old-grafana
 
 jobs:
   build:
