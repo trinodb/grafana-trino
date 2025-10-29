@@ -23,6 +23,7 @@ async function setupDataSourceWithAccessToken(page: Page) {
     await page.locator('div').filter({hasText: /^Impersonate logged in userAccess token$/}).getByLabel('Toggle switch').click();
     await page.locator('div').filter({hasText: /^Access token$/}).locator('input[type="password"]').fill('aaa');
     await page.getByLabel('Data source settings page Save and Test button').click();
+    await page.waitForTimeout(2000); // Wait for save operation to complete
 }
 
 async function setupDataSourceWithClientCredentials(page: Page, clientId: string) {
@@ -32,6 +33,7 @@ async function setupDataSourceWithClientCredentials(page: Page, clientId: string
     await page.locator('div').filter({hasText: /^Client secret$/}).locator('input[type="password"]').fill('grafana-secret');
     await page.locator('div').filter({hasText: /^Impersonation user$/}).locator('input').fill('service-account-grafana-client');
     await page.getByLabel('Data source settings page Save and Test button').click();
+    await page.waitForTimeout(2000); // Wait for save operation to complete
 }
 
 async function runQueryAndCheckResults(page: Page) {

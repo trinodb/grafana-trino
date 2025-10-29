@@ -79,7 +79,29 @@ jobs:
             --name trino \
             --net trino \
             --volume "$(pwd)/test-data/test-trino-config.properties:/etc/trino/config.properties" \
+            --volume "$(pwd)/test-data/tpch.properties:/etc/trino/catalog/tpch.properties" \
             trinodb/trino:468
+
+          echo "Waiting for Trino to be ready..."
+          TIMEOUT=120
+          ELAPSED=0
+          while true; do
+            if docker exec trino trino --execute "SELECT 1" &>/dev/null; then
+              echo "Trino is ready!"
+              break
+            fi
+            if [ $ELAPSED -ge $TIMEOUT ]; then
+              echo "Timeout waiting for Trino to be ready"
+              docker logs trino
+              exit 1
+            fi
+            echo "Waiting for Trino... ($ELAPSED/$TIMEOUT seconds)"
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+
+          echo "Verifying TPCH catalog is available..."
+          docker exec trino trino --execute "SHOW CATALOGS" || echo "Warning: Could not verify catalogs"
 
           echo "Starting Grafana..."
           docker run --rm --detach \
