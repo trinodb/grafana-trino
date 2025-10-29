@@ -89,13 +89,21 @@ jobs:
             grafana/grafana:${{ matrix.grafana }}
 
           echo "Waiting for Grafana to be ready..."
+          TIMEOUT=120
+          ELAPSED=0
           while true; do
             if curl -s http://localhost:3000/api/health | grep -q "ok"; then
               echo "Grafana is ready!"
               break
             fi
-            echo "Waiting for Grafana..."
+            if [ $ELAPSED -ge $TIMEOUT ]; then
+              echo "Timeout waiting for Grafana to be ready"
+              docker logs grafana
+              exit 1
+            fi
+            echo "Waiting for Grafana... ($ELAPSED/$TIMEOUT seconds)"
             sleep 5
+            ELAPSED=$((ELAPSED + 5))
           done
 
       - name: End to end test
