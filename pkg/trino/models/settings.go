@@ -20,6 +20,7 @@ type TrinoDatasourceSettings struct {
 	ClientId            string             `json:"clientId"`
 	ClientSecret        string             `json:"clientSecret"`
 	ImpersonationUser   string             `json:"impersonationUser"`
+	Roles               string             `json:"roles"`
 	ClientTags          string             `json:"clientTags"`
 }
 

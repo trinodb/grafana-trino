@@ -56,6 +56,7 @@ export interface TrinoDataSourceOptions extends DataSourceJsonData {
   tokenUrl?: string;
   clientId?: string;
   impersonationUser?: string;
+  roles?: string;
   clientTags?: string;
 }
 /**
