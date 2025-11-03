@@ -87,6 +87,7 @@ jobs:
             --name trino \
             --net trino \
             --volume "$(pwd)/test-data/trino/test-trino-config.properties:/etc/trino/config.properties" \
+            --volume "$(pwd)/test-data/trino/catalog/hive.properties:/etc/trino/catalog/hive.properties" \
             trinodb/trino:468
 
           echo "Starting Grafana..."
@@ -97,6 +98,20 @@ jobs:
             --volume "$(pwd):/var/lib/grafana/plugins/trino" \
             --env "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=trino-datasource" \
             grafana/grafana:11.4.0
+          
+          echo "Waiting for Trino to be ready..."
+          while true; do
+            if docker logs trino 2>&1 | grep -q '======== SERVER STARTED ========'; then
+              echo "Trino is ready!"
+              break
+            fi
+            echo "Waiting for Trino..."
+            sleep 5
+          done
+
+          echo "Preconfiguring trino..."
+          docker exec trino trino --user admin --execute "GRANT admin TO USER grafana IN hive;"
+          echo "Done."
 
       - name: End to end test
         run: |

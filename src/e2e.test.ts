@@ -91,3 +91,40 @@ test('test with client tags', async ({ page }) => {
     await setupDataSourceWithClientTags(page, 'tag1,tag2,tag3');
     await runQueryAndCheckResults(page);
 });
+
+test('test with roles', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    await setupDataSourceWithRoles(page, 'system:ALL;hive:admin');
+    await runRoleQuery(page);
+    await expect(page.getByTestId('data-testid table body')).toContainText(/.*admin.*/);
+
+});
+
+test('test without role', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    await setupDataSourceWithRoles(page, '');
+    await runRoleQuery(page);
+    await expect(page.getByText(/Access Denied: Cannot show roles/)).toBeVisible();
+});
+
+async function setupDataSourceWithRoles(page: Page, roles: string) {
+    await page.getByTestId('data-testid Datasource HTTP settings url').fill('http://trino:8080');
+    await page.locator('div').filter({hasText: /^Roles$/}).locator('input').fill(roles);
+    await page.getByTestId('data-testid Data source settings page Save and Test button').click();
+}
+
+async function runRoleQuery(page: Page) {
+    await page.getByLabel(EXPORT_DATA).click();
+    await page.locator('div').filter({hasText: /^Format asChoose$/}).locator('svg').click();
+    await page.getByRole('option', {name: 'Table'}).click();
+    await setQuery(page, 'SHOW ROLES FROM hive')
+    await page.getByTestId('data-testid Code editor container').click();
+    await page.getByTestId('data-testid RefreshPicker run button').click();
+}
+
+async function setQuery(page: Page, query: string) {
+    await page.getByTestId('data-testid Code editor container').click({ clickCount: 4 });
+    await page.keyboard.type(query);
+}
