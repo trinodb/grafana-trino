@@ -86,7 +86,7 @@ jobs:
           docker run --rm --detach \
             --name trino \
             --net trino \
-            --volume "$(pwd)/test-data/test-trino-config.properties:/etc/trino/config.properties" \
+            --volume "$(pwd)/test-data/trino/test-trino-config.properties:/etc/trino/config.properties" \
             trinodb/trino:468
 
           echo "Starting Grafana..."
