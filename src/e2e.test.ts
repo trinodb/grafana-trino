@@ -56,7 +56,7 @@ async function runQueryAndCheckResults(page: Page) {
     await expect(page.getByTestId('data-testid table body')).toContainText(/.*1995-01-19 0.:00:005703857F.*/);
 }
 
-async function runQueryAndRetrunRequset(
+async function runQueryAndReturnRequest(
     page: Page,
     clientTag: string
   ): Promise<import('@playwright/test').Request > {
@@ -128,7 +128,7 @@ test('query editor client tags override datasource-level tags', async ({ page })
     await goToTrinoSettings(page);
     await setupDataSourceWithClientTags(page, 'datasourceTag');
   
-    const request = await runQueryAndRetrunRequset(page, 'editorTag');
+    const request = await runQueryAndReturnRequest(page, 'editorTag');
   
     expect(request).toBeDefined();
     const body = JSON.parse(request.postData() || '{}');

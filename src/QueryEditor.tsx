@@ -3,7 +3,7 @@ import { QueryEditorProps } from '@grafana/data';
 import { DataSource } from './datasource';
 import { TrinoDataSourceOptions, TrinoQuery, defaultQuery, SelectableFormatOptions } from './types';
 import { FormatSelect, QueryCodeEditor } from '@grafana/aws-sdk';
-import { Input } from '@grafana/ui'; // <-- ADD THIS
+import { Input } from '@grafana/ui';
 
 type Props = QueryEditorProps<DataSource, TrinoQuery, TrinoDataSourceOptions>;
 

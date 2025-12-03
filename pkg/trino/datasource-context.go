@@ -41,12 +41,23 @@ func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req 
 		ctx = context.WithValue(ctx, trinoUserHeader, user)
 	}
 
-	ctx = ds.injectClientTags(ctx, req, settings)
+	ctx = injectClientTags(ctx, req, settings)
 
 	return ds.SQLDatasource.QueryData(ctx, req)
 }
 
-func (ds *SQLDatasourceWithTrinoUserContext) injectClientTags(contextWithTags context.Context, req *backend.QueryDataRequest, settings models.TrinoDatasourceSettings) context.Context {
+func injectAccessToken(ctx context.Context, req *backend.QueryDataRequest) context.Context {
+	header := req.GetHTTPHeader(backend.OAuthIdentityTokenHeaderName)
+
+	if strings.HasPrefix(header, bearerPrefix) {
+		token := strings.TrimPrefix(header, bearerPrefix)
+		return context.WithValue(ctx, accessTokenKey, token)
+	}
+
+	return ctx
+}
+
+func injectClientTags(contextWithTags context.Context, req *backend.QueryDataRequest, settings models.TrinoDatasourceSettings) context.Context {
 	type queryClientTag struct {
 		ClientTags string `json:"clientTags"`
 	}
@@ -67,17 +78,6 @@ func (ds *SQLDatasourceWithTrinoUserContext) injectClientTags(contextWithTags co
 	}
 
 	return contextWithTags
-}
-
-func injectAccessToken(ctx context.Context, req *backend.QueryDataRequest) context.Context {
-	header := req.GetHTTPHeader(backend.OAuthIdentityTokenHeaderName)
-
-	if strings.HasPrefix(header, bearerPrefix) {
-		token := strings.TrimPrefix(header, bearerPrefix)
-		return context.WithValue(ctx, accessTokenKey, token)
-	}
-
-	return ctx
 }
 
 func (ds *SQLDatasourceWithTrinoUserContext) NewDatasource(settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
