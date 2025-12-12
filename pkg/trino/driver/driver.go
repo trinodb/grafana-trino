@@ -6,9 +6,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	trinoClient "github.com/trinodb/grafana-trino/pkg/trino/client"
 	"net/http"
 	"strings"
+
+	"github.com/grafana/grafana-plugin-sdk-go/backend/proxy"
+	trinoClient "github.com/trinodb/grafana-trino/pkg/trino/client"
 
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
 	"github.com/trinodb/trino-go-client/trino"
@@ -61,7 +63,7 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 			},
 		},
 	}
-	if settings.TokenUrl != "" || settings.ClientId != "" || settings.ClientSecret != "" {
+	if isOAuthConfigured(settings) {
 		if settings.AccessToken != "" {
 			return nil, errors.New("access token must not be set within 'OAuth Trino Authentication' settings")
 		}
@@ -90,6 +92,12 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 			},
 		}
 	}
+
+	client, sockErr := applyecureSocksProxy(&settings, client)
+	if sockErr != nil {
+		return nil, fmt.Errorf("failed to configure secure SOCKS proxy: %w", sockErr)
+	}
+
 	err := trino.RegisterCustomClient("grafana", client)
 	if err != nil {
 		return nil, err
@@ -107,4 +115,30 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 		return nil, err
 	}
 	return sql.Open(DriverName, dsn)
+}
+
+func isOAuthConfigured(setting models.TrinoDatasourceSettings) bool {
+	return setting.TokenUrl != "" || setting.ClientId != "" || setting.ClientSecret != ""
+}
+
+func applyecureSocksProxy(settings *models.TrinoDatasourceSettings, httpClient *http.Client) (*http.Client, error) {
+	if isOAuthConfigured(*settings) {
+		if customTransport, ok := httpClient.Transport.(*customTransport); ok {
+			if transport, ok := customTransport.client.Client.Transport.(*http.Transport); ok {
+				err := proxy.New(settings.Opts.ProxyOptions).ConfigureSecureSocksHTTPProxy(transport)
+				if err != nil {
+					return nil, fmt.Errorf("error configurin secure SOCKS proxy for OAuth: %w", err)
+				}
+			}
+		}
+	} else {
+		if transport, ok := httpClient.Transport.(*http.Transport); ok {
+			err := proxy.New(settings.Opts.ProxyOptions).ConfigureSecureSocksHTTPProxy(transport)
+			if err != nil {
+				return nil, fmt.Errorf("error configuring secure SOCKS proxy:%w", err)
+			}
+		}
+	}
+
+	return httpClient, nil
 }

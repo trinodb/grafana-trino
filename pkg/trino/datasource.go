@@ -11,7 +11,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/grafana/grafana-plugin-sdk-go/data/sqlutil"
-	"github.com/grafana/sqlds/v2"
+	"github.com/grafana/sqlds/v3"
 	"github.com/pkg/errors"
 	"github.com/trinodb/grafana-trino/pkg/trino/driver"
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
@@ -37,14 +37,14 @@ func (s *TrinoDatasource) FillMode() *data.FillMissing {
 	}
 }
 
-func (s *TrinoDatasource) Settings(config backend.DataSourceInstanceSettings) sqlds.DriverSettings {
+func (s *TrinoDatasource) Settings(ctx context.Context, config backend.DataSourceInstanceSettings) sqlds.DriverSettings {
 	return sqlds.DriverSettings{}
 }
 
 // Connect opens a sql.DB connection using datasource settings
-func (s *TrinoDatasource) Connect(config backend.DataSourceInstanceSettings, queryArgs json.RawMessage) (*sql.DB, error) {
+func (s *TrinoDatasource) Connect(ctx context.Context, config backend.DataSourceInstanceSettings, queryArgs json.RawMessage) (*sql.DB, error) {
 	settings := models.TrinoDatasourceSettings{}
-	err := settings.Load(config)
+	err := settings.Load(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("error reading settings: %s", err.Error())
 	}

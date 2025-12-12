@@ -6,7 +6,7 @@ toolchain go1.24.2
 
 require (
 	github.com/grafana/grafana-plugin-sdk-go v0.274.0
-	github.com/grafana/sqlds/v2 v2.7.2
+	github.com/grafana/sqlds/v3 v3.4.2
 	github.com/pkg/errors v0.9.1
 	github.com/trinodb/trino-go-client v0.323.0
 )
@@ -34,6 +34,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
+	github.com/grafana/dataplane/sdata v0.0.7 // indirect
 	github.com/grafana/otel-profiling-go v0.5.1 // indirect
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1 // indirect

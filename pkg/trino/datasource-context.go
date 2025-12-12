@@ -7,7 +7,7 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
-	"github.com/grafana/sqlds/v2"
+	"github.com/grafana/sqlds/v3"
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
 )
 
@@ -25,7 +25,7 @@ type SQLDatasourceWithTrinoUserContext struct {
 func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 	config := req.PluginContext.DataSourceInstanceSettings
 	settings := models.TrinoDatasourceSettings{}
-	err := settings.Load(*config)
+	err := settings.Load(ctx, *config)
 	if err != nil {
 		return nil, fmt.Errorf("error reading settings: %s", err.Error())
 	}
@@ -48,8 +48,8 @@ func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req 
 	return ds.SQLDatasource.QueryData(ctx, req)
 }
 
-func (ds *SQLDatasourceWithTrinoUserContext) NewDatasource(settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-	_, err := ds.SQLDatasource.NewDatasource(settings)
+func (ds *SQLDatasourceWithTrinoUserContext) NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+	_, err := ds.SQLDatasource.NewDatasource(ctx, settings)
 	if err != nil {
 		return nil, err
 	}
