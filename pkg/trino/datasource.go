@@ -101,16 +101,56 @@ func (s *TrinoDatasource) SetQueryArgs(ctx context.Context, headers http.Header)
 }
 
 func (s *TrinoDatasource) Schemas(ctx context.Context, options sqlds.Options) ([]string, error) {
-	// TBD
-	return []string{}, nil
+	query := "SHOW SCHEMAS"
+	args := []string{}
+	if options["database"] != "" {
+		query += " FOR ?"
+		args = append(args, options["database"])
+	}
+	rows, err := s.db.Query(query, args)
+	if err != nil {
+		return nil, err
+	}
+	return getNames(rows)
 }
 
 func (s *TrinoDatasource) Tables(ctx context.Context, options sqlds.Options) ([]string, error) {
-	// TBD
-	return []string{}, nil
+	query := "SHOW TABLES"
+	args := []string{}
+	if options["schema"] != "" {
+		query += " FOR ?"
+		args = append(args, options["schema"])
+	}
+	rows, err := s.db.Query(query, args)
+	if err != nil {
+		return nil, err
+	}
+	return getNames(rows)
 }
 
 func (s *TrinoDatasource) Columns(ctx context.Context, options sqlds.Options) ([]string, error) {
-	// TBD
-	return []string{}, nil
+	query := "SHOW COLUMNS"
+	args := []string{}
+	if options["table"] != "" {
+		query += " FOR ?"
+		args = append(args, options["table"])
+	}
+	rows, err := s.db.Query(query, args)
+	if err != nil {
+		return nil, err
+	}
+	return getNames(rows)
+}
+
+func getNames(rows *sql.Rows) ([]string, error) {
+	results := []string{}
+	name := ""
+	for rows.Next() {
+		err := rows.Scan(&name)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, name)
+	}
+	return results, nil
 }
