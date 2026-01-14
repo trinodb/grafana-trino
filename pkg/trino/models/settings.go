@@ -24,8 +24,8 @@ type TrinoDatasourceSettings struct {
 	ClientTags          string             `json:"clientTags"`
 }
 
-func (s *TrinoDatasourceSettings) Load(config backend.DataSourceInstanceSettings) error {
-	opts, err := config.HTTPClientOptions(context.Background())
+func (s *TrinoDatasourceSettings) Load(ctx context.Context,config backend.DataSourceInstanceSettings) error {
+	opts, err := config.HTTPClientOptions(ctx)
 	if err != nil {
 		return err
 	}

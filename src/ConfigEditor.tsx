@@ -1,7 +1,10 @@
 import React, { ChangeEvent, PureComponent } from 'react';
-import { DataSourceHttpSettings, InlineField, InlineSwitch, SecretInput, Input } from '@grafana/ui';
-import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
+import { DataSourceHttpSettings, InlineField, InlineSwitch, SecretInput, Input, Switch } from '@grafana/ui';
+import { DataSourcePluginOptionsEditorProps, FeatureToggles } from '@grafana/data';
 import {TrinoDataSourceOptions, TrinoSecureJsonData} from './types';
+import { config } from '@grafana/runtime';
+import { gte } from 'lodash';
+
 
 interface Props extends DataSourcePluginOptionsEditorProps<TrinoDataSourceOptions, TrinoSecureJsonData> {}
 
@@ -164,6 +167,45 @@ export class ConfigEditor extends PureComponent<Props, State> {
             </InlineField>
           </div>
         </div>
+        {config.featureToggles['secureSocksDSProxyEnabled' as keyof FeatureToggles] && gte(config.buildInfo.version, '10.0.0') && (
+          <>
+            <h3 className="page-heading">Other Settings</h3>
+            <div className="gf-form-group">
+              <div className="gf-form-inline">
+                <InlineField
+                  label="Secure SOCKS Proxy"
+                  tooltip={
+                    <>
+                      Enable proxying the data source connection through the secure SOCKS proxy to a different network. See{' '}
+                      <a
+                        href="https://grafana.com/docs/grafana/next/setup-grafana/configure-grafana/proxy/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Configure a data source connection proxy.
+                      </a>
+                    </>
+                  }
+                  labelWidth={26}
+                >
+                  <Switch
+                    value={options.jsonData.enableSecureSocksProxy}
+                    onChange={(e) => {
+                      onOptionsChange({
+                        ...options,
+                        jsonData: {
+                          ...options.jsonData,
+                          enableSecureSocksProxy: e.currentTarget.checked,
+                        },
+                      });
+                    }}
+                  />
+                </InlineField>
+              </div>
+            </div>
+          </>
+        )}
+        
       </div>
     );
   }
