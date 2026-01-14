@@ -102,12 +102,19 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	roles, err := parseRoles(settings.Roles)
+	if err != nil {
+		return nil, err
+	}
+
 	config := trino.Config{
 		ServerURI:                  settings.URL.String(),
 		Source:                     "grafana",
 		CustomClientName:           "grafana",
 		ForwardAuthorizationHeader: true,
 		AccessToken:                settings.AccessToken,
+		Roles:                      roles,
 	}
 
 	dsn, err := config.FormatDSN()
@@ -141,4 +148,25 @@ func applyecureSocksProxy(settings *models.TrinoDatasourceSettings, httpClient *
 	}
 
 	return httpClient, nil
+}
+
+func parseRoles(roleStr string) (map[string]string, error) {
+	roles := make(map[string]string)
+	if strings.TrimSpace(roleStr) == "" {
+		return roles, nil
+	}
+	pairs := strings.Split(roleStr, ";")
+	for _, pair := range pairs {
+		parts := strings.SplitN(pair, ":", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("Invalid role format. expected catalog:role, got '%s'", pair)
+		}
+		catalog := strings.TrimSpace(parts[0])
+		role := strings.TrimSpace(parts[1])
+		if catalog != "" && role != "" {
+			roles[catalog] = role
+		}
+	}
+  
+	return roles, nil
 }
