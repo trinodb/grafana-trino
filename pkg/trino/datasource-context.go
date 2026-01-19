@@ -2,19 +2,22 @@ package trino
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/sqlds/v2"
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
 )
 
 const (
-	accessTokenKey  = "accessToken"
-	trinoUserHeader = "X-Trino-User"
-	bearerPrefix    = "Bearer "
+	accessTokenKey     = "accessToken"
+	trinoUserHeader    = "X-Trino-User"
+	trinoClientTagsKey = "X-Trino-Client-Tags"
+	bearerPrefix       = "Bearer "
 )
 
 type SQLDatasourceWithTrinoUserContext struct {
@@ -36,11 +39,65 @@ func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req 
 		if user == nil {
 			return nil, fmt.Errorf("user can't be nil if impersonation is enabled")
 		}
-
 		ctx = context.WithValue(ctx, trinoUserHeader, user)
 	}
 
+	ctx = injectClientTags(ctx, req, settings)
+
 	return ds.SQLDatasource.QueryData(ctx, req)
+}
+
+func injectAccessToken(ctx context.Context, req *backend.QueryDataRequest) context.Context {
+	header := req.GetHTTPHeader(backend.OAuthIdentityTokenHeaderName)
+
+	if strings.HasPrefix(header, bearerPrefix) {
+		token := strings.TrimPrefix(header, bearerPrefix)
+		return context.WithValue(ctx, accessTokenKey, token)
+	}
+
+	return ctx
+}
+
+func injectClientTags(ctx context.Context, req *backend.QueryDataRequest, settings models.TrinoDatasourceSettings) context.Context {
+	type queryClientTag struct {
+		ClientTags string `json:"clientTags"`
+	}
+
+	tagSet := make(map[string]struct{})
+
+	for i := range req.Queries {
+		var queryTags queryClientTag
+		if err := json.Unmarshal(req.Queries[i].JSON, &queryTags); err != nil {
+			log.DefaultLogger.Warn(
+				"failed to unmarshal query client tags",
+				"queryIndex", i,
+				"error", err,
+			)
+			continue
+		}
+
+		for _, tag := range strings.Split(queryTags.ClientTags, ",") {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				tagSet[tag] = struct{}{}
+			}
+		}
+	}
+
+	if len(tagSet) > 0 {
+		tags := make([]string, 0, len(tagSet))
+		for tag := range tagSet {
+			tags = append(tags, tag)
+		}
+
+		return context.WithValue(ctx, trinoClientTagsKey, strings.Join(tags, ","))
+	}
+
+	if settings.ClientTags != "" {
+		return context.WithValue(ctx, trinoClientTagsKey, settings.ClientTags)
+	}
+
+	return ctx
 }
 
 func (ds *SQLDatasourceWithTrinoUserContext) NewDatasource(settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
@@ -54,15 +111,4 @@ func (ds *SQLDatasourceWithTrinoUserContext) NewDatasource(settings backend.Data
 func NewDatasource(c sqlds.Driver) *SQLDatasourceWithTrinoUserContext {
 	base := sqlds.NewDatasource(c)
 	return &SQLDatasourceWithTrinoUserContext{*base}
-}
-
-func injectAccessToken(ctx context.Context, req *backend.QueryDataRequest) context.Context {
-	header := req.GetHTTPHeader(backend.OAuthIdentityTokenHeaderName)
-
-	if strings.HasPrefix(header, bearerPrefix) {
-		token := strings.TrimPrefix(header, bearerPrefix)
-		return context.WithValue(ctx, accessTokenKey, token)
-	}
-
-	return ctx
 }

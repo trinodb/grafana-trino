@@ -34,6 +34,12 @@ export class ConfigEditor extends PureComponent<Props, State> {
     const onImpersonationUserChange = (event: ChangeEvent<HTMLInputElement>) => {
       onOptionsChange({...options, jsonData: {...options.jsonData, impersonationUser: event.target.value}})
     };
+    const onRolesChange = (event: ChangeEvent<HTMLInputElement>) => {
+      onOptionsChange({...options, jsonData: {...options.jsonData, roles: event.target.value}})
+    };
+    const onClientTagsChange = (event: ChangeEvent<HTMLInputElement>) => {
+      onOptionsChange({...options, jsonData: {...options.jsonData, clientTags: event.target.value}})
+    };
     return (
       <div className="gf-form-group">
         <DataSourceHttpSettings
@@ -70,6 +76,33 @@ export class ConfigEditor extends PureComponent<Props, State> {
                   width={40}
                   onReset={onResetToken}
                 />
+            </InlineField>
+          </div>
+          <div className="gf-form-inline">
+            <InlineField
+              label="Roles"
+              tooltip="Authorization roles to use for catalogs, specified as a list of key-value pairs for the catalog and role. For example, system:roleS;catalog1:roleA;catalog2:roleB"
+              labelWidth={26}
+            >
+              <Input
+                value={options.jsonData?.roles ?? ''}
+                onChange={onRolesChange}
+                width={40}
+              />
+            </InlineField>
+          </div>
+          <div className="gf-form-inline">
+            <InlineField
+              label="Client Tags"
+              tooltip="A comma-separated list of strings, used to identify Trino resource groups."
+              labelWidth={26}
+            >
+              <Input
+                value={options.jsonData?.clientTags ?? ''}
+                onChange={onClientTagsChange}
+                width={60}
+                placeholder="tag1,tag2,tag3"
+              />
             </InlineField>
           </div>
         </div>

@@ -8,6 +8,7 @@ export enum FormatOptions {
 export interface TrinoQuery extends DataQuery {
   rawSQL?: string;
   format?: FormatOptions;
+  clientTags?: string;
 }
 
 export const SelectableFormatOptions: Array<SelectableValue<FormatOptions>> = [
@@ -55,7 +56,9 @@ export interface TrinoDataSourceOptions extends DataSourceJsonData {
   enableImpersonation?: boolean;
   tokenUrl?: string;
   clientId?: string;
-  impersonationUser?: string
+  impersonationUser?: string;
+  roles?: string;
+  clientTags?: string;
 }
 /**
  * Value that is used in the backend, but never sent over HTTP to the frontend

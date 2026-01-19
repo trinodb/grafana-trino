@@ -21,7 +21,7 @@ async function goToTrinoSettings(page: Page) {
 
 async function setupDataSourceWithAccessToken(page: Page) {
     await page.getByTestId('data-testid Datasource HTTP settings url').fill('http://trino:8080');
-    await page.locator('div').filter({hasText: /^Impersonate logged in userAccess token$/}).getByLabel('Toggle switch').click();
+    await page.locator('div').filter({hasText: /^Impersonate logged in user$/}).getByLabel('Toggle switch').click();
     await page.locator('div').filter({hasText: /^Access token$/}).locator('input[type="password"]').fill('aaa');
     await page.getByTestId('data-testid Data source settings page Save and Test button').click();
 }
@@ -32,6 +32,14 @@ async function setupDataSourceWithClientCredentials(page: Page, clientId: string
     await page.locator('div').filter({hasText: /^Client id$/}).locator('input').fill(clientId);
     await page.locator('div').filter({hasText: /^Client secret$/}).locator('input[type="password"]').fill('grafana-secret');
     await page.locator('div').filter({hasText: /^Impersonation user$/}).locator('input').fill('service-account-grafana-client');
+    await page.getByTestId('data-testid Data source settings page Save and Test button').click();
+}
+
+async function setupDataSourceWithClientTags(page: Page, clientTags: string) {
+    await page.getByTestId('data-testid Datasource HTTP settings url').fill('http://trino:8080');
+    await page.locator('div').filter({hasText: /^Impersonate logged in user$/}).getByLabel('Toggle switch').click();
+    await page.locator('div').filter({hasText: /^Access token$/}).locator('input[type="password"]').fill('aaa');
+    await page.locator('div').filter({hasText: /^Client Tags$/}).locator('input').fill(clientTags);
     await page.getByTestId('data-testid Data source settings page Save and Test button').click();
 }
 
@@ -47,6 +55,37 @@ async function runQueryAndCheckResults(page: Page) {
     await page.getByTestId('data-testid RefreshPicker run button').click();
     await expect(page.getByTestId('data-testid table body')).toContainText(/.*1995-01-19 0.:00:005703857F.*/);
 }
+
+async function runQueryAndReturnRequest(
+    page: Page,
+    clientTag: string
+  ): Promise<import('@playwright/test').Request> {
+    await page.getByLabel(EXPORT_DATA).click();
+    await page.getByTestId('data-testid TimePicker Open Button').click();
+    await page.getByTestId('data-testid Time Range from field').fill('1995-01-01');
+    await page.getByTestId('data-testid Time Range to field').fill('1995-12-31');
+    await page.getByTestId('data-testid TimePicker submit button').click();
+    await page.locator('div').filter({ hasText: /^Format asChoose$/ }).locator('svg').click();
+    await page.getByRole('option', { name: 'Table' }).click();
+    await page.getByTestId('data-testid Code editor container').click();
+  
+    await page.locator('div').filter({hasText: /^Client Tags$/}).locator('input').fill(clientTag);
+    // Commit the input change
+    await page.keyboard.press('Tab');
+
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        res => res.url().includes('/api/ds/query') && res.request().method() === 'POST',
+        { timeout: 30000 }
+      ),
+      page.getByTestId('data-testid RefreshPicker run button').click()
+    ]);
+
+    await expect(page.getByTestId('data-testid table body')).toContainText(/.*1995-01-19.*/);
+
+    return response.request();
+  }
+  
 
 test('test with access token', async ({ page }) => {
     await login(page);
@@ -76,3 +115,59 @@ test('test client credentials flow with configured access token', async ({ page 
     await setupDataSourceWithClientCredentials(page, GRAFANA_CLIENT);
     await expect(page.getByLabel(EXPORT_DATA)).toHaveCount(0);
 });
+
+test('test with client tags', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    await setupDataSourceWithClientTags(page, 'tag1,tag2,tag3');
+    await runQueryAndCheckResults(page);
+});
+
+test('query editor client tags override datasource-level tags', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    await setupDataSourceWithClientTags(page, 'datasourceTag');
+  
+    const request = await runQueryAndReturnRequest(page, 'editorTag');
+  
+    expect(request).toBeDefined();
+    const body = JSON.parse(request.postData() || '{}');
+    expect(body.queries?.[0]?.clientTags).toBe('editorTag');
+  });
+  
+test('test with roles', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    await setupDataSourceWithRoles(page, 'system:ALL;hive:admin');
+    await runRoleQuery(page);
+    await expect(page.getByTestId('data-testid table body')).toContainText(/.*admin.*/);
+
+});
+
+test('test without role', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    await setupDataSourceWithRoles(page, '');
+    await runRoleQuery(page);
+    await expect(page.getByText(/Access Denied: Cannot show roles/)).toBeVisible();
+});
+
+async function setupDataSourceWithRoles(page: Page, roles: string) {
+    await page.getByTestId('data-testid Datasource HTTP settings url').fill('http://trino:8080');
+    await page.locator('div').filter({hasText: /^Roles$/}).locator('input').fill(roles);
+    await page.getByTestId('data-testid Data source settings page Save and Test button').click();
+}
+
+async function runRoleQuery(page: Page) {
+    await page.getByLabel(EXPORT_DATA).click();
+    await page.locator('div').filter({hasText: /^Format asChoose$/}).locator('svg').click();
+    await page.getByRole('option', {name: 'Table'}).click();
+    await setQuery(page, 'SHOW ROLES FROM hive')
+    await page.getByTestId('data-testid Code editor container').click();
+    await page.getByTestId('data-testid RefreshPicker run button').click();
+}
+
+async function setQuery(page: Page, query: string) {
+    await page.getByTestId('data-testid Code editor container').click({ clickCount: 4 });
+    await page.keyboard.type(query);
+}
