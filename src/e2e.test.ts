@@ -56,6 +56,37 @@ async function runQueryAndCheckResults(page: Page) {
     await expect(page.getByTestId('data-testid table body')).toContainText(/.*1995-01-19 0.:00:005703857F.*/);
 }
 
+async function runQueryAndReturnRequest(
+    page: Page,
+    clientTag: string
+  ): Promise<import('@playwright/test').Request> {
+    await page.getByLabel(EXPORT_DATA).click();
+    await page.getByTestId('data-testid TimePicker Open Button').click();
+    await page.getByTestId('data-testid Time Range from field').fill('1995-01-01');
+    await page.getByTestId('data-testid Time Range to field').fill('1995-12-31');
+    await page.getByTestId('data-testid TimePicker submit button').click();
+    await page.locator('div').filter({ hasText: /^Format asChoose$/ }).locator('svg').click();
+    await page.getByRole('option', { name: 'Table' }).click();
+    await page.getByTestId('data-testid Code editor container').click();
+  
+    await page.locator('div').filter({hasText: /^Client Tags$/}).locator('input').fill(clientTag);
+    // Commit the input change
+    await page.keyboard.press('Tab');
+
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        res => res.url().includes('/api/ds/query') && res.request().method() === 'POST',
+        { timeout: 30000 }
+      ),
+      page.getByTestId('data-testid RefreshPicker run button').click()
+    ]);
+
+    await expect(page.getByTestId('data-testid table body')).toContainText(/.*1995-01-19.*/);
+
+    return response.request();
+  }
+  
+
 test('test with access token', async ({ page }) => {
     await login(page);
     await goToTrinoSettings(page);
@@ -92,6 +123,18 @@ test('test with client tags', async ({ page }) => {
     await runQueryAndCheckResults(page);
 });
 
+test('query editor client tags override datasource-level tags', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    await setupDataSourceWithClientTags(page, 'datasourceTag');
+  
+    const request = await runQueryAndReturnRequest(page, 'editorTag');
+  
+    expect(request).toBeDefined();
+    const body = JSON.parse(request.postData() || '{}');
+    expect(body.queries?.[0]?.clientTags).toBe('editorTag');
+  });
+  
 test('test with roles', async ({ page }) => {
     await login(page);
     await goToTrinoSettings(page);

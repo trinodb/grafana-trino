@@ -8,6 +8,7 @@ export enum FormatOptions {
 export interface TrinoQuery extends DataQuery {
   rawSQL?: string;
   format?: FormatOptions;
+  clientTags?: string;
 }
 
 export const SelectableFormatOptions: Array<SelectableValue<FormatOptions>> = [
