@@ -1,0 +1,23 @@
+apiVersion: 1
+
+datasources:
+  - name: Trino
+    type: trino-datasource
+    access: proxy
+    url: $__env{TRINO_URL}
+    isDefault: true
+    editable: true
+    basicAuth: $__env{TRINO_BASIC_AUTH_ENABLED}
+    basicAuthUser: $__env{TRINO_BASIC_AUTH_USER}
+    jsonData:
+      enableImpersonation: $__env{TRINO_ENABLE_IMPERSONATION}
+      impersonationUser: $__env{TRINO_IMPERSONATION_USER}
+      roles: $__env{TRINO_ROLES}
+      clientTags: $__env{TRINO_CLIENT_TAGS}
+      tokenUrl: $__env{TRINO_TOKEN_URL}
+      clientId: $__env{TRINO_CLIENT_ID}
+      tlsSkipVerify: $__env{TRINO_TLS_SKIP_VERIFY}
+    secureJsonData:
+      basicAuthPassword: $__env{TRINO_BASIC_AUTH_PASSWORD}
+      accessToken: $__env{TRINO_ACCESS_TOKEN}
+      clientSecret: $__env{TRINO_CLIENT_SECRET}

@@ -38,6 +38,23 @@
    yarn sign --rootUrls http://localhost:3000
    ```
 
+## Run the dev stack
+
+`yarn server` starts Grafana with this plugin loaded via Docker Compose. It's
+self-contained by default — it also starts a bundled Trino instance and
+auto-provisions a "Trino" datasource pointed at it (see `provisioning/`), so
+you can open http://localhost:3000 and run a query immediately, e.g.
+`SELECT * FROM tpch.tiny.orders LIMIT 10`.
+
+```bash
+yarn build && mage -v
+yarn server
+```
+
+To point at a different Trino instance instead, copy `.env.example` to
+`.env` and set `TRINO_URL` plus whichever auth fields you need — see
+`provisioning/README.md` for the full list.
+
 ## Verifier
 
 ```bash

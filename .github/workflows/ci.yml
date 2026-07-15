@@ -17,19 +17,28 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v4.3.0
         with:
-          node-version: "14.x"
+          node-version-file: ".nvmrc"
           cache: 'yarn'
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build and test frontend
+      - name: Lint frontend
+        run: yarn lint
+
+      - name: Typecheck frontend
+        run: yarn typecheck
+
+      - name: Test frontend
+        run: yarn test:ci
+
+      - name: Build frontend
         run: yarn build
 
       - name: Setup Go environment
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version-file: "go.mod"
 
       - name: Test backend
         uses: magefile/mage-action@v3
@@ -97,7 +106,7 @@ jobs:
             --publish 3000:3000 \
             --volume "$(pwd):/var/lib/grafana/plugins/trino" \
             --env "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=trino-datasource" \
-            grafana/grafana:11.4.0
+            grafana/grafana:13.1.0
           
           echo "Waiting for Trino to be ready..."
           while true; do
@@ -115,6 +124,5 @@ jobs:
 
       - name: End to end test
         run: |
-          npx tsc -p tsconfig.json --noEmit
-          npx playwright install
+          npx playwright install --with-deps chromium
           npx playwright test

@@ -24,7 +24,7 @@ func main() {
 	ds := trino.NewDatasource(s)
 	ds.Completable = s
 	dsInstanceFactory := func(ctx context.Context, settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-		return ds.NewDatasource(settings)
+		return ds.NewDatasource(ctx, settings)
 	}
 	if err := datasource.Manage("trino-datasource", dsInstanceFactory, datasource.ManageOpts{}); err != nil {
 		log.DefaultLogger.Error(err.Error())

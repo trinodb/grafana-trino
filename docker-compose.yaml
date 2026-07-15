@@ -1,0 +1,35 @@
+services:
+  trino:
+    image: trinodb/trino:482
+    healthcheck:
+      test: ["CMD", "/usr/lib/trino/bin/health-check"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  grafana:
+    extends:
+      file: .config/docker-compose-base.yaml
+      service: grafana
+    depends_on:
+      trino:
+        condition: service_healthy
+    environment:
+      # --- Trino connection config hook ---
+      # Defaults to the bundled `trino` service above for a self-contained
+      # dev stack. To point at a different (e.g. real internal) instance
+      # instead, copy .env.example to .env and override TRINO_URL plus
+      # whichever auth fields you need. See provisioning/README.md.
+      TRINO_URL: ${TRINO_URL:-http://trino:8080}
+      TRINO_BASIC_AUTH_ENABLED: ${TRINO_BASIC_AUTH_ENABLED:-false}
+      TRINO_BASIC_AUTH_USER: ${TRINO_BASIC_AUTH_USER:-}
+      TRINO_BASIC_AUTH_PASSWORD: ${TRINO_BASIC_AUTH_PASSWORD:-}
+      TRINO_ACCESS_TOKEN: ${TRINO_ACCESS_TOKEN:-}
+      TRINO_ENABLE_IMPERSONATION: ${TRINO_ENABLE_IMPERSONATION:-false}
+      TRINO_IMPERSONATION_USER: ${TRINO_IMPERSONATION_USER:-}
+      TRINO_ROLES: ${TRINO_ROLES:-}
+      TRINO_CLIENT_TAGS: ${TRINO_CLIENT_TAGS:-}
+      TRINO_TOKEN_URL: ${TRINO_TOKEN_URL:-}
+      TRINO_CLIENT_ID: ${TRINO_CLIENT_ID:-}
+      TRINO_CLIENT_SECRET: ${TRINO_CLIENT_SECRET:-}
+      TRINO_TLS_SKIP_VERIFY: ${TRINO_TLS_SKIP_VERIFY:-false}

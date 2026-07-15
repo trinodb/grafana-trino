@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/gtime"
-	"github.com/grafana/sqlds/v2"
-	"github.com/pkg/errors"
+	"github.com/grafana/grafana-plugin-sdk-go/data/sqlutil"
 )
 
 const (
@@ -24,9 +23,9 @@ func parseTime(target, format string) string {
 	return fmt.Sprintf("parse_datetime(%s,%s)", target, format)
 }
 
-func parseTimeGroup(query *sqlds.Query, args []string) (time.Duration, string, error) {
+func parseTimeGroup(query *sqlutil.Query, args []string) (time.Duration, string, error) {
 	if len(args) < 2 {
-		return 0, "", errors.WithMessagef(sqlds.ErrorBadArgumentCount, "macro $__timeGroup needs time column and interval")
+		return 0, "", fmt.Errorf("%w: macro $__timeGroup needs time column and interval", sqlutil.ErrorBadArgumentCount)
 	}
 
 	interval, err := gtime.ParseInterval(strings.Trim(args[1], `'`))
@@ -42,7 +41,7 @@ func parseTimeGroup(query *sqlds.Query, args []string) (time.Duration, string, e
 	return interval, timeVar, nil
 }
 
-func macroTimeGroup(query *sqlds.Query, args []string) (string, error) {
+func macroTimeGroup(query *sqlutil.Query, args []string) (string, error) {
 	interval, timeVar, err := parseTimeGroup(query, args)
 	if err != nil {
 		return "", err
@@ -50,7 +49,7 @@ func macroTimeGroup(query *sqlds.Query, args []string) (string, error) {
 	return fmt.Sprintf("FROM_UNIXTIME(FLOOR(TO_UNIXTIME(%s)/%v)*%v)", timeVar, interval.Seconds(), interval.Seconds()), nil
 }
 
-func macroUnixEpochGroup(query *sqlds.Query, args []string) (string, error) {
+func macroUnixEpochGroup(query *sqlutil.Query, args []string) (string, error) {
 	interval, timeVar, err := parseTimeGroup(query, args)
 	if err != nil {
 		return "", err
@@ -58,9 +57,9 @@ func macroUnixEpochGroup(query *sqlds.Query, args []string) (string, error) {
 	return fmt.Sprintf("FROM_UNIXTIME(FLOOR(%s/%v)*%v)", timeVar, interval.Seconds(), interval.Seconds()), nil
 }
 
-func macroParseTime(query *sqlds.Query, args []string) (string, error) {
+func macroParseTime(query *sqlutil.Query, args []string) (string, error) {
 	if len(args) < 1 {
-		return "", errors.WithMessagef(sqlds.ErrorBadArgumentCount, "expected at least one argument")
+		return "", fmt.Errorf("%w: expected at least one argument", sqlutil.ErrorBadArgumentCount)
 	}
 
 	var (
@@ -75,9 +74,9 @@ func macroParseTime(query *sqlds.Query, args []string) (string, error) {
 	return parseTime(column, timeFormat), nil
 }
 
-func macroTimeFilter(query *sqlds.Query, args []string) (string, error) {
+func macroTimeFilter(query *sqlutil.Query, args []string) (string, error) {
 	if len(args) < 1 {
-		return "", errors.WithMessagef(sqlds.ErrorBadArgumentCount, "expected at least one argument")
+		return "", fmt.Errorf("%w: expected at least one argument", sqlutil.ErrorBadArgumentCount)
 	}
 
 	var (
@@ -95,9 +94,9 @@ func macroTimeFilter(query *sqlds.Query, args []string) (string, error) {
 	return fmt.Sprintf("%s BETWEEN TIMESTAMP '%s' AND TIMESTAMP '%s'", timeVar, from, to), nil
 }
 
-func macroUnixEpochFilter(query *sqlds.Query, args []string) (string, error) {
+func macroUnixEpochFilter(query *sqlutil.Query, args []string) (string, error) {
 	if len(args) != 1 {
-		return "", errors.WithMessagef(sqlds.ErrorBadArgumentCount, "expected one argument")
+		return "", fmt.Errorf("%w: expected one argument", sqlutil.ErrorBadArgumentCount)
 	}
 
 	var (
@@ -109,18 +108,18 @@ func macroUnixEpochFilter(query *sqlds.Query, args []string) (string, error) {
 	return fmt.Sprintf("%s BETWEEN %d AND %d", column, from, to), nil
 }
 
-func macroTimeFrom(query *sqlds.Query, args []string) (string, error) {
+func macroTimeFrom(query *sqlutil.Query, args []string) (string, error) {
 	return fmt.Sprintf("TIMESTAMP '%s'", query.TimeRange.From.UTC().Format(goTimestampFormat)), nil
 
 }
 
-func macroTimeTo(query *sqlds.Query, args []string) (string, error) {
+func macroTimeTo(query *sqlutil.Query, args []string) (string, error) {
 	return fmt.Sprintf("TIMESTAMP '%s'", query.TimeRange.To.UTC().Format(goTimestampFormat)), nil
 }
 
-func macroDateFilter(query *sqlds.Query, args []string) (string, error) {
+func macroDateFilter(query *sqlutil.Query, args []string) (string, error) {
 	if len(args) != 1 {
-		return "", errors.WithMessagef(sqlds.ErrorBadArgumentCount, "expected 1 argument, received %d", len(args))
+		return "", fmt.Errorf("%w: expected 1 argument, received %d", sqlutil.ErrorBadArgumentCount, len(args))
 	}
 
 	var (
@@ -132,7 +131,7 @@ func macroDateFilter(query *sqlds.Query, args []string) (string, error) {
 	return fmt.Sprintf("%s BETWEEN date '%s' AND date '%s'", column, from, to), nil
 }
 
-var macros = map[string]sqlds.MacroFunc{
+var macros = map[string]sqlutil.MacroFunc{
 	"dateFilter":      macroDateFilter,
 	"parseTime":       macroParseTime,
 	"unixEpochFilter": macroUnixEpochFilter,
@@ -143,6 +142,6 @@ var macros = map[string]sqlds.MacroFunc{
 	"timeTo":          macroTimeTo,
 }
 
-func (s *TrinoDatasource) Macros() sqlds.Macros {
+func (s *TrinoDatasource) Macros() sqlutil.Macros {
 	return macros
 }
