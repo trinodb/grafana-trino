@@ -12,17 +12,17 @@ import (
 	"time"
 )
 
-var (
-	lock  = &sync.Mutex{}
-	token *Token
-)
-
 type Client struct {
 	*http.Client
 	ClientId          string
 	ClientSecret      string
 	Url               string
 	ImpersonationUser string
+
+	// lock and token are per-instance so that concurrent datasource instances
+	// with different credentials never share or clobber each other's token.
+	lock  sync.Mutex
+	token *Token
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
@@ -38,20 +38,17 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (c *Client) getToken() (*Token, error) {
-	if token != nil && !token.isAlmostExpired() {
-		return token, nil
-	}
-	lock.Lock()
-	defer lock.Unlock()
-	if token != nil && !token.isAlmostExpired() {
-		return token, nil
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if c.token != nil && !c.token.isAlmostExpired() {
+		return c.token, nil
 	}
 	newToken, err := c.retrieveToken()
 	if err != nil {
 		return nil, err
 	}
-	token = newToken
-	return token, nil
+	c.token = newToken
+	return c.token, nil
 }
 
 func (c *Client) retrieveToken() (*Token, error) {
