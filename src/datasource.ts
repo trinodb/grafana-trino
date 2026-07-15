@@ -1,9 +1,7 @@
 import { DataSourceInstanceSettings, ScopedVars } from '@grafana/data';
-import { DataSourceWithBackend, getBackendSrv, getTemplateSrv } from '@grafana/runtime';
+import { DataSourceWithBackend, getTemplateSrv } from '@grafana/runtime';
 import { TrinoDataSourceOptions, TrinoQuery } from './types';
 import { TrinoDataVariableSupport } from './variable';
-import { lastValueFrom, of } from 'rxjs';
-import { catchError, mapTo } from 'rxjs/operators';
 import { map } from 'lodash';
 
 export class DataSource extends DataSourceWithBackend<TrinoQuery, TrinoDataSourceOptions> {
@@ -13,41 +11,6 @@ export class DataSource extends DataSourceWithBackend<TrinoQuery, TrinoDataSourc
     this.annotations={};
     // give interpolateQueryStr access to this
     this.interpolateQueryStr = this.interpolateQueryStr.bind(this);
-  }
-
-  testDatasource(): Promise<any> {
-    return lastValueFrom(
-      getBackendSrv()
-        .fetch({
-          url: '/api/ds/query',
-          method: 'POST',
-          requestId: 'A',
-          data: {
-            from: '5m',
-            to: 'now',
-            queries: [
-              {
-                refId: 'A',
-                key: 'A',
-                intervalMs: 1,
-                maxDataPoints: 1,
-                datasource: this.getRef(),
-                rawSQL: 'SELECT 1',
-                format: 0,
-              },
-            ],
-          },
-        })
-        .pipe(
-          mapTo({ status: 'success', message: 'Database Connection OK' }),
-          catchError((err) => {
-            return of({
-              status: 'error',
-              message: err.error ? err.error : (err.statusText ? ("Query error: " + err.statusText) : "Error connecting to Trino"),
-            });
-          })
-        )
-    );
   }
 
   applyTemplateVariables(query: TrinoQuery, scopedVars: ScopedVars) {

@@ -11,8 +11,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/grafana/grafana-plugin-sdk-go/data/sqlutil"
-	"github.com/grafana/sqlds/v2"
-	"github.com/pkg/errors"
+	"github.com/grafana/sqlds/v4"
 	"github.com/trinodb/grafana-trino/pkg/trino/driver"
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
 )
@@ -31,27 +30,25 @@ func New() *TrinoDatasource {
 	return &TrinoDatasource{}
 }
 
-func (s *TrinoDatasource) FillMode() *data.FillMissing {
-	return &data.FillMissing{
-		Mode: data.FillModeNull,
+func (s *TrinoDatasource) Settings(ctx context.Context, config backend.DataSourceInstanceSettings) sqlds.DriverSettings {
+	return sqlds.DriverSettings{
+		FillMode: &data.FillMissing{
+			Mode: data.FillModeNull,
+		},
 	}
 }
 
-func (s *TrinoDatasource) Settings(config backend.DataSourceInstanceSettings) sqlds.DriverSettings {
-	return sqlds.DriverSettings{}
-}
-
 // Connect opens a sql.DB connection using datasource settings
-func (s *TrinoDatasource) Connect(config backend.DataSourceInstanceSettings, queryArgs json.RawMessage) (*sql.DB, error) {
+func (s *TrinoDatasource) Connect(ctx context.Context, config backend.DataSourceInstanceSettings, queryArgs json.RawMessage) (*sql.DB, error) {
 	settings := models.TrinoDatasourceSettings{}
-	err := settings.Load(config)
+	err := settings.Load(ctx, config)
 	if err != nil {
-		return nil, fmt.Errorf("error reading settings: %s", err.Error())
+		return nil, fmt.Errorf("error reading settings: %w", err)
 	}
 
 	db, err := driver.Open(settings)
 	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to connect to database. Is the hostname and port correct?")
+		return nil, fmt.Errorf("failed to connect to database. Is the hostname and port correct?: %w", err)
 	}
 	s.db = db
 

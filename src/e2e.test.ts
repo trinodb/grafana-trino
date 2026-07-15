@@ -12,16 +12,13 @@ async function login(page: Page) {
 }
 
 async function goToTrinoSettings(page: Page) {
-    await page.getByTestId('data-testid Toggle menu').click();
-    await page.getByRole('link', {name: 'Connections'}).click();
-    await page.getByRole('link', {name: 'Trino'}).click();
-    await page.locator('.css-1yhi3xa').click();
+    await page.goto('http://localhost:3000/connections/datasources/trino-datasource');
     await page.getByRole('button', {name: 'Add new data source'}).click();
 }
 
 async function setupDataSourceWithAccessToken(page: Page) {
     await page.getByTestId('data-testid Datasource HTTP settings url').fill('http://trino:8080');
-    await page.locator('div').filter({hasText: /^Impersonate logged in user$/}).getByLabel('Toggle switch').click();
+    await page.locator('label[for="trino-settings-enable-impersonation"]').last().click();
     await page.locator('div').filter({hasText: /^Access token$/}).locator('input[type="password"]').fill('aaa');
     await page.getByTestId('data-testid Data source settings page Save and Test button').click();
 }
@@ -37,7 +34,7 @@ async function setupDataSourceWithClientCredentials(page: Page, clientId: string
 
 async function setupDataSourceWithClientTags(page: Page, clientTags: string) {
     await page.getByTestId('data-testid Datasource HTTP settings url').fill('http://trino:8080');
-    await page.locator('div').filter({hasText: /^Impersonate logged in user$/}).getByLabel('Toggle switch').click();
+    await page.locator('label[for="trino-settings-enable-impersonation"]').last().click();
     await page.locator('div').filter({hasText: /^Access token$/}).locator('input[type="password"]').fill('aaa');
     await page.locator('div').filter({hasText: /^Client Tags$/}).locator('input').fill(clientTags);
     await page.getByTestId('data-testid Data source settings page Save and Test button').click();
@@ -49,11 +46,11 @@ async function runQueryAndCheckResults(page: Page) {
     await page.getByTestId('data-testid Time Range from field').fill('1995-01-01');
     await page.getByTestId('data-testid Time Range to field').fill('1995-12-31');
     await page.getByTestId('data-testid TimePicker submit button').click();
-    await page.locator('div').filter({hasText: /^Format asChoose$/}).locator('svg').click();
+    await page.getByRole('combobox', {name: 'Format as'}).click();
     await page.getByRole('option', {name: 'Table'}).click();
     await page.getByTestId('data-testid Code editor container').click();
     await page.getByTestId('data-testid RefreshPicker run button').click();
-    await expect(page.getByTestId('data-testid table body')).toContainText(/.*1995-01-19 0.:00:005703857F.*/);
+    await expect(page.getByRole('row', {name: /1995-01-\d\d .*:00:00 5703857 F/})).toBeVisible();
 }
 
 test('test with access token', async ({ page }) => {
@@ -97,7 +94,7 @@ test('test with roles', async ({ page }) => {
     await goToTrinoSettings(page);
     await setupDataSourceWithRoles(page, 'system:ALL;hive:admin');
     await runRoleQuery(page);
-    await expect(page.getByTestId('data-testid table body')).toContainText(/.*admin.*/);
+    await expect(page.getByRole('gridcell', {name: 'admin'})).toBeVisible();
 
 });
 
@@ -117,7 +114,7 @@ async function setupDataSourceWithRoles(page: Page, roles: string) {
 
 async function runRoleQuery(page: Page) {
     await page.getByLabel(EXPORT_DATA).click();
-    await page.locator('div').filter({hasText: /^Format asChoose$/}).locator('svg').click();
+    await page.getByRole('combobox', {name: 'Format as'}).click();
     await page.getByRole('option', {name: 'Table'}).click();
     await setQuery(page, 'SHOW ROLES FROM hive')
     await page.getByTestId('data-testid Code editor container').click();

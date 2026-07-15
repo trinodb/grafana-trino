@@ -1,72 +1,245 @@
-import { of, throwError } from 'rxjs';
-import { BackendSrv, FetchResponse, setBackendSrv } from '@grafana/runtime';
+import { of } from 'rxjs';
+import { TestScheduler } from 'rxjs/testing';
+
+import { dataFrameToJSON, DataSourceInstanceSettings, dateTime, MutableDataFrame } from '@grafana/data';
+import {
+  BackendSrv,
+  DataSourceSrv,
+  FetchResponse,
+  setBackendSrv,
+  setDataSourceSrv,
+  TemplateSrv,
+  setTemplateSrv,
+} from '@grafana/runtime';
 
 import { DataSource } from './datasource';
+import { TrinoDataSourceOptions } from './types';
 
 const mockBackend = { fetch: () => {} };
 setBackendSrv(mockBackend as unknown as BackendSrv);
+const mockTemplate = {
+  replace: (target: any) => {
+    return target;
+  },
+};
+setTemplateSrv(mockTemplate as unknown as TemplateSrv);
+const mockDataSource = {
+  getInstanceSettings: () => ({ id: 8674 }),
+};
+setDataSourceSrv(mockDataSource as unknown as DataSourceSrv);
 
 jest.mock('@grafana/runtime', () => ({
-  ...(jest.requireActual('@grafana/runtime') as any),
+  ...(jest.requireActual('@grafana/runtime') as unknown as object),
   getBackendSrv: () => mockBackend,
-  getTemplateSrv: () => ({
-    replace: (val: string): string => {
-      return val;
-    },
-  }),
+  getTemplateSrv: () => mockTemplate,
+  getDataSourceSrv: () => mockDataSource,
 }));
 
-describe('Trino datasource', () => {
-  beforeEach(() => {
+describe('DataSource', () => {
+  const fetchMock = jest.spyOn(mockBackend, 'fetch');
+  const setupTestContext = (data: any) => {
     jest.clearAllMocks();
+    fetchMock.mockImplementation(() => of(createFetchResponse(data)));
+    const instanceSettings = {
+      jsonData: {
+        defaultProject: 'testproject',
+      },
+    } as unknown as DataSourceInstanceSettings<TrinoDataSourceOptions>;
+    const ds = new DataSource(instanceSettings);
+
+    return { ds };
+  };
+
+  // https://rxjs-dev.firebaseapp.com/guide/testing/marble-testing
+  const runMarbleTest = (args: {
+    options: any;
+    values: { [marble: string]: FetchResponse };
+    marble: string;
+    expectedValues: { [marble: string]: any };
+    expectedMarble: string;
+  }) => {
+    const { expectedValues, expectedMarble, options, values, marble } = args;
+    const scheduler: TestScheduler = new TestScheduler((actual, expected) => {
+      expect(actual).toEqual(expected);
+    });
+
+    const { ds } = setupTestContext({});
+
+    scheduler.run(({ cold, expectObservable }) => {
+      const source = cold(marble, values);
+      jest.clearAllMocks();
+      fetchMock.mockImplementation(() => source);
+
+      const result = ds.query(options);
+      expectObservable(result).toBe(expectedMarble, expectedValues);
+    });
+  };
+
+  describe('When performing a time series query', () => {
+    it('should transform response correctly', () => {
+      const options = {
+        range: {
+          from: dateTime(1432288354),
+          to: dateTime(1432288401),
+        },
+        targets: [
+          {
+            format: 'time_series',
+            rawQuery: true,
+            rawSql: 'select time, metric from grafana_metric',
+            refId: 'A',
+            datasource: 'gdev-ds',
+          },
+        ],
+      };
+      const response = {
+        results: {
+          A: {
+            refId: 'A',
+            frames: [
+              dataFrameToJSON(
+                new MutableDataFrame({
+                  fields: [
+                    { name: 'time', values: [1599643351085] },
+                    { name: 'metric', values: [30.226249741223704], labels: { metric: 'America' } },
+                  ],
+                  meta: {
+                    executedQueryString: 'select time, metric from grafana_metric',
+                  },
+                })
+              ),
+            ],
+          },
+        },
+      };
+
+      const values = { a: createFetchResponse(response) };
+      const marble = '-a|';
+      const expectedMarble = '-a|';
+      const expectedValues = {
+        a: {
+          data: [
+            {
+              fields: [
+                {
+                  config: {},
+                  entities: {},
+                  name: 'time',
+                  type: 'time',
+                  values: [1599643351085],
+                },
+                {
+                  config: {},
+                  entities: {},
+                  labels: {
+                    metric: 'America',
+                  },
+                  name: 'metric',
+                  type: 'number',
+                  values: [30.226249741223704],
+                },
+              ],
+              length: 1,
+              meta: {
+                executedQueryString: 'select time, metric from grafana_metric',
+              },
+              name: undefined,
+              refId: 'A',
+            },
+          ],
+          state: 'Done',
+        },
+      };
+
+      runMarbleTest({ options, marble, values, expectedMarble, expectedValues });
+    });
   });
 
-  describe('when performing testDatasource call', () => {
-    it('should return the error from the server', async () => {
-      setupFetchMock(
-        undefined,
-        throwError(() => ({
-          status: 400,
-          statusText: 'Bad Request',
-          data: {
-            results: {
-              meta: {
-                error: 'db query error: aaaa',
-                frames: [
-                  {
-                    schema: {
-                      refId: 'meta',
-                      meta: {
-                        executedQueryString: 'SELECT 1',
-                      },
-                      fields: [],
-                    },
-                    data: {
-                      values: [],
-                    },
-                  },
-                ],
-              },
-            },
+  describe('When performing a table query', () => {
+    it('should transform response correctly', () => {
+      const options = {
+        range: {
+          from: dateTime(1432288354),
+          to: dateTime(1432288401),
+        },
+        targets: [
+          {
+            format: 'table',
+            rawQuery: true,
+            rawSql: 'select time, metric, value from grafana_metric',
+            refId: 'A',
+            datasource: 'gdev-ds',
           },
-        }))
-      );
+        ],
+      };
+      const response = {
+        results: {
+          A: {
+            refId: 'A',
+            frames: [
+              dataFrameToJSON(
+                new MutableDataFrame({
+                  fields: [
+                    { name: 'time', values: [1599643351085] },
+                    { name: 'metric', values: ['America'] },
+                    { name: 'value', values: [30.226249741223704] },
+                  ],
+                  meta: {
+                    executedQueryString: 'select time, metric, value from grafana_metric',
+                  },
+                })
+              ),
+            ],
+          },
+        },
+      };
 
-      const ds = new DataSource({ name: '', id: 0, jsonData: {} } as any);
-      const result = await ds.testDatasource();
-      expect(result.status).toEqual("error");
-      expect(result.message).toEqual('Query error: Bad Request');
+      const values = { a: createFetchResponse(response) };
+      const marble = '-a|';
+      const expectedMarble = '-a|';
+      const expectedValues = {
+        a: {
+          data: [
+            {
+              fields: [
+                {
+                  config: {},
+                  entities: {},
+                  name: 'time',
+                  type: 'time',
+                  values: [1599643351085],
+                },
+                {
+                  config: {},
+                  entities: {},
+                  name: 'metric',
+                  type: 'string',
+                  values: ['America'],
+                },
+                {
+                  config: {},
+                  entities: {},
+                  name: 'value',
+                  type: 'number',
+                  values: [30.226249741223704],
+                },
+              ],
+              length: 1,
+              meta: {
+                executedQueryString: 'select time, metric, value from grafana_metric',
+              },
+              name: undefined,
+              refId: 'A',
+            },
+          ],
+          state: 'Done',
+        },
+      };
+
+      runMarbleTest({ options, marble, values, expectedMarble, expectedValues });
     });
   });
 });
-
-function setupFetchMock(response: any, mock?: any) {
-  const defaultMock = () => mock ?? of(createFetchResponse(response));
-
-  const fetchMock = jest.spyOn(mockBackend, 'fetch');
-  fetchMock.mockImplementation(defaultMock);
-  return fetchMock;
-}
 
 const createFetchResponse = <T>(data: T): FetchResponse<T> => ({
   data,
