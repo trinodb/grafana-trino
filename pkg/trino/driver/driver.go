@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
 	trinoClient "github.com/trinodb/grafana-trino/pkg/trino/client"
 
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
@@ -31,35 +32,13 @@ func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // Open registers a new driver with a unique name
 func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
-	skipVerify := false
-	var certPool *x509.CertPool
-	var clientCert []tls.Certificate
-	if settings.Opts.TLS != nil {
-		skipVerify = settings.Opts.TLS.InsecureSkipVerify
-		if settings.Opts.TLS.CACertificate != "" {
-			certPool := x509.NewCertPool()
-			certPool.AppendCertsFromPEM([]byte(settings.Opts.TLS.CACertificate))
-		}
-		if settings.Opts.TLS.ClientCertificate != "" {
-			if settings.Opts.TLS.ClientKey == "" {
-				return nil, errors.New("client certificate was configured without a client key")
-			}
-			cert, err := tls.X509KeyPair(
-				[]byte(settings.Opts.TLS.ClientCertificate),
-				[]byte(settings.Opts.TLS.ClientKey))
-			if err != nil {
-				return nil, fmt.Errorf("failed to load client certificate: %w", err)
-			}
-			clientCert = append(clientCert, cert)
-		}
+	tlsConfig, err := buildTLSConfig(settings.Opts.TLS)
+	if err != nil {
+		return nil, err
 	}
 	client := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: skipVerify,
-				Certificates:       clientCert,
-				RootCAs:            certPool,
-			},
+			TLSClientConfig: tlsConfig,
 		},
 	}
 	if settings.TokenUrl != "" || settings.ClientId != "" || settings.ClientSecret != "" {
@@ -91,7 +70,7 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 			},
 		}
 	}
-	err := trino.RegisterCustomClient("grafana", client)
+	err = trino.RegisterCustomClient("grafana", client)
 	if err != nil {
 		return nil, err
 	}
@@ -115,6 +94,39 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 		return nil, err
 	}
 	return sql.Open(DriverName, dsn)
+}
+
+// buildTLSConfig builds the tls.Config used for connections to Trino from
+// the datasource's TLS settings (CA certificate, client certificate/key,
+// skip-verify).
+func buildTLSConfig(opts *httpclient.TLSOptions) (*tls.Config, error) {
+	if opts == nil {
+		return &tls.Config{}, nil
+	}
+
+	var certPool *x509.CertPool
+	if opts.CACertificate != "" {
+		certPool = x509.NewCertPool()
+		certPool.AppendCertsFromPEM([]byte(opts.CACertificate))
+	}
+
+	var clientCert []tls.Certificate
+	if opts.ClientCertificate != "" {
+		if opts.ClientKey == "" {
+			return nil, errors.New("client certificate was configured without a client key")
+		}
+		cert, err := tls.X509KeyPair([]byte(opts.ClientCertificate), []byte(opts.ClientKey))
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client certificate: %w", err)
+		}
+		clientCert = append(clientCert, cert)
+	}
+
+	return &tls.Config{
+		InsecureSkipVerify: opts.InsecureSkipVerify,
+		Certificates:       clientCert,
+		RootCAs:            certPool,
+	}, nil
 }
 
 func parseRoles(roleStr string) (map[string]string, error) {
