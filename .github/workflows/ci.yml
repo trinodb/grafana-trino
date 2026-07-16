@@ -52,6 +52,61 @@ jobs:
           version: latest
           args: buildAll
 
+      - name: Upload built plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 5
+
+  resolve-versions:
+    name: Resolve e2e Grafana versions
+    runs-on: ubuntu-latest
+    needs: build
+    outputs:
+      matrix: ${{ steps.resolve-versions.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve Grafana E2E versions
+        id: resolve-versions
+        uses: grafana/plugin-actions/e2e-version@e2e-version/v3.0.2
+        with:
+          # Resolves against plugin.json's dependencies.grafanaDependency
+          # (>=13.1.0): the latest patch of every minor satisfying that
+          # range, plus nightly. Versions below our declared floor are
+          # intentionally excluded - we already know they're unsupported.
+          version-resolver-type: plugin-grafana-dependency
+
+  e2e:
+    name: e2e ${{ matrix.GRAFANA_IMAGE.name }}@${{ matrix.GRAFANA_IMAGE.version }}
+    needs: [build, resolve-versions]
+    strategy:
+      fail-fast: false
+      matrix:
+        GRAFANA_IMAGE: ${{ fromJson(needs.resolve-versions.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download built plugin
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Make backend executables runnable
+        run: chmod +x dist/gpx_*
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
       - name: Setup services (Trino, Grafana, PostgreSQL, Keycloak)
         run: |
           docker network create trino
@@ -64,7 +119,7 @@ jobs:
             --env POSTGRES_PASSWORD=keycloak \
             --env POSTGRES_DB=keycloak \
             postgres:17.4
-          
+
           echo "Starting Keycloak..."
           docker run --rm --detach \
             --name keycloak \
@@ -99,15 +154,6 @@ jobs:
             --volume "$(pwd)/test-data/trino/catalog/hive.properties:/etc/trino/catalog/hive.properties" \
             trinodb/trino:468
 
-          echo "Starting Grafana..."
-          docker run --rm --detach \
-            --name grafana \
-            --net trino \
-            --publish 3000:3000 \
-            --volume "$(pwd):/var/lib/grafana/plugins/trino" \
-            --env "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=trino-datasource" \
-            grafana/grafana:13.1.0
-          
           echo "Waiting for Trino to be ready..."
           while true; do
             if docker logs trino 2>&1 | grep -q '======== SERVER STARTED ========'; then
@@ -120,9 +166,27 @@ jobs:
 
           echo "Preconfiguring trino..."
           docker exec trino trino --user admin --execute "GRANT admin TO USER grafana IN hive;"
+
+          echo "Starting Grafana grafana/${{ matrix.GRAFANA_IMAGE.name }}:${{ matrix.GRAFANA_IMAGE.version }}..."
+          docker run --rm --detach \
+            --name grafana \
+            --net trino \
+            --publish 3000:3000 \
+            --volume "$(pwd)/dist:/var/lib/grafana/plugins/trino" \
+            --env "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=trino-datasource" \
+            "grafana/${{ matrix.GRAFANA_IMAGE.name }}:${{ matrix.GRAFANA_IMAGE.version }}"
           echo "Done."
+
+      - name: Wait for Grafana
+        uses: grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.5
+        with:
+          url: http://localhost:3000/login
 
       - name: End to end test
         run: |
           npx playwright install --with-deps chromium
           npx playwright test
+
+      - name: Grafana logs (on failure)
+        if: failure()
+        run: docker logs grafana
