@@ -9,11 +9,13 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"math/big"
+	"net/http"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/proxy"
 )
 
 func TestBuildTLSConfig(t *testing.T) {
@@ -165,6 +167,30 @@ func TestParseRoles(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSecureSocksProxyDisabledIsNoop(t *testing.T) {
+	transport := &http.Transport{}
+
+	tests := []struct {
+		name string
+		opts *proxy.Options
+	}{
+		{name: "nil options", opts: nil},
+		{name: "explicitly disabled", opts: &proxy.Options{Enabled: false}},
+		{name: "enabled but no client config", opts: &proxy.Options{Enabled: true}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := proxy.New(tt.opts).ConfigureSecureSocksHTTPProxy(transport); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if transport.DialContext != nil {
+				t.Error("expected transport.DialContext to be left unset when the proxy is not enabled")
 			}
 		})
 	}

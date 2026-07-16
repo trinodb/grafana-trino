@@ -1,6 +1,7 @@
 import React, { ChangeEvent } from 'react';
 import { DataSourceHttpSettings, InlineField, InlineSwitch, SecretInput, Input } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
+import { config } from '@grafana/runtime';
 import { TrinoDataSourceOptions, TrinoSecureJsonData } from './types';
 
 interface Props extends DataSourcePluginOptionsEditorProps<TrinoDataSourceOptions, TrinoSecureJsonData> {}
@@ -45,6 +46,9 @@ export function ConfigEditor(props: Props) {
   };
   const onClientTagsChange = (event: ChangeEvent<HTMLInputElement>) => {
     onOptionsChange({ ...options, jsonData: { ...options.jsonData, clientTags: event.target.value } });
+  };
+  const onEnableSecureSocksProxyChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onOptionsChange({ ...options, jsonData: { ...options.jsonData, enableSecureSocksProxy: event.target.checked } });
   };
 
   return (
@@ -130,6 +134,27 @@ export function ConfigEditor(props: Props) {
           </InlineField>
         </div>
       </div>
+
+      {config.secureSocksDSProxyEnabled && (
+        <>
+          <h3 className="page-heading">Other Settings</h3>
+          <div className="gf-form-group">
+            <div className="gf-form-inline">
+              <InlineField
+                label="Secure Socks Proxy"
+                tooltip="Enable proxying the data source connection through the secure SOCKS proxy to a different network. Used by Grafana Cloud's Private Data Source Connect (PDC)."
+                labelWidth={26}
+              >
+                <InlineSwitch
+                  id="trino-settings-enable-secure-socks-proxy"
+                  value={options.jsonData?.enableSecureSocksProxy ?? false}
+                  onChange={onEnableSecureSocksProxyChange}
+                />
+              </InlineField>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

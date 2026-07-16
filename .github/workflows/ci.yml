@@ -184,6 +184,43 @@ jobs:
           echo "Preconfiguring trino..."
           docker exec trino trino --user admin --execute "GRANT admin TO USER grafana IN hive;"
 
+          # A second, isolated Trino instance reachable only through the
+          # secure SOCKS proxy below, used to prove Private Data Source
+          # Connect (PDC) support actually routes traffic through the proxy
+          # rather than just accepting the setting: the "trino" network
+          # (where Grafana lives) has no route to "trino-pdc-private", so a
+          # query can only succeed if it truly went through the proxy, which
+          # is dual-homed onto both networks. See DEVELOPMENT.md for how to
+          # reproduce this locally.
+          docker network create trino-pdc-private
+
+          echo "Starting trino-private (PDC-only network)..."
+          docker run --rm --detach \
+            --name trino-private \
+            --net trino-pdc-private \
+            --volume "$(pwd)/test-data/trino/test-trino-config-pdc.properties:/etc/trino/config.properties" \
+            --volume "$(pwd)/test-data/trino/catalog/hive.properties:/etc/trino/catalog/hive.properties" \
+            trinodb/trino:483
+
+          echo "Starting the SOCKS proxy (dual-homed)..."
+          docker run --rm --detach \
+            --name socks-proxy \
+            --net trino \
+            --env REQUIRE_AUTH=false \
+            serjs/go-socks5-proxy:v0.0.4
+          docker network connect trino-pdc-private socks-proxy
+
+          echo "Waiting for trino-private to be ready..."
+          while true; do
+            if docker logs trino-private 2>&1 | grep -q '======== SERVER STARTED ========'; then
+              echo "trino-private is ready!"
+              break
+            fi
+            echo "Waiting for trino-private..."
+            sleep 5
+          done
+          docker exec trino-private trino --user admin --execute "GRANT admin TO USER grafana IN hive;"
+
           echo "Starting Grafana grafana/${{ matrix.GRAFANA_IMAGE.name }}:${{ matrix.GRAFANA_IMAGE.version }}..."
           docker run --rm --detach \
             --name grafana \
@@ -191,6 +228,9 @@ jobs:
             --publish 3000:3000 \
             --volume "$(pwd)/dist:/var/lib/grafana/plugins/trino" \
             --env "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=trino-datasource" \
+            --env "GF_SECURE_SOCKS_DATASOURCE_PROXY_ENABLED=true" \
+            --env "GF_SECURE_SOCKS_DATASOURCE_PROXY_PROXY_ADDRESS=socks-proxy:1080" \
+            --env "GF_SECURE_SOCKS_DATASOURCE_PROXY_ALLOW_INSECURE=true" \
             "grafana/${{ matrix.GRAFANA_IMAGE.name }}:${{ matrix.GRAFANA_IMAGE.version }}"
           echo "Done."
 
@@ -200,6 +240,11 @@ jobs:
           url: http://localhost:3000/login
 
       - name: End to end test
+        env:
+          # Opts the PDC tests in - they need the trino-private/socks-proxy
+          # containers started above, so they're skipped when unset (e.g. for
+          # a plain local `yarn server` stack). See DEVELOPMENT.md.
+          PDC_PRIVATE_TRINO_URL: http://trino-private:8080
         run: |
           npx playwright install --with-deps chromium
           npx playwright test
