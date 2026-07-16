@@ -58,6 +58,7 @@ export interface TrinoDataSourceOptions extends DataSourceJsonData {
   impersonationUser?: string;
   roles?: string;
   clientTags?: string;
+  enableSecureSocksProxy?: boolean;
 }
 /**
  * Value that is used in the backend, but never sent over HTTP to the frontend

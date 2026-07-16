@@ -77,6 +77,35 @@ provisioning expansion:
 Restart the stack to pick up changes; Grafana re-reads provisioning files on
 boot.
 
+## Secure SOCKS proxy (PDC)
+
+The dev stack always enables Grafana's secure SOCKS datasource proxy, so the
+"Secure Socks Proxy" toggle shows up in the datasource settings. To actually
+exercise it — the setup the `secure socks proxy (PDC)` e2e tests need — bring
+the stack up with the `pdc` profile:
+
+```bash
+yarn build && mage -v
+docker compose --profile pdc up --build
+```
+
+That adds two containers: `trino-private`, a second Trino instance on an
+isolated `pdc-private` network with no route to/from the network Grafana runs
+on, and `socks-proxy`, dual-homed onto both. `trino-private` is therefore
+reachable *only* through the proxy, so a query against it succeeding proves the
+toggle really routes traffic rather than just being accepted and ignored. The
+paired negative-control test checks the same host fails with the toggle off.
+
+Run the e2e suite against it with:
+
+```bash
+PDC_PRIVATE_TRINO_URL=http://trino-private:8080 yarn e2e
+```
+
+The two PDC tests are skipped when `PDC_PRIVATE_TRINO_URL` is unset, so a plain
+`yarn e2e` against a default `yarn server` stack is unaffected. CI sets it in
+the `End to end test` step.
+
 ## Verifier
 
 ```bash
