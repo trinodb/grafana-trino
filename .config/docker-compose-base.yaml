@@ -20,7 +20,7 @@ services:
       - SYS_PTRACE
     volumes:
       - ../dist:/var/lib/grafana/plugins/trino-datasource
-      - ../provisioning:/etc/grafana/provisioning
+      - ./provisioning:/etc/grafana/provisioning
       - ..:/root/trino-datasource
 
     environment:
