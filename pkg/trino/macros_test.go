@@ -8,15 +8,6 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/data/sqlutil"
 )
 
-func testQuery() *sqlutil.Query {
-	return &sqlutil.Query{
-		TimeRange: backend.TimeRange{
-			From: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
-			To:   time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC),
-		},
-	}
-}
-
 func TestMacroTimeFilter(t *testing.T) {
 	got, err := macroTimeFilter(testQuery(), []string{"orderdate"})
 	if err != nil {
@@ -105,5 +96,14 @@ func TestMacroTimeFromTo(t *testing.T) {
 	}
 	if to != "TIMESTAMP '2023-01-02 00:00:00'" {
 		t.Errorf("unexpected timeTo: %q", to)
+	}
+}
+
+func testQuery() *sqlutil.Query {
+	return &sqlutil.Query{
+		TimeRange: backend.TimeRange{
+			From: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC),
+		},
 	}
 }
