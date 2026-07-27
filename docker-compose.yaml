@@ -19,7 +19,7 @@ services:
       # Defaults to the bundled `trino` service above for a self-contained
       # dev stack. To point at a different (e.g. real internal) instance
       # instead, copy .env.example to .env and override TRINO_URL plus
-      # whichever auth fields you need. See provisioning/README.md.
+      # whichever auth fields you need. See DEVELOPMENT.md.
       TRINO_URL: ${TRINO_URL:-http://trino:8080}
       TRINO_BASIC_AUTH_ENABLED: ${TRINO_BASIC_AUTH_ENABLED:-false}
       TRINO_BASIC_AUTH_USER: ${TRINO_BASIC_AUTH_USER:-}
