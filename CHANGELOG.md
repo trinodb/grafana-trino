@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0
+
+* Add support for Trino roles
+* Add support for client tags
+* Keep OAuth2 tokens isolated between data source instances
+* Respect configured CA certificates for Trino TLS connections
+* Modernize the Grafana plugin SDK and tooling and require Grafana 10.4 or later
+
 ## 1.0.12
 
 * Add support for OAuth2 client-credentials flow

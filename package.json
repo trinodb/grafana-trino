@@ -1,6 +1,6 @@
 {
   "name": "trino-datasource",
-  "version": "1.0.12",
+  "version": "1.1.0",
   "description": "The Trino datasource allows to query and visualize Trino data from within Grafana.",
   "scripts": {
     "build": "webpack -c ./.config/webpack/webpack.config.ts --env production",
