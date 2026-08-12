@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync/atomic"
 	"testing"
 )
@@ -73,5 +74,25 @@ func TestClient_TokensAreNotSharedAcrossInstances(t *testing.T) {
 	}
 	if tokenAAgain.AccessToken != "token-a" {
 		t.Errorf("clientA's cached token was clobbered by clientB: got %q", tokenAAgain.AccessToken)
+	}
+}
+
+func TestClient_RejectsInvalidRequestURLs(t *testing.T) {
+	tests := []struct {
+		name string
+		url  *url.URL
+	}{
+		{name: "unsupported scheme", url: &url.URL{Scheme: "file", Path: "/tmp/trino"}},
+		{name: "missing host", url: &url.URL{Scheme: "https", Path: "/trino"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := Client{}
+			_, err := client.Do(&http.Request{URL: tt.url})
+			if err == nil {
+				t.Fatal("expected an invalid URL error")
+			}
+		})
 	}
 }
