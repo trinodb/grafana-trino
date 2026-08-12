@@ -1,0 +1,11 @@
+[[IgnoredVulns]]
+id = "GO-2026-5932"
+reason = "The unmaintained openpgp package is not imported, no fix exists, and CI separately runs govulncheck for reachable Go vulnerabilities."
+
+[[IgnoredVulns]]
+id = "GHSA-337j-9hxr-rhxg"
+reason = "The plugin does not use React Router SSR hydration, which is the affected mode, and Grafana UI requires React Router 6."
+
+[[IgnoredVulns]]
+id = "GHSA-wrjc-x8rr-h8h6"
+reason = "The plugin does not import React Router or render navigation links, and Grafana UI requires React Router 6."
