@@ -39,6 +39,10 @@
       {
         "name": "License",
         "url": "https://github.com/trinodb/grafana-trino/blob/master/LICENSE"
+      },
+      {
+        "name": "Sponsor",
+        "url": "https://trino.io/sponsor.html"
       }
     ],
     "screenshots": [
