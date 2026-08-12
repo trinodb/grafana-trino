@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1
+
+* Update dependencies to address Grafana plugin validation findings
+* Restrict Trino and OAuth token endpoints to HTTP and HTTPS
+* Publish releases with build provenance
+
 ## 1.1.0
 
 * Add support for Trino roles
