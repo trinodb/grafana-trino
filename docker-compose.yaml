@@ -1,6 +1,6 @@
 services:
   trino:
-    image: trinodb/trino:482
+    image: trinodb/trino:483
     healthcheck:
       test: ["CMD", "/usr/lib/trino/bin/health-check"]
       interval: 5s
