@@ -26,6 +26,13 @@ type Client struct {
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
+		return nil, fmt.Errorf("unsupported Trino URL scheme %q", req.URL.Scheme)
+	}
+	if req.URL.Host == "" {
+		return nil, errors.New("Trino URL must include a host")
+	}
+
 	token, err := c.getToken()
 	if err != nil {
 		return nil, err
@@ -34,6 +41,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	if c.ImpersonationUser != "" {
 		req.Header.Set("X-Trino-User", c.ImpersonationUser)
 	}
+	// #nosec G704 -- the administrator-configured Trino URL is restricted to HTTP(S) above.
 	return c.Client.Do(req)
 }
 

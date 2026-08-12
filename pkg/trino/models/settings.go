@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -33,7 +34,7 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 		return errors.New("Custom headers are not supported and must be not set")
 	}
 	log.DefaultLogger.Info("Loading Trino data source settings")
-	s.URL, err = url.Parse(config.URL)
+	s.URL, err = parseHTTPURL(config.URL, "Trino URL")
 	if err != nil {
 		return err
 	}
@@ -51,6 +52,13 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 	if err != nil {
 		return err
 	}
+	if s.TokenUrl != "" {
+		tokenURL, err := parseHTTPURL(s.TokenUrl, "OAuth token URL")
+		if err != nil {
+			return err
+		}
+		s.TokenUrl = tokenURL.String()
+	}
 	if token, ok := config.DecryptedSecureJSONData["accessToken"]; ok {
 		s.AccessToken = token
 	}
@@ -58,4 +66,18 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 		s.ClientSecret = clientSecret
 	}
 	return nil
+}
+
+func parseHTTPURL(value string, name string) (*url.URL, error) {
+	parsedURL, err := url.Parse(value)
+	if err != nil {
+		return nil, fmt.Errorf("invalid %s: %w", name, err)
+	}
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return nil, fmt.Errorf("%s must use HTTP or HTTPS", name)
+	}
+	if parsedURL.Host == "" {
+		return nil, fmt.Errorf("%s must include a host", name)
+	}
+	return parsedURL, nil
 }

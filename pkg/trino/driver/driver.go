@@ -2,7 +2,6 @@ package driver
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -100,33 +99,11 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 // the datasource's TLS settings (CA certificate, client certificate/key,
 // skip-verify).
 func buildTLSConfig(opts *httpclient.TLSOptions) (*tls.Config, error) {
-	if opts == nil {
-		return &tls.Config{}, nil
+	if opts != nil && opts.ClientCertificate != "" && opts.ClientKey == "" {
+		return nil, errors.New("client certificate was configured without a client key")
 	}
 
-	var certPool *x509.CertPool
-	if opts.CACertificate != "" {
-		certPool = x509.NewCertPool()
-		certPool.AppendCertsFromPEM([]byte(opts.CACertificate))
-	}
-
-	var clientCert []tls.Certificate
-	if opts.ClientCertificate != "" {
-		if opts.ClientKey == "" {
-			return nil, errors.New("client certificate was configured without a client key")
-		}
-		cert, err := tls.X509KeyPair([]byte(opts.ClientCertificate), []byte(opts.ClientKey))
-		if err != nil {
-			return nil, fmt.Errorf("failed to load client certificate: %w", err)
-		}
-		clientCert = append(clientCert, cert)
-	}
-
-	return &tls.Config{
-		InsecureSkipVerify: opts.InsecureSkipVerify,
-		Certificates:       clientCert,
-		RootCAs:            certPool,
-	}, nil
+	return httpclient.GetTLSConfig(httpclient.Options{TLS: opts})
 }
 
 func parseRoles(roleStr string) (map[string]string, error) {

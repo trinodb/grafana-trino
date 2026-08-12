@@ -72,3 +72,29 @@ func TestLoad_RejectsCustomHeaders(t *testing.T) {
 		t.Fatal("expected an error when custom headers are configured, got nil")
 	}
 }
+
+func TestLoad_RejectsInvalidURLs(t *testing.T) {
+	tests := []struct {
+		name     string
+		trinoURL string
+		jsonData string
+	}{
+		{name: "Trino URL scheme", trinoURL: "file:///tmp/trino", jsonData: `{}`},
+		{name: "Trino URL host", trinoURL: "https:///trino", jsonData: `{}`},
+		{name: "OAuth token URL scheme", trinoURL: "https://trino.example", jsonData: `{"tokenUrl":"file:///tmp/token"}`},
+		{name: "OAuth token URL host", trinoURL: "https://trino.example", jsonData: `{"tokenUrl":"https:///token"}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			settings := TrinoDatasourceSettings{}
+			err := settings.Load(context.Background(), backend.DataSourceInstanceSettings{
+				URL:      tt.trinoURL,
+				JSONData: []byte(tt.jsonData),
+			})
+			if err == nil {
+				t.Fatal("expected an invalid URL error")
+			}
+		})
+	}
+}
