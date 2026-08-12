@@ -169,7 +169,7 @@ jobs:
             --net trino \
             --volume "$(pwd)/test-data/trino/test-trino-config.properties:/etc/trino/config.properties" \
             --volume "$(pwd)/test-data/trino/catalog/hive.properties:/etc/trino/catalog/hive.properties" \
-            trinodb/trino:468
+            trinodb/trino:483
 
           echo "Waiting for Trino to be ready..."
           while true; do
