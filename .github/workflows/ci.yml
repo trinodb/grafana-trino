@@ -73,10 +73,11 @@ jobs:
         uses: grafana/plugin-actions/e2e-version@e2e-version/v3.0.2
         with:
           # Resolves against plugin.json's dependencies.grafanaDependency
-          # (>=13.1.0): the latest patch of every minor satisfying that
-          # range, plus nightly. Versions below our declared floor are
-          # intentionally excluded - we already know they're unsupported.
+          # (>=10.4.0): the latest patch of every minor satisfying that
+          # range. Nightly is intentionally excluded because its unstable UI
+          # is outside our supported Grafana versions.
           version-resolver-type: plugin-grafana-dependency
+          skip-grafana-nightly-image: true
 
   e2e:
     name: e2e ${{ matrix.GRAFANA_IMAGE.name }}@${{ matrix.GRAFANA_IMAGE.version }}
