@@ -69,7 +69,11 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 			},
 		}
 	}
-	err = trino.RegisterCustomClient("grafana", client)
+	clientName, err := customClientName(settings.UID)
+	if err != nil {
+		return nil, err
+	}
+	err = trino.RegisterCustomClient(clientName, client)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +86,7 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 	config := trino.Config{
 		ServerURI:                  settings.URL.String(),
 		Source:                     "grafana",
-		CustomClientName:           "grafana",
+		CustomClientName:           clientName,
 		ForwardAuthorizationHeader: true,
 		AccessToken:                settings.AccessToken,
 		Roles:                      roles,
@@ -93,6 +97,22 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 		return nil, err
 	}
 	return sql.Open(DriverName, dsn)
+}
+
+// customClientName returns the key this data source's HTTP client is registered
+// under in trino-go-client's custom client registry. That registry is
+// process-global and shared by every data source this plugin serves, and
+// trino-go-client resolves the key on every new connection, so a key that isn't
+// unique per data source lets one data source's credentials, TLS settings and
+// dialer silently replace another's.
+//
+// The prefix keeps the key clear of the keys RegisterCustomClient reserves
+// (anything parsing as a bool).
+func customClientName(uid string) (string, error) {
+	if uid == "" {
+		return "", errors.New("data source UID is missing, refusing to share one Trino client between data sources")
+	}
+	return "grafana-" + uid, nil
 }
 
 // buildTLSConfig builds the tls.Config used for connections to Trino from
