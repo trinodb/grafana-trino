@@ -11,7 +11,7 @@ on:
 jobs:
   vulnerability-scan:
     name: Scan dependencies for known vulnerabilities
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.8
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.5.0
     with:
       scan-args: |-
         --no-call-analysis=go
