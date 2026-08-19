@@ -85,7 +85,11 @@ async function runQueryAndCheckResults(page: Page) {
     await commitQuery(page);
     await selectFormat(page, 'Time Series', 'Table');
     await page.getByTestId('data-testid Code editor container').click();
-    await page.getByTestId('data-testid RefreshPicker run button').click();
+    const runButton = page.getByTestId('data-testid RefreshPicker run button');
+    // wait until any running queries have finished - the button is icon-only
+    // on newer Grafana, so aria-label is the only text carrying its state
+    await expect(runButton).toHaveAttribute('aria-label', /run/i, {timeout: 15000});
+    await runButton.click();
     await expect(page.getByRole('row', {name: /1995-01-\d\d .*:00:00 5703857 F/})).toBeVisible({timeout: 15000});
 }
 
