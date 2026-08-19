@@ -274,6 +274,11 @@ test('test template variable backed by trino query', async ({ page }) => {
     await login(page);
     await goToTrinoSettings(page);
     await setupDataSourceWithAccessToken(page);
+    // Wait for the save to land before navigating away - other tests get this
+    // for free by staying on the page to click "Explore data", but this one
+    // leaves immediately and would otherwise race the in-flight save, leaving
+    // a datasource with no URL for the variable query to use.
+    await expect(page.getByText('Data source is working')).toBeVisible({timeout: 15000});
 
     await page.goto('http://localhost:3000/dashboard/new?editview=templating&editIndex=0');
     await page.getByRole('tab', {name: 'Variables'}).click();
@@ -285,7 +290,9 @@ test('test template variable backed by trino query', async ({ page }) => {
     const takeMeThere = page.getByRole('button', {name: 'Take me there'});
     if (await takeMeThere.isVisible({timeout: 3000}).catch(() => false)) {
         await takeMeThere.click();
-        await page.getByTestId('data-testid edit pane add new variable button').click();
+        // Grafana 13.2 renamed this control's test id from "edit pane" to
+        // "sidebar"; accept either so both sides of that rename work.
+        await page.getByTestId(/data-testid (edit pane|sidebar) add new variable button/).click();
         await page.getByTestId('data-testid variable type query').click();
         await page.getByTestId('data-testid variable name input').fill('orderstatus');
         await page.getByText('Open variable editor').click();
