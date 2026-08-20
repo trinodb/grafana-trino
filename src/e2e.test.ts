@@ -85,7 +85,11 @@ async function runQueryAndCheckResults(page: Page) {
     await commitQuery(page);
     await selectFormat(page, 'Time Series', 'Table');
     await page.getByTestId('data-testid Code editor container').click();
-    await page.getByTestId('data-testid RefreshPicker run button').click();
+    const runButton = page.getByTestId('data-testid RefreshPicker run button');
+    // wait until any running queries have finished - the button is icon-only
+    // on newer Grafana, so aria-label is the only text carrying its state
+    await expect(runButton).toHaveAttribute('aria-label', /run/i, {timeout: 15000});
+    await runButton.click();
     await expect(page.getByRole('row', {name: /1995-01-\d\d .*:00:00 5703857 F/})).toBeVisible({timeout: 15000});
 }
 
@@ -123,6 +127,53 @@ test('test with client tags', async ({ page }) => {
     await goToTrinoSettings(page);
     await setupDataSourceWithClientTags(page, 'tag1,tag2,tag3');
     await runQueryAndCheckResults(page);
+});
+
+// PDC_PRIVATE_TRINO_URL points at a Trino instance reachable only through
+// the secure SOCKS proxy (no direct network route from Grafana). That proves
+// the proxy toggle actually routes traffic rather than just accepting the
+// setting, since a query can only succeed here if it truly went through the
+// proxy. It needs a Grafana with the secure SOCKS proxy configured plus the
+// isolated Trino and proxy containers, which the default `yarn server` stack
+// doesn't start - so these two tests are skipped unless the variable is set.
+// CI sets it, and DEVELOPMENT.md covers running them locally.
+const PDC_PRIVATE_TRINO_URL = process.env.PDC_PRIVATE_TRINO_URL;
+
+test.describe('secure socks proxy (PDC)', () => {
+    test.skip(!PDC_PRIVATE_TRINO_URL, 'PDC_PRIVATE_TRINO_URL is not set, see DEVELOPMENT.md');
+
+    test('test with secure socks proxy (PDC)', async ({ page }) => {
+        await login(page);
+        await goToTrinoSettings(page);
+        await page.getByTestId('data-testid Datasource HTTP settings url').fill(PDC_PRIVATE_TRINO_URL!);
+        await page.locator('label[for="trino-settings-enable-secure-socks-proxy"]').last().click();
+        await page.getByTestId('data-testid Data source settings page Save and Test button').click();
+        await expect(page.getByText('Data source is working')).toBeVisible({timeout: 10000});
+        await runQueryAndCheckResults(page);
+    });
+
+    test('test without secure socks proxy cannot reach a PDC-only host', async ({ page }) => {
+        // Negative control: the same otherwise-unreachable host, without
+        // enabling the proxy toggle, must fail - proving the prior test's
+        // success is actually caused by the proxy and not some other route.
+        // Save & Test alone can't show this: trino-go-client doesn't implement
+        // database/sql's Pinger interface, so CheckHealth is a no-op regardless
+        // of reachability (see the "check health failure" test above). Only an
+        // actual query attempt forces a real connection.
+        await login(page);
+        await goToTrinoSettings(page);
+        await page.getByTestId('data-testid Datasource HTTP settings url').fill(PDC_PRIVATE_TRINO_URL!);
+        await page.getByTestId('data-testid Data source settings page Save and Test button').click();
+        await page.getByLabel(EXPORT_DATA).click();
+        await commitQuery(page);
+        // The Explore graph view renders a plain "No data" for a query error
+        // instead of visible error text - Table format surfaces it properly
+        // (same as the roles tests above).
+        await selectFormat(page, 'Time Series', 'Table');
+        await page.getByTestId('data-testid Code editor container').click();
+        await page.getByTestId('data-testid RefreshPicker run button').click();
+        await expect(page.getByText(/error querying the database/i)).toBeVisible({timeout: 15000});
+    });
 });
 
 test('test with roles', async ({ page }) => {
@@ -223,6 +274,11 @@ test('test template variable backed by trino query', async ({ page }) => {
     await login(page);
     await goToTrinoSettings(page);
     await setupDataSourceWithAccessToken(page);
+    // Wait for the save to land before navigating away - other tests get this
+    // for free by staying on the page to click "Explore data", but this one
+    // leaves immediately and would otherwise race the in-flight save, leaving
+    // a datasource with no URL for the variable query to use.
+    await expect(page.getByText('Data source is working')).toBeVisible({timeout: 15000});
 
     await page.goto('http://localhost:3000/dashboard/new?editview=templating&editIndex=0');
     await page.getByRole('tab', {name: 'Variables'}).click();
@@ -234,7 +290,9 @@ test('test template variable backed by trino query', async ({ page }) => {
     const takeMeThere = page.getByRole('button', {name: 'Take me there'});
     if (await takeMeThere.isVisible({timeout: 3000}).catch(() => false)) {
         await takeMeThere.click();
-        await page.getByTestId('data-testid edit pane add new variable button').click();
+        // Grafana 13.2 renamed this control's test id from "edit pane" to
+        // "sidebar"; accept either so both sides of that rename work.
+        await page.getByTestId(/data-testid (edit pane|sidebar) add new variable button/).click();
         await page.getByTestId('data-testid variable type query').click();
         await page.getByTestId('data-testid variable name input').fill('orderstatus');
         await page.getByText('Open variable editor').click();
@@ -244,7 +302,7 @@ test('test template variable backed by trino query', async ({ page }) => {
         // query editor.
         await page.getByTestId('data-testid Variable editor Form Default Variable Query Editor textarea').fill('SELECT DISTINCT orderstatus FROM tpch.tiny.orders');
         await page.getByRole('button', {name: 'Run query'}).click();
-        await expect(page.getByText(/Preview of values/)).toBeVisible();
+        await expect(page.getByText(/Preview of values/)).toBeVisible({timeout: 10000});
         // The query editor opens in a modal dialog - scope to it since the
         // rest of the dashboard-builder page behind it also renders text.
         const dialog = page.getByRole('dialog');
@@ -259,7 +317,7 @@ test('test template variable backed by trino query', async ({ page }) => {
     await page.getByRole('textbox', {name: 'Metric name or tags query'}).fill('SELECT DISTINCT orderstatus FROM tpch.tiny.orders');
     await page.getByRole('button', {name: 'Run query'}).click();
     // Older Grafana versions don't show the "(N)" count suffix.
-    await expect(page.getByText(/Preview of values/)).toBeVisible();
+    await expect(page.getByText(/Preview of values/)).toBeVisible({timeout: 10000});
     // Older Grafana renders the preview as plain inline text tags; newer
     // versions render an actual sortable table. Scope to the variable
     // editor form and match loosely rather than assume either structure.

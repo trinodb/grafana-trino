@@ -1,3 +1,12 @@
+# The `pdc-private` network deliberately has no route to/from the default
+# network Grafana lives on. Only `socks-proxy` is dual-homed, so the
+# `trino-private` instance below is reachable exclusively through the secure
+# SOCKS proxy - which is what makes the PDC e2e tests meaningful. See
+# DEVELOPMENT.md.
+networks:
+  default:
+  pdc-private:
+
 services:
   trino:
     image: trinodb/trino:483
@@ -6,6 +15,31 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+
+  # Both of these only start under the `pdc` profile, i.e.
+  # `docker compose --profile pdc up --build`.
+  trino-private:
+    profiles: [pdc]
+    image: trinodb/trino:483
+    networks:
+      - pdc-private
+    volumes:
+      - ./test-data/trino/test-trino-config-pdc.properties:/etc/trino/config.properties
+      - ./test-data/trino/catalog/hive.properties:/etc/trino/catalog/hive.properties
+    healthcheck:
+      test: ["CMD", "/usr/lib/trino/bin/health-check"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  socks-proxy:
+    profiles: [pdc]
+    image: serjs/go-socks5-proxy:v0.0.4
+    networks:
+      - default
+      - pdc-private
+    environment:
+      REQUIRE_AUTH: "false"
 
   grafana:
     extends:
@@ -33,3 +67,11 @@ services:
       TRINO_CLIENT_ID: ${TRINO_CLIENT_ID:-}
       TRINO_CLIENT_SECRET: ${TRINO_CLIENT_SECRET:-}
       TRINO_TLS_SKIP_VERIFY: ${TRINO_TLS_SKIP_VERIFY:-false}
+
+      # --- Secure SOCKS proxy (PDC) ---
+      # Makes the "Secure Socks Proxy" toggle available in the datasource
+      # settings, pointed at the `socks-proxy` service above. The proxy only
+      # runs under the `pdc` profile; the toggle is simply a no-op otherwise.
+      GF_SECURE_SOCKS_DATASOURCE_PROXY_ENABLED: "true"
+      GF_SECURE_SOCKS_DATASOURCE_PROXY_PROXY_ADDRESS: socks-proxy:1080
+      GF_SECURE_SOCKS_DATASOURCE_PROXY_ALLOW_INSECURE: "true"
