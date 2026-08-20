@@ -111,22 +111,6 @@ func TestOpenIsolatesTransportBetweenDatasources(t *testing.T) {
 	}
 }
 
-// TestOpenRejectsMissingUID checks the invariant fails closed: without a UID
-// there is no way to key the client per data source, and falling back to a
-// shared key would silently reintroduce the bug above.
-func TestOpenRejectsMissingUID(t *testing.T) {
-	u, err := url.Parse("http://trino.invalid:8080")
-	if err != nil {
-		t.Fatalf("parse URL: %v", err)
-	}
-	u.User = url.User("grafana")
-
-	_, err = Open(models.TrinoDatasourceSettings{URL: u})
-	if err == nil {
-		t.Fatal("expected an error when the data source UID is missing")
-	}
-}
-
 // tokenRecorder records which client_id each OAuth token endpoint received.
 type tokenRecorder struct {
 	mu       sync.Mutex

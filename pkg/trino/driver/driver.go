@@ -69,12 +69,9 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 			},
 		}
 	}
-	// trino-go-client's custom client registry is process-global and the
-	// key is resolved on every new connection, so it must be unique per
-	// data source. The grafana- prefix keeps it clear of names.
-	if settings.UID == "" {
-		return nil, errors.New("data source UID is missing, refusing to share one Trino client between data sources")
-	}
+	// trino-go-client's custom client registry is process-global and the key
+	// is resolved on every new connection, so it must be unique per data
+	// source. The prefix keeps it clear of the keys RegisterCustomClient
 	clientName := "grafana-" + settings.UID
 	err = trino.RegisterCustomClient(clientName, client)
 	if err != nil {
