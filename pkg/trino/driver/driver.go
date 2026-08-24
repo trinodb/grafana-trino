@@ -77,7 +77,11 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 			},
 		}
 	}
-	err = trino.RegisterCustomClient("grafana", client)
+	// trino-go-client's custom client registry is process-global and the key
+	// is resolved on every new connection, so it must be unique per data
+	// source. The prefix keeps it clear of the keys RegisterCustomClient
+	clientName := "grafana-" + settings.UID
+	err = trino.RegisterCustomClient(clientName, client)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +94,7 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 	config := trino.Config{
 		ServerURI:                  settings.URL.String(),
 		Source:                     "grafana",
-		CustomClientName:           "grafana",
+		CustomClientName:           clientName,
 		ForwardAuthorizationHeader: true,
 		AccessToken:                settings.AccessToken,
 		Roles:                      roles,
