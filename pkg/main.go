@@ -20,10 +20,12 @@ func main() {
 	// from Grafana to create different instances of TrinoDatasource (per datasource
 	// ID). When datasource configuration changed Dispose method will be called and
 	// new datasource instance created using New factory.
-	s := &trino.TrinoDatasource{}
-	ds := trino.NewDatasource(s)
-	ds.Completable = s
+	// Build a fresh datasource object per instance so that disposing a
+	// replaced instance never tears down its successor's connections.
 	dsInstanceFactory := func(ctx context.Context, settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+		s := &trino.TrinoDatasource{}
+		ds := trino.NewDatasource(s)
+		ds.Completable = s
 		return ds.NewDatasource(ctx, settings)
 	}
 	if err := datasource.Manage("trino-datasource", dsInstanceFactory, datasource.ManageOpts{}); err != nil {
