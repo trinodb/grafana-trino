@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+* Add support for Grafana Private Data Source Connect (PDC)
+* Keep HTTP clients and their authentication, TLS, and proxy configuration isolated between data sources
+* Prevent data source configuration changes from closing connections in replacement instances
+* Update dependencies and the Go toolchain to address known vulnerabilities
+
 ## 1.1.1
 
 * Update dependencies to address Grafana plugin validation findings
