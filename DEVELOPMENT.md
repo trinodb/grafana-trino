@@ -1,5 +1,15 @@
 # Development
 
+## Prerequisites
+
+Node.js 24 (see `.nvmrc`) and Yarn 4. Yarn is pinned by the `packageManager`
+field in `package.json` and provided by corepack, which ships with Node.js 24,
+so you do not install Yarn yourself — just enable corepack once:
+
+```bash
+corepack enable
+```
+
 ## Build and test
 
 1. Install dependencies

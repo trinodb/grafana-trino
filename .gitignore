@@ -7,6 +7,12 @@ yarn-error.log*
 
 node_modules/
 
+# Yarn (Berry) local state. The yarn binary itself comes from corepack, so
+# nothing under .yarn/ needs to be committed.
+.yarn/*
+!.yarn/patches
+.pnp.*
+
 # Runtime data
 pids
 *.pid
@@ -29,6 +35,9 @@ e2e-results/
 # Editor
 .idea
 .vscode
+
+# Lint cache (the lint script runs eslint with --cache)
+.eslintcache
 
 # Playwright
 playwright-report/
