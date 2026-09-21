@@ -24,6 +24,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Before setup-node, whose cache step invokes yarn to find the cache
+      # folder and would otherwise pick up the runner's Yarn 1.
+      - name: Enable corepack
+        run: corepack enable
+
       - name: Setup Node.js environment
         uses: actions/setup-node@v7.0.0
         with:
@@ -31,7 +36,7 @@ jobs:
           cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Lint frontend
         run: yarn lint
@@ -115,6 +120,9 @@ jobs:
       - name: Make backend executables runnable
         run: chmod +x dist/gpx_*
 
+      - name: Enable corepack
+        run: corepack enable
+
       - name: Setup Node.js environment
         uses: actions/setup-node@v7.0.0
         with:
@@ -122,7 +130,7 @@ jobs:
           cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Setup services (Trino, Grafana, PostgreSQL, Keycloak)
         run: |
