@@ -27,6 +27,8 @@ docker run -d -p 3000:3000 \
 * Raw SQL editor only, no query builder yet
 * Macros
 * Client tags support, used to identify resource groups.
+* Impersonation of the logged-in Grafana user, by login or email. Anonymous
+  users are not impersonated and run as the data source's user.
 
 ## Macros support
 

@@ -66,6 +66,7 @@ provisioning expansion:
 | `TRINO_BASIC_AUTH_PASSWORD` | Basic auth password |
 | `TRINO_ACCESS_TOKEN` | Bearer access token |
 | `TRINO_ENABLE_IMPERSONATION` | `true`/`false` |
+| `TRINO_IMPERSONATION_IDENTITY` | `login`/`email`: which Grafana user attribute to impersonate as |
 | `TRINO_IMPERSONATION_USER` | User to impersonate |
 | `TRINO_ROLES` | `catalog:role;catalog:role` pairs |
 | `TRINO_CLIENT_TAGS` | Comma-separated client tags |

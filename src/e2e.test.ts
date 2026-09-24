@@ -211,6 +211,25 @@ async function runRoleQuery(page: Page) {
     await page.getByTestId('data-testid RefreshPicker run button').click();
 }
 
+test('test impersonation with user email', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    await page.getByTestId('data-testid Datasource HTTP settings url').fill('http://trino:8080');
+    await page.locator('label[for="trino-settings-enable-impersonation"]').last().click();
+    // RadioButtonGroup renders its option text as a <label> on newer Grafana
+    // but not on 10.x, so target the radio itself. The input is visually
+    // hidden behind the option text, hence `force`.
+    await page.getByRole('radio', {name: 'Email'}).check({ force: true });
+    await page.getByTestId('data-testid Data source settings page Save and Test button').click();
+    await page.getByLabel(EXPORT_DATA).click();
+    await setQuery(page, 'SELECT current_user AS trino_user');
+    await page.getByTestId('data-testid Code editor container').click();
+    await selectFormat(page, 'Time Series', 'Table');
+    await page.getByTestId('data-testid Code editor container').click();
+    await page.getByTestId('data-testid RefreshPicker run button').click();
+    await expect(page.getByText('admin@localhost', {exact: true})).toBeVisible({timeout: 15000});
+});
+
 async function setQuery(page: Page, query: string) {
     const editor = page.getByTestId('data-testid Code editor container');
     // Give Monaco a moment to finish mounting before selecting-all - a
