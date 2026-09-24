@@ -21,9 +21,10 @@ type TrinoDatasource struct {
 }
 
 var (
-	_ sqlds.Driver         = (*TrinoDatasource)(nil)
-	_ sqlds.QueryArgSetter = (*TrinoDatasource)(nil)
-	_ sqlds.Completable    = (*TrinoDatasource)(nil)
+	_ sqlds.Driver          = (*TrinoDatasource)(nil)
+	_ sqlds.QueryArgSetter  = (*TrinoDatasource)(nil)
+	_ sqlds.Completable     = (*TrinoDatasource)(nil)
+	_ sqlds.ResponseMutator = (*TrinoDatasource)(nil)
 )
 
 func New() *TrinoDatasource {
@@ -67,12 +68,18 @@ func (s *TrinoDatasource) Converters() (sc []sqlutil.Converter) {
 	nullBoolConverter := sqlutil.NullBoolConverter
 	nullBoolConverter.InputTypeName = "boolean"
 	return []sqlutil.Converter{
+		complexTypeConverter,
 		nullStringConverter,
 		nullDecimalConverter,
 		nullInt64Converter,
 		nullTimeConverter,
 		nullBoolConverter,
 	}
+}
+
+func (s *TrinoDatasource) MutateResponse(ctx context.Context, frames data.Frames) (data.Frames, error) {
+	enableJSONCellInspect(frames)
+	return frames, nil
 }
 
 func (s *TrinoDatasource) SetQueryArgs(ctx context.Context, headers http.Header) []interface{} {
