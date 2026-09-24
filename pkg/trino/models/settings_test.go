@@ -98,3 +98,39 @@ func TestLoad_RejectsInvalidURLs(t *testing.T) {
 		})
 	}
 }
+
+func TestLoad_ImpersonationIdentity(t *testing.T) {
+	tests := []struct {
+		jsonData string
+		want     string
+		wantErr  bool
+	}{
+		{jsonData: `{}`, want: ImpersonationIdentityLogin},
+		{jsonData: `{"impersonationIdentity":""}`, want: ImpersonationIdentityLogin},
+		{jsonData: `{"impersonationIdentity":"login"}`, want: ImpersonationIdentityLogin},
+		{jsonData: `{"impersonationIdentity":"email"}`, want: ImpersonationIdentityEmail},
+		{jsonData: `{"impersonationIdentity":"name"}`, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.jsonData, func(t *testing.T) {
+			settings := TrinoDatasourceSettings{}
+			err := settings.Load(context.Background(), backend.DataSourceInstanceSettings{
+				URL:      "http://localhost:8080",
+				JSONData: []byte(tt.jsonData),
+			})
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected an error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if settings.ImpersonationIdentity != tt.want {
+				t.Errorf("got %q, want %q", settings.ImpersonationIdentity, tt.want)
+			}
+		})
+	}
+}

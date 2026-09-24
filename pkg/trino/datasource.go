@@ -115,7 +115,7 @@ func (s *TrinoDatasource) SetQueryArgs(ctx context.Context, headers http.Header)
 	clientTags := clientTagsFromContext(ctx)
 
 	if user != nil {
-		args = append(args, sql.Named(trinoUserHeader, string(user.(*backend.User).Login)))
+		args = append(args, sql.Named(trinoUserHeader, user.(string)))
 	}
 
 	if accessToken != nil {

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +26,17 @@ type Client struct {
 	token *Token
 }
 
+type sessionUserKey struct{}
+
+func WithSessionUser(ctx context.Context) context.Context {
+	return context.WithValue(ctx, sessionUserKey{}, true)
+}
+
+func hasSessionUser(ctx context.Context) bool {
+	set, _ := ctx.Value(sessionUserKey{}).(bool)
+	return set
+}
+
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
 		return nil, fmt.Errorf("unsupported Trino URL scheme %q", req.URL.Scheme)
@@ -38,7 +50,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
-	if c.ImpersonationUser != "" {
+	if c.ImpersonationUser != "" && !hasSessionUser(req.Context()) {
 		req.Header.Set("X-Trino-User", c.ImpersonationUser)
 	}
 	// #nosec G704 -- the administrator-configured Trino URL is restricted to HTTP(S) above.
