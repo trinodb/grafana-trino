@@ -34,7 +34,8 @@ docker run -d -p 3000:3000 \
 `ARRAY`, `MAP` and `ROW` values are returned as JSON fields, with `ROW` values
 converted to objects keyed by field name (anonymous `ROW` fields stay
 positional arrays). In the table panel, hover a cell and click the eye icon to
-open the value in a formatted, collapsible JSON viewer.
+open the value in a formatted, collapsible JSON viewer. Explore on Grafana 11.6
+through 12.3 does not show the eye icon; dashboard table panels do.
 
 Row field names are returned in lower case, so quoted mixed-case field names
 such as `"Word Start"` appear as `word start`.
