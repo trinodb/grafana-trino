@@ -29,6 +29,10 @@ docker run -d -p 3000:3000 \
 * Client tags support, used to identify resource groups. Tags can be set on the data source,
   and extended with additional tags in the query editor.
 * `ARRAY`, `MAP` and `ROW` columns rendered as JSON.
+* Impersonation of the logged-in Grafana user, by login or email. This takes
+  precedence over the OAuth "Impersonation user", which then only applies to
+  anonymous users. Anonymous users are not impersonated and run as the data
+  source's user, or the OAuth impersonation user if set.
 
 ## Complex types
 

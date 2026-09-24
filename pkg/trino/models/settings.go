@@ -12,22 +12,28 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
 
+const (
+	ImpersonationIdentityLogin = "login"
+	ImpersonationIdentityEmail = "email"
+)
+
 type TrinoDatasourceSettings struct {
 	// UID identifies the data source instance these settings belong to. It is
 	// used to keep per-instance state (such as the registered HTTP client)
 	// isolated between data sources, so it must never be populated from
 	// jsonData.
-	UID                 string             `json:"-"`
-	URL                 *url.URL           `json:"-"`
-	Opts                httpclient.Options `json:"-"`
-	EnableImpersonation bool               `json:"enableImpersonation"`
-	AccessToken         string             `json:"accessToken"`
-	TokenUrl            string             `json:"tokenUrl"`
-	ClientId            string             `json:"clientId"`
-	ClientSecret        string             `json:"clientSecret"`
-	ImpersonationUser   string             `json:"impersonationUser"`
-	Roles               string             `json:"roles"`
-	ClientTags          string             `json:"clientTags"`
+	UID                   string             `json:"-"`
+	URL                   *url.URL           `json:"-"`
+	Opts                  httpclient.Options `json:"-"`
+	EnableImpersonation   bool               `json:"enableImpersonation"`
+	ImpersonationIdentity string             `json:"impersonationIdentity"`
+	AccessToken           string             `json:"accessToken"`
+	TokenUrl              string             `json:"tokenUrl"`
+	ClientId              string             `json:"clientId"`
+	ClientSecret          string             `json:"clientSecret"`
+	ImpersonationUser     string             `json:"impersonationUser"`
+	Roles                 string             `json:"roles"`
+	ClientTags            string             `json:"clientTags"`
 }
 
 func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataSourceInstanceSettings) error {
@@ -57,6 +63,13 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 	err = json.Unmarshal(config.JSONData, &s)
 	if err != nil {
 		return err
+	}
+	switch s.ImpersonationIdentity {
+	case "":
+		s.ImpersonationIdentity = ImpersonationIdentityLogin
+	case ImpersonationIdentityLogin, ImpersonationIdentityEmail:
+	default:
+		return fmt.Errorf("invalid impersonation identity %q, expected %q or %q", s.ImpersonationIdentity, ImpersonationIdentityLogin, ImpersonationIdentityEmail)
 	}
 	if s.TokenUrl != "" {
 		tokenURL, err := parseHTTPURL(s.TokenUrl, "OAuth token URL")

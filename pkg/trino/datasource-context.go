@@ -7,7 +7,9 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/sqlds/v4"
+	trinoClient "github.com/trinodb/grafana-trino/pkg/trino/client"
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
 )
 
@@ -33,12 +35,17 @@ func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req 
 	ctx = injectAccessToken(ctx, req)
 
 	if settings.EnableImpersonation {
-		user := req.PluginContext.User
-		if user == nil {
-			return nil, fmt.Errorf("user can't be nil if impersonation is enabled")
+		user, err := impersonatedUser(req.PluginContext.User, settings.ImpersonationIdentity)
+		if err != nil {
+			return errorForEachQuery(req, err), nil
 		}
 
-		ctx = context.WithValue(ctx, trinoUserHeader, user)
+		if user == "" {
+			log.DefaultLogger.FromContext(ctx).Info("Not impersonating anonymous Grafana user, query runs as the data source's Trino user")
+		} else {
+			ctx = context.WithValue(ctx, trinoUserHeader, user)
+			ctx = trinoClient.WithSessionUser(ctx)
+		}
 	}
 
 	if settings.ClientTags != "" {
@@ -75,4 +82,31 @@ func injectAccessToken(ctx context.Context, req *backend.QueryDataRequest) conte
 func clientTagsFromContext(ctx context.Context) string {
 	tags, _ := ctx.Value(trinoClientTagsKey).(string)
 	return tags
+}
+
+func impersonatedUser(user *backend.User, identity string) (string, error) {
+	if user == nil {
+		return "", fmt.Errorf("user can't be nil if impersonation is enabled")
+	}
+	if user.Login == "" && user.Email == "" {
+		return "", nil
+	}
+	if identity == models.ImpersonationIdentityEmail {
+		if user.Email == "" {
+			return "", fmt.Errorf("impersonation is configured to use the user's email, but Grafana user %q has no email", user.Login)
+		}
+		return user.Email, nil
+	}
+	if user.Login == "" {
+		return "", fmt.Errorf("impersonation is configured to use the user's login, but Grafana user %q has no login", user.Email)
+	}
+	return user.Login, nil
+}
+
+func errorForEachQuery(req *backend.QueryDataRequest, err error) *backend.QueryDataResponse {
+	resp := backend.NewQueryDataResponse()
+	for _, q := range req.Queries {
+		resp.Responses[q.RefID] = backend.ErrDataResponseWithSource(backend.StatusBadRequest, backend.ErrorSourceDownstream, err.Error())
+	}
+	return resp
 }
