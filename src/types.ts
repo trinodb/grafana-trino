@@ -51,8 +51,16 @@ export interface TrinoSecureJsonData {
   clientSecret?: string;
 }
 
+export type ImpersonationIdentity = 'login' | 'email';
+
+export const SelectableImpersonationIdentities: Array<SelectableValue<ImpersonationIdentity>> = [
+  { label: 'Login', value: 'login' },
+  { label: 'Email', value: 'email' },
+];
+
 export interface TrinoDataSourceOptions extends DataSourceJsonData {
   enableImpersonation?: boolean;
+  impersonationIdentity?: ImpersonationIdentity;
   tokenUrl?: string;
   clientId?: string;
   impersonationUser?: string;

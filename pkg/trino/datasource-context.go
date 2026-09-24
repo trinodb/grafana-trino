@@ -33,12 +33,14 @@ func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req 
 	ctx = injectAccessToken(ctx, req)
 
 	if settings.EnableImpersonation {
-		user := req.PluginContext.User
-		if user == nil {
-			return nil, fmt.Errorf("user can't be nil if impersonation is enabled")
+		user, err := impersonatedUser(req.PluginContext.User, settings.ImpersonationIdentity)
+		if err != nil {
+			return errorForEachQuery(req, err), nil
 		}
 
-		ctx = context.WithValue(ctx, trinoUserHeader, user)
+		if user != "" {
+			ctx = context.WithValue(ctx, trinoUserHeader, user)
+		}
 	}
 
 	if settings.ClientTags != "" {
@@ -70,4 +72,28 @@ func injectAccessToken(ctx context.Context, req *backend.QueryDataRequest) conte
 	}
 
 	return ctx
+}
+
+func impersonatedUser(user *backend.User, identity string) (string, error) {
+	if user == nil {
+		return "", fmt.Errorf("user can't be nil if impersonation is enabled")
+	}
+	if user.Login == "" {
+		return "", nil
+	}
+	if identity == models.ImpersonationIdentityEmail {
+		if user.Email == "" {
+			return "", fmt.Errorf("impersonation is configured to use the user's email, but Grafana user %q has no email", user.Login)
+		}
+		return user.Email, nil
+	}
+	return user.Login, nil
+}
+
+func errorForEachQuery(req *backend.QueryDataRequest, err error) *backend.QueryDataResponse {
+	resp := backend.NewQueryDataResponse()
+	for _, q := range req.Queries {
+		resp.Responses[q.RefID] = backend.ErrDataResponseWithSource(backend.StatusBadRequest, backend.ErrorSourceDownstream, err.Error())
+	}
+	return resp
 }
