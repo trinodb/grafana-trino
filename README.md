@@ -27,6 +27,17 @@ docker run -d -p 3000:3000 \
 * Raw SQL editor only, no query builder yet
 * Macros
 * Client tags support, used to identify resource groups.
+* `ARRAY`, `MAP` and `ROW` columns rendered as JSON.
+
+## Complex types
+
+`ARRAY`, `MAP` and `ROW` values are returned as JSON fields, with `ROW` values
+converted to objects keyed by field name (anonymous `ROW` fields stay
+positional arrays). In the table panel, hover a cell and click the eye icon to
+open the value in a formatted, collapsible JSON viewer.
+
+Row field names are returned in lower case, so quoted mixed-case field names
+such as `"Word Start"` appear as `word start`.
 
 ## Macros support
 

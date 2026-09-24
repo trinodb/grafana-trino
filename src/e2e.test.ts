@@ -211,6 +211,27 @@ async function runRoleQuery(page: Page) {
     await page.getByTestId('data-testid RefreshPicker run button').click();
 }
 
+test('test with complex types', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    await setupDataSourceWithAccessToken(page);
+    await page.getByLabel(EXPORT_DATA).click();
+    await setQuery(page, "SELECT ARRAY[CAST(ROW(0.95, 'Bonsoir') AS ROW(score double, word varchar))] AS words, MAP(ARRAY['k'], ARRAY[ARRAY[1, 2]]) AS nested");
+    await page.getByTestId('data-testid Code editor container').click();
+    await selectFormat(page, 'Time Series', 'Table');
+    await page.getByTestId('data-testid Code editor container').click();
+    await page.getByTestId('data-testid RefreshPicker run button').click();
+    // JSON cells are pretty-printed on some Grafana versions and compact on
+    // others, so allow optional whitespace between tokens.
+    await expect(page.getByText(/\[\s*\{\s*"score":\s*0\.95,\s*"word":\s*"Bonsoir"\s*\}\s*\]/).first()).toBeVisible({timeout: 15000});
+    await expect(page.getByText(/\{\s*"k":\s*\[\s*1,\s*2\s*\]\s*\}/).first()).toBeVisible();
+    await expect(page.getByText(/error querying the database/i)).toHaveCount(0);
+    // The cell inspect button only renders while the cell is hovered.
+    await page.getByText(/"score"/).first().hover();
+    await page.getByRole('button', {name: 'Inspect value'}).first().click();
+    await expect(page.getByText('Inspect value', {exact: true}).first()).toBeVisible();
+});
+
 async function setQuery(page: Page, query: string) {
     const editor = page.getByTestId('data-testid Code editor container');
     // Give Monaco a moment to finish mounting before selecting-all - a
