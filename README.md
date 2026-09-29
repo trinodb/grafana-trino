@@ -26,7 +26,8 @@ docker run -d -p 3000:3000 \
   * OAuth
 * Raw SQL editor only, no query builder yet
 * Macros
-* Client tags support, used to identify resource groups.
+* Client tags support, used to identify resource groups. Tags can be set on the data source,
+  and extended with additional tags in the query editor.
 
 ## Macros support
 

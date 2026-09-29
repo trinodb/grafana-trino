@@ -76,13 +76,27 @@ async function setupDataSourceWithClientTags(page: Page, clientTags: string) {
     await page.getByTestId('data-testid Data source settings page Save and Test button').click();
 }
 
-async function runQueryAndCheckResults(page: Page) {
+// Fills the query editor's Client tags field. Scoped by the label text rather
+// than a role or testid - InlineField renders the label and the input as
+// siblings inside one wrapper div on every supported Grafana version, while
+// @grafana/ui's Input markup around them does not.
+async function setQueryClientTags(page: Page, clientTags: string) {
+    await page.locator('div').filter({hasText: /^Client tags$/}).locator('input').fill(clientTags);
+    // typing only updates the query model - blurring the field commits it
+    await page.keyboard.press('Tab');
+    await page.waitForTimeout(500);
+}
+
+async function runQueryAndCheckResults(page: Page, queryClientTags?: string) {
     await page.getByLabel(EXPORT_DATA).click();
     await page.getByTestId('data-testid TimePicker Open Button').click();
     await page.getByTestId('data-testid Time Range from field').fill('1995-01-01');
     await page.getByTestId('data-testid Time Range to field').fill('1995-12-31');
     await page.getByTestId('data-testid TimePicker submit button').click();
     await commitQuery(page);
+    if (queryClientTags !== undefined) {
+        await setQueryClientTags(page, queryClientTags);
+    }
     await selectFormat(page, 'Time Series', 'Table');
     await page.getByTestId('data-testid Code editor container').click();
     const runButton = page.getByTestId('data-testid RefreshPicker run button');
@@ -127,6 +141,13 @@ test('test with client tags', async ({ page }) => {
     await goToTrinoSettings(page);
     await setupDataSourceWithClientTags(page, 'tag1,tag2,tag3');
     await runQueryAndCheckResults(page);
+});
+
+test('test with client tags set in the query editor', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    await setupDataSourceWithClientTags(page, 'tag1,tag2,tag3');
+    await runQueryAndCheckResults(page, 'panelTag');
 });
 
 // PDC_PRIVATE_TRINO_URL points at a Trino instance reachable only through
