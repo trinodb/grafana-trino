@@ -11,7 +11,7 @@ on:
 jobs:
   vulnerability-scan:
     name: Scan dependencies for known vulnerabilities
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.5.1
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.6.0
     with:
       scan-args: |-
         --no-call-analysis=go
@@ -56,10 +56,10 @@ jobs:
           go-version-file: "go.mod"
 
       - name: Scan backend dependencies for reachable vulnerabilities
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 
       - name: Scan backend source for security issues
-        run: go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -quiet ./...
+        run: go run github.com/securego/gosec/v2/cmd/gosec@v2.29.0 -quiet ./...
 
       - name: Test backend
         uses: magefile/mage-action@v4
@@ -91,7 +91,7 @@ jobs:
 
       - name: Resolve Grafana E2E versions
         id: resolve-versions
-        uses: grafana/plugin-actions/e2e-version@e2e-version/v3.0.2
+        uses: grafana/plugin-actions/e2e-version@e2e-version/v3.1.0
         with:
           # Resolves against plugin.json's dependencies.grafanaDependency
           # (>=10.4.0): the latest patch of every minor satisfying that
