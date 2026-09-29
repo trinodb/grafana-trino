@@ -71,3 +71,8 @@ func injectAccessToken(ctx context.Context, req *backend.QueryDataRequest) conte
 
 	return ctx
 }
+
+func clientTagsFromContext(ctx context.Context) string {
+	tags, _ := ctx.Value(trinoClientTagsKey).(string)
+	return tags
+}
