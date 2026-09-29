@@ -239,6 +239,20 @@ describe('DataSource', () => {
       runMarbleTest({ options, marble, values, expectedMarble, expectedValues });
     });
   });
+
+  describe('When applying template variables', () => {
+    it('should interpolate client tags as a plain comma-separated list', () => {
+      const { ds } = setupTestContext({});
+      const replaceSpy = jest.spyOn(mockTemplate, 'replace');
+
+      const query = ds.applyTemplateVariables({ refId: 'A', rawSQL: 'SELECT 1', clientTags: '$cluster,adhoc' }, {});
+
+      expect(query.clientTags).toBe('$cluster,adhoc');
+      // 'csv' and no formatting function - client tags go into an HTTP header,
+      // so they must not be quoted or escaped the way SQL literals are
+      expect(replaceSpy).toHaveBeenCalledWith('$cluster,adhoc', {}, 'csv');
+    });
+  });
 });
 
 const createFetchResponse = <T>(data: T): FetchResponse<T> => ({

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -22,6 +23,7 @@ type TrinoDatasource struct {
 
 var (
 	_ sqlds.Driver         = (*TrinoDatasource)(nil)
+	_ sqlds.QueryMutator   = (*TrinoDatasource)(nil)
 	_ sqlds.QueryArgSetter = (*TrinoDatasource)(nil)
 	_ sqlds.Completable    = (*TrinoDatasource)(nil)
 )
@@ -75,6 +77,29 @@ func (s *TrinoDatasource) Converters() (sc []sqlutil.Converter) {
 	}
 }
 
+// MutateQuery combines the client tags set on the query with the ones
+// configured on the data source. sqlds calls this once per query, in that
+// query's own goroutine, and passes the returned context to SetQueryArgs, so
+// tags set on one query never reach the other queries of the same panel.
+//
+// The data source tags are always kept: they are set by an administrator,
+// while queries carry whatever the user running them sends.
+func (s *TrinoDatasource) MutateQuery(ctx context.Context, req backend.DataQuery) (context.Context, backend.DataQuery) {
+	var query struct {
+		ClientTags string `json:"clientTags"`
+	}
+	if err := json.Unmarshal(req.JSON, &query); err != nil {
+		return ctx, req
+	}
+
+	tags := mergeClientTags(clientTagsFromContext(ctx), query.ClientTags)
+	if tags == "" {
+		return ctx, req
+	}
+
+	return context.WithValue(ctx, trinoClientTagsKey, tags), req
+}
+
 func (s *TrinoDatasource) SetQueryArgs(ctx context.Context, headers http.Header) []interface{} {
 	var args []interface{}
 
@@ -110,4 +135,26 @@ func (s *TrinoDatasource) Tables(ctx context.Context, options sqlds.Options) ([]
 func (s *TrinoDatasource) Columns(ctx context.Context, options sqlds.Options) ([]string, error) {
 	// TBD
 	return []string{}, nil
+}
+
+// mergeClientTags parses comma-separated client tag lists and joins them back
+// into one, dropping blanks and duplicates but keeping the order the tags were
+// given in.
+func mergeClientTags(tagLists ...string) string {
+	tags := []string{}
+	seen := map[string]struct{}{}
+	for _, tagList := range tagLists {
+		for _, tag := range strings.Split(tagList, ",") {
+			tag = strings.TrimSpace(tag)
+			if tag == "" {
+				continue
+			}
+			if _, duplicate := seen[tag]; duplicate {
+				continue
+			}
+			seen[tag] = struct{}{}
+			tags = append(tags, tag)
+		}
+	}
+	return strings.Join(tags, ",")
 }

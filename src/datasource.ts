@@ -17,6 +17,10 @@ export class DataSource extends DataSourceWithBackend<TrinoQuery, TrinoDataSourc
     return {
       ...query,
       rawSQL: getTemplateSrv().replace(query.rawSQL, scopedVars, this.interpolateQueryStr),
+      // client tags end up in an HTTP header, not in SQL, so they must not be
+      // quoted or escaped like SQL literals; 'csv' renders a multi-value
+      // variable as the comma-separated list the tags are already written as
+      clientTags: getTemplateSrv().replace(query.clientTags, scopedVars, 'csv'),
     };
   }
 

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import { QueryEditorProps } from '@grafana/data';
-import { CodeEditor, InlineField, Select } from '@grafana/ui';
+import { CodeEditor, InlineField, Input, Select } from '@grafana/ui';
 import { DataSource } from './datasource';
 import { TrinoDataSourceOptions, TrinoQuery, defaultQuery, SelectableFormatOptions } from './types';
 
@@ -23,6 +23,10 @@ export function QueryEditor(props: Props) {
     onRunQuery();
   };
 
+  const onClientTagsChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onChange({ ...query, clientTags: event.target.value });
+  };
+
   return (
     <>
       <div className="gf-form-group">
@@ -32,6 +36,21 @@ export function QueryEditor(props: Props) {
             value={queryWithDefaults.format}
             onChange={onFormatChange}
             width={30}
+          />
+        </InlineField>
+      </div>
+      <div className="gf-form-group">
+        <InlineField
+          label="Client tags"
+          tooltip="A comma-separated list of strings, used to identify Trino resource groups. Added to the client tags configured on the data source."
+          labelWidth={16}
+        >
+          <Input
+            value={queryWithDefaults.clientTags ?? ''}
+            onChange={onClientTagsChange}
+            onBlur={onRunQuery}
+            width={30}
+            placeholder="tag1,tag2,tag3"
           />
         </InlineField>
       </div>
