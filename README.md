@@ -33,8 +33,9 @@ docker run -d -p 3000:3000 \
 ## Complex types
 
 `ARRAY`, `MAP` and `ROW` values are returned as JSON fields, with `ROW` values
-converted to objects keyed by field name (anonymous `ROW` fields stay
-positional arrays). In the table panel, hover a cell and click the eye icon to
+converted to objects keyed by field name. Unnamed fields, and fields whose
+names collide after lower-casing, are keyed by position as `_col<N>`; rows with
+no named fields at all stay positional arrays. In the table panel, hover a cell and click the eye icon to
 open the value in a formatted, collapsible JSON viewer. Explore on Grafana 11.6
 through 12.3 does not show the eye icon; dashboard table panels do.
 

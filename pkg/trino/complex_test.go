@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -63,10 +67,28 @@ func TestComplexToJSON(t *testing.T) {
 			want:   `[1,"2 00:00:00.000"]`,
 		},
 		{
-			name:   "field names colliding after lower-casing stay positional",
+			name:   "named fields keep their keys next to anonymous ones",
+			dbType: `ROW(A BIGINT, ROW(B BIGINT))`,
+			value:  `[1, [2]]`,
+			want:   `{"a":1,"_col1":{"b":2}}`,
+		},
+		{
+			name:   "field names colliding after lower-casing fall back to position",
 			dbType: `ROW("A" BIGINT, "a" BIGINT)`,
 			value:  `[1, 2]`,
-			want:   `[1,2]`,
+			want:   `{"a":1,"_col1":2}`,
+		},
+		{
+			name:   "fallback names skip names already taken by earlier fields",
+			dbType: `ROW(_COL1 BIGINT, BIGINT)`,
+			value:  `[1, 2]`,
+			want:   `{"_col1":1,"_col1_":2}`,
+		},
+		{
+			name:   "fallback names do not shadow real field names",
+			dbType: `ROW(BIGINT, _COL0 BIGINT)`,
+			value:  `[1, 2]`,
+			want:   `{"_col0":1,"_col1":2}`,
 		},
 		{
 			name:   "map of rows",
@@ -202,4 +224,66 @@ func TestEnableJSONCellInspect(t *testing.T) {
 	if scalar.Config != nil {
 		t.Errorf("non-JSON field should be untouched, got %+v", scalar.Config)
 	}
+}
+
+func TestTypeMemoParsesEachTypeOnce(t *testing.T) {
+	m := &typeMemo{}
+	a := m.get("ARRAY(BIGINT)")
+	b := m.get("ROW(A BIGINT)")
+	if m.get("ARRAY(BIGINT)") != a || m.get("ROW(A BIGINT)") != b {
+		t.Error("expected repeated lookups to return the cached type")
+	}
+	if len(m.entries) != 2 {
+		t.Errorf("got %d entries, want 2", len(m.entries))
+	}
+	if m.get("ROW(A BIGINT") != nil {
+		t.Error("expected nil for an unparseable type")
+	}
+}
+
+func TestComplexTypeConverterIgnoresUntypedColumns(t *testing.T) {
+	db := sql.OpenDB(untypedConnector{})
+	t.Cleanup(func() { _ = db.Close() })
+	rows, err := db.Query("SELECT 1")
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	defer rows.Close()
+
+	frame, err := sqlutil.FrameFromRows(rows, -1, New().Converters()...)
+	if err != nil {
+		t.Fatalf("FrameFromRows: %v", err)
+	}
+	if got := frame.Fields[0].Type(); got == data.FieldTypeNullableJSON {
+		t.Errorf("column with an empty database type was claimed by the complex type converter")
+	}
+}
+
+type untypedConnector struct{}
+
+func (untypedConnector) Connect(context.Context) (driver.Conn, error) { return untypedConn{}, nil }
+func (untypedConnector) Driver() driver.Driver                        { return nil }
+
+type untypedConn struct{}
+
+func (untypedConn) Prepare(string) (driver.Stmt, error) { return nil, errors.New("not supported") }
+func (untypedConn) Close() error                        { return nil }
+func (untypedConn) Begin() (driver.Tx, error)           { return nil, errors.New("not supported") }
+func (untypedConn) QueryContext(context.Context, string, []driver.NamedValue) (driver.Rows, error) {
+	return &untypedRows{}, nil
+}
+
+type untypedRows struct{ done bool }
+
+func (*untypedRows) Columns() []string                     { return []string{"c"} }
+func (*untypedRows) Close() error                          { return nil }
+func (*untypedRows) ColumnTypeDatabaseTypeName(int) string { return "" }
+func (*untypedRows) ColumnTypeScanType(int) reflect.Type   { return reflect.TypeOf("") }
+func (r *untypedRows) Next(dest []driver.Value) error {
+	if r.done {
+		return io.EOF
+	}
+	r.done = true
+	dest[0] = "x"
+	return nil
 }
