@@ -70,7 +70,7 @@ func (s *TrinoDatasource) Converters() (sc []sqlutil.Converter) {
 	nullBoolConverter := sqlutil.NullBoolConverter
 	nullBoolConverter.InputTypeName = "boolean"
 	return []sqlutil.Converter{
-		complexTypeConverter,
+		newComplexTypeConverter(),
 		nullStringConverter,
 		nullDecimalConverter,
 		nullInt64Converter,

@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/grafana/grafana-plugin-sdk-go/data/sqlutil"
@@ -34,6 +33,7 @@ type trinoType struct {
 	key    *trinoType
 	value  *trinoType
 	fields []rowField
+	keys   [][]byte
 }
 
 func isComplexType(dbType string) bool {
@@ -46,36 +46,54 @@ func isComplexType(dbType string) bool {
 	return false
 }
 
-var complexTypeConverter = sqlutil.Converter{
-	Name:             "trino complex type to JSON",
-	InputScanType:    reflect.TypeOf((*interface{})(nil)).Elem(),
-	InputTypeMatcher: isComplexType,
-	FrameConverter: sqlutil.FrameConverter{
-		FieldType: data.FieldTypeNullableJSON,
-		ConvertWithColumn: func(in interface{}, col sql.ColumnType) (interface{}, error) {
-			v := *(in.(*interface{}))
-			if v == nil {
-				return (*json.RawMessage)(nil), nil
+func newComplexTypeConverter() sqlutil.Converter {
+	types := &typeMemo{}
+	return sqlutil.Converter{
+		Name:          "trino complex type to JSON",
+		InputScanType: reflect.TypeOf((*interface{})(nil)).Elem(),
+		InputTypeName: "trino complex type",
+		InputTypeMatcher: func(dbType string) bool {
+			if !isComplexType(dbType) {
+				return false
 			}
-			typ := cachedTrinoType(col.DatabaseTypeName())
-			var buf bytes.Buffer
-			if err := writeJSON(&buf, v, typ); err != nil {
-				return nil, err
-			}
-			msg := json.RawMessage(buf.Bytes())
-			return &msg, nil
+			types.get(dbType)
+			return true
 		},
-	},
+		FrameConverter: sqlutil.FrameConverter{
+			FieldType: data.FieldTypeNullableJSON,
+			ConvertWithColumn: func(in interface{}, col sql.ColumnType) (interface{}, error) {
+				v := *(in.(*interface{}))
+				if v == nil {
+					return (*json.RawMessage)(nil), nil
+				}
+				var buf bytes.Buffer
+				if err := writeJSON(&buf, v, types.get(col.DatabaseTypeName())); err != nil {
+					return nil, err
+				}
+				msg := json.RawMessage(buf.Bytes())
+				return &msg, nil
+			},
+		},
+	}
 }
 
-var parsedTypes sync.Map
+type typeMemo struct {
+	entries []typeMemoEntry
+}
 
-func cachedTrinoType(dbType string) *trinoType {
-	if typ, ok := parsedTypes.Load(dbType); ok {
-		return typ.(*trinoType)
+type typeMemoEntry struct {
+	dbType string
+	typ    *trinoType
+}
+
+func (m *typeMemo) get(dbType string) *trinoType {
+	for _, e := range m.entries {
+		if e.dbType == dbType {
+			return e.typ
+		}
 	}
 	typ, _ := parseTrinoType(dbType)
-	parsedTypes.Store(dbType, typ)
+	m.entries = append(m.entries, typeMemoEntry{dbType: dbType, typ: typ})
 	return typ
 }
 
@@ -108,15 +126,13 @@ func writeJSON(buf *bytes.Buffer, v interface{}, typ *trinoType) error {
 	}
 	switch val := v.(type) {
 	case []interface{}:
-		if typ.kind == kindRow && len(typ.fields) == len(val) && rowFieldsNamed(typ.fields) {
+		if typ.kind == kindRow && typ.keys != nil && len(typ.fields) == len(val) {
 			buf.WriteByte('{')
 			for i, f := range typ.fields {
 				if i > 0 {
 					buf.WriteByte(',')
 				}
-				if err := writeKey(buf, f.name); err != nil {
-					return err
-				}
+				buf.Write(typ.keys[i])
 				if err := writeJSON(buf, val[i], f.typ); err != nil {
 					return err
 				}
@@ -181,15 +197,35 @@ func elementType(typ *trinoType, i, n int) *trinoType {
 	return nil
 }
 
-func rowFieldsNamed(fields []rowField) bool {
-	seen := make(map[string]bool, len(fields))
+func rowKeys(fields []rowField) [][]byte {
+	named := false
 	for _, f := range fields {
-		if f.name == "" || seen[f.name] {
-			return false
+		if f.name != "" {
+			named = true
+			break
 		}
-		seen[f.name] = true
 	}
-	return true
+	if !named {
+		return nil
+	}
+	used := make(map[string]bool, len(fields))
+	keys := make([][]byte, len(fields))
+	for i, f := range fields {
+		name := f.name
+		if name == "" || used[name] {
+			name = fmt.Sprintf("_col%d", i)
+			for used[name] {
+				name += "_"
+			}
+		}
+		used[name] = true
+		var buf bytes.Buffer
+		if err := writeKey(&buf, name); err != nil {
+			return nil
+		}
+		keys[i] = buf.Bytes()
+	}
+	return keys
 }
 
 func writeKey(buf *bytes.Buffer, key string) error {
@@ -271,6 +307,7 @@ func (p *typeParser) parseComplex(word string) (*trinoType, error) {
 			}
 			p.pos++
 		}
+		t.keys = rowKeys(t.fields)
 	}
 	if err := p.expect(')'); err != nil {
 		return nil, err
