@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0
+
+* Allow adding Trino client tags in the query editor, appended to the ones configured on the data source
+* Render ARRAY, MAP and ROW columns as JSON
+* Allow impersonating the Grafana user by email instead of login
+* Upgrade the frontend toolchain to Node 24 and Yarn 4
+* Update dependencies and CI tooling to address known vulnerabilities
+
 ## 1.2.0
 
 * Add support for Grafana Private Data Source Connect (PDC)
