@@ -9,3 +9,7 @@ reason = "The plugin does not use React Router SSR hydration, which is the affec
 [[IgnoredVulns]]
 id = "GHSA-wrjc-x8rr-h8h6"
 reason = "The plugin does not import React Router or render navigation links, and Grafana UI requires React Router 6."
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+reason = "No release of braces fixes the stack exhaustion, and it only runs at build time under eslint-webpack-plugin against this repo's own file paths, never user input."
