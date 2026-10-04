@@ -71,8 +71,10 @@
     "webpack-virtual-modules": "^0.6.2"
   },
   "resolutions": {
-    "dompurify": "3.4.13",
+    "basic-ftp": "6.2.1",
+    "dompurify": "3.4.16",
     "js-cookie": "3.0.7",
+    "moment": "2.31.0",
     "rxjs": "7.5.5"
   },
   "engines": {
