@@ -3,6 +3,7 @@ module github.com/trinodb/grafana-trino
 go 1.26.7
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-plugin-sdk-go v0.296.5
 	github.com/grafana/sqlds/v4 v4.2.7
 	github.com/trinodb/trino-go-client v0.336.0
@@ -27,7 +28,6 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/grafana/dataplane/sdata v0.0.9 // indirect
 	github.com/grafana/otel-profiling-go v0.6.0 // indirect
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.12 // indirect

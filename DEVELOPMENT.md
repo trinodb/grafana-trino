@@ -117,6 +117,27 @@ The two PDC tests are skipped when `PDC_PRIVATE_TRINO_URL` is unset, so a plain
 `yarn e2e` against a default `yarn server` stack is unaffected. CI sets it in
 the `End to end test` step.
 
+## Long running asynchronous queries
+
+The asynchronous query tests in the default run finish in well under a second,
+so they only prove the two-phase request shape. The parts that matter under
+load — the poll backoff climbing to its 10 second ceiling, and a cancellation
+actually reaching the cluster — need a query that takes about a minute:
+
+```bash
+TRINO_SLOW_QUERY_TESTS=1 yarn e2e
+```
+
+That enables two more tests, which run a `tpch.sf10` join taking roughly 55
+seconds against the dev stack. The cancellation one reads query state straight
+from Trino's `system.runtime.queries`, since a client cancellation shows up
+there as `FAILED` with `error_code` `USER_CANCELED` rather than as a state of
+its own. It shells into the Trino container to do so; set `TRINO_CONTAINER` if
+yours is not named `grafana-trino-trino-1`.
+
+They cost over a minute each, so they stay opt-in rather than running for every
+Grafana version in the CI matrix.
+
 ## Verifier
 
 ```bash

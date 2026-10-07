@@ -58,6 +58,9 @@ export function ConfigEditor(props: Props) {
   const onEnableSecureSocksProxyChange = (event: ChangeEvent<HTMLInputElement>) => {
     onOptionsChange({ ...options, jsonData: { ...options.jsonData, enableSecureSocksProxy: event.target.checked } });
   };
+  const onEnableAsyncQueryDataChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onOptionsChange({ ...options, jsonData: { ...options.jsonData, enableAsyncQueryData: event.target.checked } });
+  };
 
   return (
     <div className="gf-form-group">
@@ -93,6 +96,19 @@ export function ConfigEditor(props: Props) {
             </InlineField>
           </div>
         )}
+        <div className="gf-form-inline">
+          <InlineField
+            label="Asynchronous queries"
+            tooltip="Run queries over repeated short requests instead of one long one, so proxies and load balancers cannot time them out. Requires sticky sessions when running multiple Grafana instances."
+            labelWidth={26}
+          >
+            <InlineSwitch
+              id="trino-settings-enable-async-query-data"
+              value={options.jsonData?.enableAsyncQueryData ?? false}
+              onChange={onEnableAsyncQueryDataChange}
+            />
+          </InlineField>
+        </div>
         <div className="gf-form-inline">
           <InlineField label="Access token" tooltip="If set, use the access token for authentication to Trino" labelWidth={26}>
             <SecretInput

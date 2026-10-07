@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import { execSync } from 'child_process';
 
 const GRAFANA_CLIENT = 'grafana-client';
 const EXPORT_DATA = 'Explore data';
@@ -148,6 +149,189 @@ test('test with client tags set in the query editor', async ({ page }) => {
     await goToTrinoSettings(page);
     await setupDataSourceWithClientTags(page, 'tag1,tag2,tag3');
     await runQueryAndCheckResults(page, 'panelTag');
+});
+
+async function setupDataSourceWithAsyncQueries(page: Page) {
+    await page.getByTestId('data-testid Datasource HTTP settings url').fill('http://trino:8080');
+    await page.locator('label[for="trino-settings-enable-impersonation"]').last().click();
+    await page.locator('label[for="trino-settings-enable-async-query-data"]').last().click();
+    await page.locator('div').filter({hasText: /^Access token$/}).locator('input[type="password"]').fill('aaa');
+    await page.getByTestId('data-testid Data source settings page Save and Test button').click();
+}
+
+// Collects the body of every query request the page sends. The two flows are
+// only distinguishable on the wire: they render identically, so asserting on
+// the page alone cannot tell a polled query from a synchronous one. Matching
+// requests rather than markup also keeps these tests clear of the
+// @grafana/ui differences between the supported Grafana versions.
+function recordQueryRequests(page: Page): string[] {
+    const bodies: string[] = [];
+    page.on('request', (request) => {
+        if (request.method() === 'POST' && request.url().includes('/api/ds/query')) {
+            const body = request.postData();
+            if (body) {
+                bodies.push(body);
+            }
+        }
+    });
+    return bodies;
+}
+
+test('test with asynchronous queries', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    const queryRequests = recordQueryRequests(page);
+    await setupDataSourceWithAsyncQueries(page);
+    // Same results as every other flow - polling must not change what the
+    // panel ends up showing, only how it gets there.
+    await runQueryAndCheckResults(page);
+
+    // queryFlow marks a request as opting into the polling flow, and queryID
+    // is the handle the backend hands back, which only a follow-up poll can
+    // carry. Seeing both proves the query really went through the two-phase
+    // flow instead of quietly falling back to the synchronous path, which
+    // would produce the identical table above.
+    expect(queryRequests.some((body) => body.includes('"queryFlow":"async"'))).toBe(true);
+    expect(queryRequests.some((body) => body.includes('"queryID":"'))).toBe(true);
+});
+
+test('test without asynchronous queries', async ({ page }) => {
+    // Negative control for the toggle: the setting is opt-in, so a data source
+    // that never enables it must keep sending plain synchronous queries.
+    await login(page);
+    await goToTrinoSettings(page);
+    const queryRequests = recordQueryRequests(page);
+    await setupDataSourceWithAccessToken(page);
+    await runQueryAndCheckResults(page);
+
+    expect(queryRequests.length).toBeGreaterThan(0);
+    expect(queryRequests.some((body) => body.includes('"queryFlow":"async"'))).toBe(false);
+    expect(queryRequests.some((body) => body.includes('"queryID":"'))).toBe(false);
+});
+
+// The two tests above finish in well under a second, so they only ever prove
+// the two-phase shape - the parts that matter under load never run. These
+// drive a query that takes about a minute, which is what forces the poll
+// backoff up to its ceiling and makes cancellation observable on the cluster.
+// They cost a minute each and need the tpch.sf10 schema, so they are opt-in
+// rather than part of every matrix run, the same way the PDC tests are.
+// TRINO_CONTAINER names the Trino container to ask about query state; it
+// differs between the `yarn server` stack and CI.
+const SLOW_QUERY_TESTS = process.env.TRINO_SLOW_QUERY_TESTS;
+const TRINO_CONTAINER = process.env.TRINO_CONTAINER ?? 'grafana-trino-trino-1';
+
+const SLOW_QUERY =
+    "SELECT count(*) AS n FROM tpch.sf10.lineitem l JOIN tpch.sf10.orders o ON l.orderkey = o.orderkey WHERE o.orderdate >= DATE '1995-01-01' AND o.orderdate < DATE '1995-02-01'";
+const SLOW_QUERY_RESULT = '775514';
+
+// Asks Trino directly, so cancellation is confirmed on the cluster rather
+// than from the plugin's own account of itself.
+function trinoQueryStates(): string {
+    const sql =
+        'SELECT query_id, state, error_code FROM system.runtime.queries ' +
+        "WHERE query LIKE '%sf10.lineitem%' AND query NOT LIKE '%system.runtime%' " +
+        'ORDER BY created DESC LIMIT 3';
+    return execSync(`docker exec ${TRINO_CONTAINER} trino --user admin --execute ${JSON.stringify(sql)}`, {
+        encoding: 'utf8',
+    });
+}
+
+async function runSlowQuery(page: Page) {
+    await page.getByLabel(EXPORT_DATA).click();
+    await setQuery(page, SLOW_QUERY);
+    await page.getByTestId('data-testid Code editor container').click();
+    await selectFormat(page, 'Time Series', 'Table');
+    await page.getByTestId('data-testid Code editor container').click();
+    await page.getByTestId('data-testid RefreshPicker run button').click();
+}
+
+test.describe('long running asynchronous queries', () => {
+    test.skip(!SLOW_QUERY_TESTS, 'TRINO_SLOW_QUERY_TESTS is not set, see DEVELOPMENT.md');
+    test.describe.configure({ timeout: 10 * 60 * 1000 });
+
+    test('test a long running query completes by polling', async ({ page }) => {
+        const polls: number[] = [];
+        const statuses: string[] = [];
+        const start = Date.now();
+
+        page.on('request', (request) => {
+            if (request.method() === 'POST' && request.url().includes('/api/ds/query')) {
+                if ((request.postData() ?? '').includes('"queryFlow":"async"')) {
+                    polls.push(Date.now() - start);
+                }
+            }
+        });
+        page.on('response', async (response) => {
+            if (!response.url().includes('/api/ds/query')) {
+                return;
+            }
+            // The body is gone once a response is superseded, which is normal
+            // here and not worth failing the test over.
+            const body = await response.text().catch(() => '');
+            const status = body.match(/"status":"(submitted|running|finished|failed|canceled)"/);
+            if (status) {
+                statuses.push(status[1]);
+            }
+        });
+
+        await login(page);
+        await goToTrinoSettings(page);
+        await setupDataSourceWithAsyncQueries(page);
+        await runSlowQuery(page);
+
+        await expect(page.getByText(SLOW_QUERY_RESULT, { exact: true })).toBeVisible({ timeout: 5 * 60 * 1000 });
+
+        // A query this long cannot have been answered in one request, and the
+        // looper doubles its delay to a 10s ceiling rather than busy-polling,
+        // so the longest gap has to land near that ceiling.
+        const gaps = polls.slice(1).map((at, i) => at - polls[i]);
+        expect(polls.length).toBeGreaterThan(5);
+        expect(Math.max(...gaps)).toBeGreaterThan(5000);
+        expect(statuses).toContain('submitted');
+        expect(statuses).toContain('finished');
+    });
+
+    test('test cancelling a long running query stops it in Trino', async ({ page }) => {
+        const cancelCalls: string[] = [];
+        page.on('request', (request) => {
+            if (request.url().includes('/resources/cancel')) {
+                cancelCalls.push(request.postData() ?? '');
+            }
+        });
+
+        await login(page);
+        await goToTrinoSettings(page);
+        await setupDataSourceWithAsyncQueries(page);
+        await runSlowQuery(page);
+
+        // Wait until Trino itself reports the query running, so the
+        // cancellation below is aimed at something real.
+        await expect(async () => {
+            expect(trinoQueryStates()).toContain('RUNNING');
+        }).toPass({ timeout: 60000 });
+
+        // While a query is in flight the run button turns into Cancel, keeping
+        // the same test id and carrying its state only in the aria-label.
+        const runButton = page.getByTestId('data-testid RefreshPicker run button');
+        await expect(runButton).toHaveAttribute('aria-label', 'Cancel');
+        await runButton.click();
+
+        // Trino has no CANCELED state: a client cancellation lands as FAILED
+        // with error_code USER_CANCELED, which is what tells it apart from a
+        // query that failed on its own. Getting there proves the chain all the
+        // way through - the frontend's cancel resource, the registry
+        // cancelling the run context, and the driver turning that into
+        // DELETE /v1/query/{id} on its way out.
+        await expect(async () => {
+            const states = trinoQueryStates();
+            expect(states).not.toContain('RUNNING');
+            expect(states).toContain('USER_CANCELED');
+        }).toPass({ timeout: 60000 });
+
+        expect(cancelCalls.length).toBeGreaterThan(0);
+        // The handle is the one this plugin process minted, in processID:uuid form.
+        expect(cancelCalls[0]).toMatch(/"queryId":"[0-9a-f-]{36}:[0-9a-f-]{36}"/);
+    });
 });
 
 // PDC_PRIVATE_TRINO_URL points at a Trino instance reachable only through

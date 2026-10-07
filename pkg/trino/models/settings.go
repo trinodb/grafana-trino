@@ -27,6 +27,7 @@ type TrinoDatasourceSettings struct {
 	Opts                  httpclient.Options `json:"-"`
 	EnableImpersonation   bool               `json:"enableImpersonation"`
 	ImpersonationIdentity string             `json:"impersonationIdentity"`
+	EnableAsyncQueryData  bool               `json:"enableAsyncQueryData"`
 	AccessToken           string             `json:"accessToken"`
 	TokenUrl              string             `json:"tokenUrl"`
 	ClientId              string             `json:"clientId"`
