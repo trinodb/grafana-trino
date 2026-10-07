@@ -1,16 +1,37 @@
-import { DataSourceInstanceSettings, ScopedVars } from '@grafana/data';
+import { DataQueryRequest, DataQueryResponse, DataSourceInstanceSettings, ScopedVars } from '@grafana/data';
 import { DataSourceWithBackend, getTemplateSrv } from '@grafana/runtime';
+import { DatasourceWithAsyncBackend } from '@grafana/async-query-data';
+import { Observable } from 'rxjs';
 import { TrinoDataSourceOptions, TrinoQuery } from './types';
 import { TrinoDataVariableSupport } from './variable';
 import { map } from 'lodash';
 
-export class DataSource extends DataSourceWithBackend<TrinoQuery, TrinoDataSourceOptions> {
+export class DataSource extends DatasourceWithAsyncBackend<TrinoQuery, TrinoDataSourceOptions> {
+  private asyncQueryDataSupport: boolean;
+
   constructor(instanceSettings: DataSourceInstanceSettings<TrinoDataSourceOptions>) {
     super(instanceSettings);
+    this.asyncQueryDataSupport = instanceSettings.jsonData?.enableAsyncQueryData ?? false;
     this.variables = new TrinoDataVariableSupport();
     this.annotations={};
     // give interpolateQueryStr access to this
     this.interpolateQueryStr = this.interpolateQueryStr.bind(this);
+  }
+
+  query(request: DataQueryRequest<TrinoQuery>): Observable<DataQueryResponse> {
+    if (!this.asyncQueryDataSupport) {
+      // Asynchronous polling is opt-in per data source. Going straight to
+      // DataSourceWithBackend keeps the synchronous flow on a single batched
+      // request per panel, instead of the one-request-per-target shape the
+      // polling base class needs.
+      return DataSourceWithBackend.prototype.query.call(this, request);
+    }
+
+    // A handle is single-use, so replaying a cached response leaves the panel
+    // polling a query the backend has already collected. The base class only
+    // skips the cache once a query is known to be running, which still leaves
+    // the request that starts one cacheable.
+    return super.query({ ...request, skipQueryCache: true });
   }
 
   applyTemplateVariables(query: TrinoQuery, scopedVars: ScopedVars) {
