@@ -121,7 +121,10 @@ files on the Grafana server:
   server process is used, then `/tmp/krb5cc_<uid>`.
 * **Remote service name**, **Service principal pattern** and **Use canonical
   hostname** name the coordinator's service principal, `trino@<host>` by
-  default.
+  default. The host is first resolved to its canonical name through reverse
+  DNS; turn off **Use canonical hostname** when that name differs from the one
+  in the service principal, as it does in Docker, which appends the network
+  name.
 
 Kerberos can't be combined with a basic auth password, an access token, the
 OAuth client credentials flow or **Forward OAuth Identity**, which would replace
