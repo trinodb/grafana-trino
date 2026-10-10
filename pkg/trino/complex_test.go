@@ -8,10 +8,12 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/grafana/grafana-plugin-sdk-go/data/sqlutil"
@@ -120,6 +122,93 @@ func TestComplexToJSON(t *testing.T) {
 			typ, _ := parseTrinoType(tt.dbType)
 			var buf bytes.Buffer
 			if err := writeJSON(&buf, decodeJSON(t, tt.value), typ); err != nil {
+				t.Fatalf("writeJSON: %v", err)
+			}
+			if got := buf.String(); got != tt.want {
+				t.Errorf("got  %s\nwant %s", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestComplexToJSONDecodedValues(t *testing.T) {
+	warsaw, err := time.LoadLocation("Europe/Warsaw")
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := time.Date(2024, 1, 1, 0, 0, 0, 123456789, time.UTC)
+	tests := []struct {
+		name   string
+		dbType string
+		value  interface{}
+		want   string
+	}{
+		{
+			name:   "date",
+			dbType: `ARRAY(DATE)`,
+			value:  []interface{}{at},
+			want:   `["2024-01-01"]`,
+		},
+		{
+			name:   "time keeps the declared precision",
+			dbType: `ARRAY(TIME(6))`,
+			value:  []interface{}{at},
+			want:   `["00:00:00.123456"]`,
+		},
+		{
+			name:   "time without precision defaults to milliseconds",
+			dbType: `ARRAY(TIME)`,
+			value:  []interface{}{at},
+			want:   `["00:00:00.123"]`,
+		},
+		{
+			name:   "timestamp without fraction",
+			dbType: `ARRAY(TIMESTAMP(0))`,
+			value:  []interface{}{at},
+			want:   `["2024-01-01 00:00:00"]`,
+		},
+		{
+			name:   "timestamp with a named time zone",
+			dbType: `ROW(AT TIMESTAMP(3) WITH TIME ZONE)`,
+			value:  []interface{}{at.In(warsaw)},
+			want:   `{"at":"2024-01-01 01:00:00.123 Europe/Warsaw"}`,
+		},
+		{
+			name:   "time with an offset time zone",
+			dbType: `ARRAY(TIME(3) WITH TIME ZONE)`,
+			value:  []interface{}{at.In(time.FixedZone("+02:00", 2*3600))},
+			want:   `["02:00:00.123 +02:00"]`,
+		},
+		{
+			name:   "precision beyond nanoseconds is capped",
+			dbType: `ARRAY(TIMESTAMP(12))`,
+			value:  []interface{}{at},
+			want:   `["2024-01-01 00:00:00.123456789"]`,
+		},
+		{
+			name:   "time without a known type falls back to RFC 3339",
+			dbType: `ROW(A BIGINT`,
+			value:  []interface{}{at},
+			want:   `["2024-01-01T00:00:00.123456789Z"]`,
+		},
+		{
+			name:   "non-finite doubles use the names Trino prints",
+			dbType: `ARRAY(DOUBLE)`,
+			value:  []interface{}{math.NaN(), math.Inf(1), math.Inf(-1), 1.5},
+			want:   `["NaN","Infinity","-Infinity",1.5]`,
+		},
+		{
+			name:   "binary is base64 encoded",
+			dbType: `ARRAY(VARBINARY)`,
+			value:  []interface{}{[]byte("hi")},
+			want:   `["aGk="]`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			typ, _ := parseTrinoType(tt.dbType)
+			var buf bytes.Buffer
+			if err := writeJSON(&buf, tt.value, typ); err != nil {
 				t.Fatalf("writeJSON: %v", err)
 			}
 			if got := buf.String(); got != tt.want {
