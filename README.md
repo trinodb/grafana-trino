@@ -65,7 +65,8 @@ only accepts passwords over HTTPS, unless it's configured to allow them over
 HTTP.
 
 The basic auth user is also the Trino session user, even without a password.
-Without basic auth, the session user is `grafana`. When Trino authenticates a
+Without basic auth, the session user is `grafana`, or with
+[Kerberos](#kerberos) the user Trino maps the principal to. When Trino authenticates a
 request with a token or certificate and its principal differs from the session
 user, Trino's access control must allow impersonating that user. The
 impersonation options below change the session user.
@@ -104,6 +105,30 @@ token, instead of the configured access token. Trino must be configured to
 accept tokens from the same identity provider. The forwarded token is not used
 when the OAuth client credentials flow is configured, because the token from
 that flow replaces it.
+
+### Kerberos
+
+Enable **Enable Kerberos** in the **Kerberos Authentication** section to
+authenticate to a Trino cluster secured with
+[Kerberos](https://trino.io/docs/current/security/kerberos.html). Trino only
+accepts Kerberos over HTTPS, so the URL must use `https://`. All paths refer to
+files on the Grafana server:
+
+* **Config path** is the krb5 configuration, `/etc/krb5.conf` by default.
+* **Keytab path**, with **Principal** and **Realm**, logs in with a keytab.
+* **Credential cache path** uses a ticket obtained with `kinit` instead. Without
+  a keytab or a credential cache, the cache in `KRB5CCNAME` of the Grafana
+  server process is used, then `/tmp/krb5cc_<uid>`.
+* **Remote service name**, **Service principal pattern** and **Use canonical
+  hostname** name the coordinator's service principal, `trino@<host>` by
+  default.
+
+Kerberos can't be combined with a basic auth password, an access token, the
+OAuth client credentials flow or **Forward OAuth Identity**, which would replace
+the Kerberos credentials. Without basic auth, queries run as the Trino user the
+principal maps to, instead of `grafana`. A basic auth user without a password,
+or [impersonation of the signed-in user](#impersonate-the-signed-in-user), sets
+another session user, which the principal must be allowed to impersonate.
 
 ### Impersonate the signed-in user
 
@@ -144,8 +169,8 @@ are set.
 ## Features
 
 * [Authentication](#authentication) with basic auth, TLS client certificates,
-  access tokens, OAuth client credentials or the signed-in user's forwarded OAuth
-  identity
+  access tokens, OAuth client credentials, the signed-in user's forwarded OAuth
+  identity or Kerberos
 * Raw SQL editor only, no query builder yet
 * [Macros](#macros)
 * Client tags support, used to identify resource groups. Tags can be set on the data source,
