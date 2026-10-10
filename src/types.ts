@@ -9,6 +9,7 @@ export interface TrinoQuery extends DataQuery {
   rawSQL?: string;
   format?: FormatOptions;
   clientTags?: string;
+  trimEdges?: number;
 }
 
 export const SelectableFormatOptions: Array<SelectableValue<FormatOptions>> = [

@@ -52,7 +52,12 @@ func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req 
 		ctx = context.WithValue(ctx, trinoClientTagsKey, settings.ClientTags)
 	}
 
-	return ds.SQLDatasource.QueryData(ctx, req)
+	response, err := ds.SQLDatasource.QueryData(ctx, req)
+	if response == nil {
+		return response, err
+	}
+	trimResponseEdges(req.Queries, response)
+	return response, err
 }
 
 func (ds *SQLDatasourceWithTrinoUserContext) NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {

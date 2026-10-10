@@ -151,6 +151,9 @@ are set.
 * Client tags support, used to identify resource groups. Tags can be set on the data source,
   and extended with additional tags in the query editor.
 * `ARRAY`, `MAP` and `ROW` columns rendered as JSON.
+* Trimming edges of time series, to hide incomplete first and last time buckets. Set "Trim edges"
+  in the query editor to drop that many rows from the start and the end of every result with a
+  time column, after ordering it by the first time column. Leave it empty to keep all rows.
 * [Impersonation](#impersonate-the-signed-in-user) of the signed-in Grafana user, by login or email.
 
 ## Complex types
