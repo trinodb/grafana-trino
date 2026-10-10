@@ -13,3 +13,7 @@ reason = "The plugin does not import React Router or render navigation links, an
 [[IgnoredVulns]]
 id = "GHSA-vfj7-8cjw-p6xm"
 reason = "No release of braces fixes the stack exhaustion, and it only runs at build time under eslint-webpack-plugin against this repo's own file paths, never user input."
+
+[[IgnoredVulns]]
+id = "GHSA-hp3w-g68c-fv3c"
+reason = "No release of sprintf-js fixes the unbounded precision specifiers, and it is only reached through jest's coverage config loader at build time, where no format string comes from user input."
