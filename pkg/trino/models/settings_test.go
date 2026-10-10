@@ -2,9 +2,12 @@ package models
 
 import (
 	"context"
+	"net/url"
+	"reflect"
 	"testing"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
 )
 
 func TestLoad_BasicAuth(t *testing.T) {
@@ -130,6 +133,113 @@ func TestLoad_ImpersonationIdentity(t *testing.T) {
 			}
 			if settings.ImpersonationIdentity != tt.want {
 				t.Errorf("got %q, want %q", settings.ImpersonationIdentity, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoad_Kerberos(t *testing.T) {
+	settings := TrinoDatasourceSettings{}
+	err := settings.Load(context.Background(), backend.DataSourceInstanceSettings{
+		URL: "https://trino.example.com:8443",
+		JSONData: []byte(`{
+			"oauthPassThru": true,
+			"kerberosEnabled": true,
+			"kerberosPrincipal": "grafana",
+			"kerberosRealm": "EXAMPLE.COM",
+			"kerberosConfigPath": "/etc/grafana/krb5.conf",
+			"kerberosKeytabPath": "/etc/grafana/grafana.keytab",
+			"kerberosCredentialCachePath": "/tmp/krb5cc_grafana",
+			"kerberosRemoteServiceName": "HTTP",
+			"kerberosServicePrincipalPattern": "${SERVICE}@trino.example.com",
+			"kerberosDisableCanonicalHostname": true
+		}`),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	settings.URL = nil
+	settings.Opts = httpclient.Options{}
+	want := TrinoDatasourceSettings{
+		ImpersonationIdentity:            ImpersonationIdentityLogin,
+		OAuthPassThru:                    true,
+		KerberosEnabled:                  true,
+		KerberosPrincipal:                "grafana",
+		KerberosRealm:                    "EXAMPLE.COM",
+		KerberosConfigPath:               "/etc/grafana/krb5.conf",
+		KerberosKeytabPath:               "/etc/grafana/grafana.keytab",
+		KerberosCredentialCachePath:      "/tmp/krb5cc_grafana",
+		KerberosRemoteServiceName:        "HTTP",
+		KerberosServicePrincipalPattern:  "${SERVICE}@trino.example.com",
+		KerberosDisableCanonicalHostname: true,
+	}
+	if !reflect.DeepEqual(settings, want) {
+		t.Errorf("got %+v, want %+v", settings, want)
+	}
+}
+
+func TestLoad_KerberosConfigPathDefault(t *testing.T) {
+	tests := []struct {
+		name     string
+		jsonData string
+		want     string
+	}{
+		{name: "Kerberos disabled", jsonData: `{}`, want: ""},
+		{name: "Kerberos enabled", jsonData: `{"kerberosEnabled": true}`, want: DefaultKerberosConfigPath},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			settings := TrinoDatasourceSettings{}
+			err := settings.Load(context.Background(), backend.DataSourceInstanceSettings{
+				URL:      "https://trino.example.com:8443",
+				JSONData: []byte(tt.jsonData),
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if settings.KerberosConfigPath != tt.want {
+				t.Errorf("got %q, want %q", settings.KerberosConfigPath, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoad_KerberosUser(t *testing.T) {
+	tests := []struct {
+		name             string
+		instanceSettings backend.DataSourceInstanceSettings
+		wantUser         *url.Userinfo
+	}{
+		{
+			name: "no basic auth leaves the user to the Kerberos principal",
+			instanceSettings: backend.DataSourceInstanceSettings{
+				URL:      "https://trino.example.com:8443",
+				JSONData: []byte(`{"kerberosEnabled": true}`),
+			},
+			wantUser: nil,
+		},
+		{
+			name: "basic auth user is kept as the session user",
+			instanceSettings: backend.DataSourceInstanceSettings{
+				URL:              "https://trino.example.com:8443",
+				BasicAuthEnabled: true,
+				BasicAuthUser:    "alice",
+				JSONData:         []byte(`{"kerberosEnabled": true}`),
+			},
+			wantUser: url.User("alice"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			settings := TrinoDatasourceSettings{}
+			if err := settings.Load(context.Background(), tt.instanceSettings); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !reflect.DeepEqual(settings.URL.User, tt.wantUser) {
+				t.Errorf("got URL user %v, want %v", settings.URL.User, tt.wantUser)
 			}
 		})
 	}
