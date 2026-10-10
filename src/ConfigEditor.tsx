@@ -4,6 +4,7 @@ import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import { config } from '@grafana/runtime';
 import {
   ImpersonationIdentity,
+  KerberosPathOrName,
   SelectableImpersonationIdentities,
   TrinoDataSourceOptions,
   TrinoSecureJsonData,
@@ -58,6 +59,19 @@ export function ConfigEditor(props: Props) {
   const onEnableSecureSocksProxyChange = (event: ChangeEvent<HTMLInputElement>) => {
     onOptionsChange({ ...options, jsonData: { ...options.jsonData, enableSecureSocksProxy: event.target.checked } });
   };
+  const onKerberosEnabledChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onOptionsChange({ ...options, jsonData: { ...options.jsonData, kerberosEnabled: event.target.checked } });
+  };
+  const onKerberosSettingChange = (setting: KerberosPathOrName) => (event: ChangeEvent<HTMLInputElement>) => {
+    onOptionsChange({ ...options, jsonData: { ...options.jsonData, [setting]: event.target.value } });
+  };
+  const onKerberosUseCanonicalHostnameChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onOptionsChange({
+      ...options,
+      jsonData: { ...options.jsonData, kerberosDisableCanonicalHostname: !event.target.checked },
+    });
+  };
+  const kerberosConflicts = options.jsonData?.kerberosEnabled ? conflictingWithKerberos(options) : [];
 
   return (
     <div className="gf-form-group">
@@ -164,6 +178,148 @@ export function ConfigEditor(props: Props) {
         )}
       </div>
 
+      <h3 className="page-heading">Kerberos Authentication</h3>
+      <div className="gf-form-group">
+        <div className="gf-form-inline">
+          <InlineField
+            label="Enable Kerberos"
+            tooltip="Authenticate to Trino with Kerberos (SPNEGO). Requires an HTTPS URL. All paths refer to files on the Grafana server."
+            labelWidth={26}
+          >
+            <InlineSwitch
+              id="trino-settings-kerberos-enabled"
+              value={options.jsonData?.kerberosEnabled ?? false}
+              onChange={onKerberosEnabledChange}
+            />
+          </InlineField>
+        </div>
+        {options.jsonData?.kerberosEnabled && (
+          <>
+            {options.url && !/^https:\/\//i.test(options.url) && (
+              <Alert severity="error" title="Kerberos requires HTTPS">
+                Trino only accepts Kerberos authentication over HTTPS. Change the URL to use https://.
+              </Alert>
+            )}
+            {kerberosConflicts.length > 0 && (
+              <Alert severity="error" title="Kerberos cannot be combined with other authentication">
+                These settings would replace the Kerberos credentials, remove them: {kerberosConflicts.join(', ')}
+              </Alert>
+            )}
+            <div className="gf-form-inline">
+              <InlineField
+                label="Principal"
+                tooltip="Kerberos principal to authenticate as, without the realm. Required with a keytab. With a credential cache, it is taken from the cache and must match it if set."
+                labelWidth={26}
+              >
+                <Input
+                  value={options.jsonData?.kerberosPrincipal ?? ''}
+                  onChange={onKerberosSettingChange('kerberosPrincipal')}
+                  width={60}
+                  placeholder="grafana"
+                />
+              </InlineField>
+            </div>
+            <div className="gf-form-inline">
+              <InlineField
+                label="Realm"
+                tooltip="Realm of the principal. Required with a keytab. With a credential cache, it must match the cache if set."
+                labelWidth={26}
+              >
+                <Input
+                  value={options.jsonData?.kerberosRealm ?? ''}
+                  onChange={onKerberosSettingChange('kerberosRealm')}
+                  width={60}
+                  placeholder="EXAMPLE.COM"
+                />
+              </InlineField>
+            </div>
+            <div className="gf-form-inline">
+              <InlineField
+                label="Config path"
+                tooltip="Path to the krb5 configuration file, which lists the KDCs and maps hosts to realms."
+                labelWidth={26}
+              >
+                <Input
+                  value={options.jsonData?.kerberosConfigPath ?? ''}
+                  onChange={onKerberosSettingChange('kerberosConfigPath')}
+                  width={60}
+                  placeholder="/etc/krb5.conf"
+                />
+              </InlineField>
+            </div>
+            <div className="gf-form-inline">
+              <InlineField
+                label="Keytab path"
+                tooltip="Path to the keytab to log in with as the principal. Leave empty to use a credential cache instead."
+                labelWidth={26}
+              >
+                <Input
+                  value={options.jsonData?.kerberosKeytabPath ?? ''}
+                  onChange={onKerberosSettingChange('kerberosKeytabPath')}
+                  width={60}
+                  disabled={Boolean(options.jsonData?.kerberosCredentialCachePath)}
+                />
+              </InlineField>
+            </div>
+            <div className="gf-form-inline">
+              <InlineField
+                label="Credential cache path"
+                tooltip="Path to a credential cache holding a ticket, for example from kinit, used when no keytab is set. Defaults to KRB5CCNAME, then /tmp/krb5cc_<uid> of the Grafana server process."
+                labelWidth={26}
+              >
+                <Input
+                  value={options.jsonData?.kerberosCredentialCachePath ?? ''}
+                  onChange={onKerberosSettingChange('kerberosCredentialCachePath')}
+                  width={60}
+                  disabled={Boolean(options.jsonData?.kerberosKeytabPath)}
+                />
+              </InlineField>
+            </div>
+            <div className="gf-form-inline">
+              <InlineField
+                label="Remote service name"
+                tooltip="Service name of the Trino coordinator principal, substituted for ${SERVICE} in the service principal pattern."
+                labelWidth={26}
+              >
+                <Input
+                  value={options.jsonData?.kerberosRemoteServiceName ?? ''}
+                  onChange={onKerberosSettingChange('kerberosRemoteServiceName')}
+                  width={60}
+                  placeholder="trino"
+                />
+              </InlineField>
+            </div>
+            <div className="gf-form-inline">
+              <InlineField
+                label="Service principal pattern"
+                tooltip="Service principal of the Trino coordinator, with ${SERVICE} and ${HOST} replaced."
+                labelWidth={26}
+              >
+                <Input
+                  value={options.jsonData?.kerberosServicePrincipalPattern ?? ''}
+                  onChange={onKerberosSettingChange('kerberosServicePrincipalPattern')}
+                  width={60}
+                  placeholder="${SERVICE}@${HOST}"
+                />
+              </InlineField>
+            </div>
+            <div className="gf-form-inline">
+              <InlineField
+                label="Use canonical hostname"
+                tooltip="Resolve the Trino host to its canonical name through DNS before substituting it for ${HOST}. Disable to use the host from the URL as is."
+                labelWidth={26}
+              >
+                <InlineSwitch
+                  id="trino-settings-kerberos-use-canonical-hostname"
+                  value={!(options.jsonData?.kerberosDisableCanonicalHostname ?? false)}
+                  onChange={onKerberosUseCanonicalHostnameChange}
+                />
+              </InlineField>
+            </div>
+          </>
+        )}
+      </div>
+
       {config.secureSocksDSProxyEnabled && (
         <>
           <h3 className="page-heading">Other Settings</h3>
@@ -186,4 +342,26 @@ export function ConfigEditor(props: Props) {
       )}
     </div>
   );
+}
+
+function conflictingWithKerberos(options: Props['options']): string[] {
+  const conflicts: string[] = [];
+  if (options.basicAuth && (options.secureJsonFields?.basicAuthPassword || options.secureJsonData?.basicAuthPassword)) {
+    conflicts.push('basic auth password');
+  }
+  if (options.secureJsonFields?.accessToken || options.secureJsonData?.accessToken) {
+    conflicts.push('access token');
+  }
+  if (
+    options.jsonData?.tokenUrl ||
+    options.jsonData?.clientId ||
+    options.secureJsonFields?.clientSecret ||
+    options.secureJsonData?.clientSecret
+  ) {
+    conflicts.push('OAuth Trino Authentication');
+  }
+  if (options.jsonData?.oauthPassThru) {
+    conflicts.push('Forward OAuth Identity');
+  }
+  return conflicts;
 }
