@@ -147,7 +147,7 @@ are set.
   access tokens, OAuth client credentials or the signed-in user's forwarded OAuth
   identity
 * Raw SQL editor only, no query builder yet
-* Macros
+* [Macros](#macros)
 * Client tags support, used to identify resource groups. Tags can be set on the data source,
   and extended with additional tags in the query editor.
 * `ARRAY`, `MAP` and `ROW` columns rendered as JSON.
@@ -165,24 +165,160 @@ through 12.3 does not show the eye icon; dashboard table panels do.
 Row field names are returned in lower case, so quoted mixed-case field names
 such as `"Word Start"` appear as `word start`.
 
-## Macros support
+## Macros
 
-Plugin supports the following marcos:
+The plugin expands macros in the query before sending it to Trino. Macro names
+start with `$__`, for example `$__timeFilter(created_at)`.
 
-* `$timeFrom($column)` - replaced with the lower boundary of the currently selected "Time Range" as a timestamp.
-* `$timeTo($column)` - replaced with the upper boundary of the currently selected "Time Range" as a timestamp.
-* `$timeGroup($column, $interval)` - replaced with an expression that rounds values of a column
-  to the selected "Group by a time interval" value.
-* `$dateFilter($column)` - replaced with a range condition for the currently selected "Time Range" as dates,
-  on a column passed as the $column argument. Use it in queries or query variables
-  as `...WHERE $dateFilter($column)...` or `...WHERE $dateFilter(created_at)....`.
-* `$timeFilter($column)` - replaced with a range condition for the currently selected "Time Range" as timestamps,
-  on a column passed as the $column argument.
-* `$unixEpochFilter($column)` - replaced with a range condition for the currently selected "Time Range",
-  on a column passed as the $column argument.
-* `$parseTime` - parse a timestamp string using the default or specified format.
+The time range boundaries are converted to UTC and rendered without a time
+zone. The expansions below assume the dashboard time range is
+`2023-01-01 00:00:00` to `2023-01-02 00:00:00` UTC.
 
-A description of macros is available by typing their names in Raw Editor
+| Macro | Expands to |
+| --- | --- |
+| `$__timeFilter(col)` | `col BETWEEN TIMESTAMP '2023-01-01 00:00:00' AND TIMESTAMP '2023-01-02 00:00:00'` |
+| `$__timeFilter(col, 'yyyy-MM-dd')` | `parse_datetime(col,'yyyy-MM-dd') BETWEEN TIMESTAMP '2023-01-01 00:00:00' AND TIMESTAMP '2023-01-02 00:00:00'` |
+| `$__dateFilter(col)` | `col BETWEEN date '2023-01-01' AND date '2023-01-02'` |
+| `$__unixEpochFilter(col)` | `col BETWEEN 1672531200 AND 1672617600` |
+| `$__timeFrom()` | `TIMESTAMP '2023-01-01 00:00:00'` |
+| `$__timeTo()` | `TIMESTAMP '2023-01-02 00:00:00'` |
+| `$__timeGroup(col, '1h')` | `FROM_UNIXTIME(FLOOR(TO_UNIXTIME(col)/3600)*3600)` |
+| `$__timeGroup(col, '1d', 'yyyy-MM-dd')` | `FROM_UNIXTIME(FLOOR(TO_UNIXTIME(parse_datetime(col,'yyyy-MM-dd'))/86400)*86400)` |
+| `$__unixEpochGroup(col, '1h')` | `FROM_UNIXTIME(FLOOR(col/3600)*3600)` |
+| `$__parseTime('2023-01-01 12:00:00')` | `TIMESTAMP '2023-01-01 12:00:00'` |
+| `$__parseTime(col, 'yyyy-MM-dd')` | `parse_datetime(col,'yyyy-MM-dd')` |
+| `$__interval` | The panel's interval, for example `1m` |
+| `$__interval_ms` | The panel's interval in milliseconds, for example `60000` |
+
+Notes:
+
+* `$__timeFilter`, `$__dateFilter` and `$__unixEpochFilter` include both
+  boundaries.
+* `$__unixEpochFilter` and `$__unixEpochGroup` expect a column with the number
+  of seconds since the Unix epoch.
+* The interval in `$__timeGroup` and `$__unixEpochGroup` can be quoted or not,
+  and uses Grafana's interval syntax, like `30s`, `5m`, `1h`, `1d` or `1w`.
+  Use `$__interval` to follow the panel's interval, for example
+  `$__timeGroup(col, $__interval)`.
+* The optional format argument of `$__timeFilter`, `$__timeGroup` and
+  `$__parseTime` is a quoted
+  [`parse_datetime`](https://trino.io/docs/current/functions/datetime.html#parse_datetime)
+  pattern. The pattern `'yyyy-MM-dd HH:mm:ss'` is special: it's expanded to a
+  `TIMESTAMP` prefix instead, so it only works with string literals, such as
+  `$__parseTime('2023-01-01 12:00:00', 'yyyy-MM-dd HH:mm:ss')`, not with columns.
+* `$__timeFrom()` and `$__timeTo()` ignore any arguments.
+
+### Examples
+
+Time series of the total order value per week, from the `tpch` catalog:
+
+```sql
+SELECT
+  $__timeGroup(orderdate, '1w') AS time,
+  sum(totalprice) AS value
+FROM tpch.tiny.orders
+WHERE $__timeFilter(orderdate)
+GROUP BY 1
+ORDER BY 1
+```
+
+is sent to Trino as:
+
+```sql
+SELECT
+  FROM_UNIXTIME(FLOOR(TO_UNIXTIME(orderdate)/604800)*604800) AS time,
+  sum(totalprice) AS value
+FROM tpch.tiny.orders
+WHERE orderdate BETWEEN TIMESTAMP '2023-01-01 00:00:00' AND TIMESTAMP '2023-01-02 00:00:00'
+GROUP BY 1
+ORDER BY 1
+```
+
+Filter a `DATE` column, such as a partition column, by day:
+
+```sql
+SELECT orderstatus, count(*) AS orders
+FROM tpch.tiny.orders
+WHERE $__dateFilter(orderdate)
+GROUP BY 1
+```
+
+```sql
+SELECT orderstatus, count(*) AS orders
+FROM tpch.tiny.orders
+WHERE orderdate BETWEEN date '2023-01-01' AND date '2023-01-02'
+GROUP BY 1
+```
+
+Use the boundaries separately, for example to exclude the end of the range:
+
+```sql
+SELECT *
+FROM events
+WHERE event_time >= $__timeFrom() AND event_time < $__timeTo()
+```
+
+```sql
+SELECT *
+FROM events
+WHERE event_time >= TIMESTAMP '2023-01-01 00:00:00' AND event_time < TIMESTAMP '2023-01-02 00:00:00'
+```
+
+Group and filter a column with Unix timestamps in seconds:
+
+```sql
+SELECT
+  $__unixEpochGroup(created_epoch, '1h') AS time,
+  count(*) AS value
+FROM events
+WHERE $__unixEpochFilter(created_epoch)
+GROUP BY 1
+ORDER BY 1
+```
+
+```sql
+SELECT
+  FROM_UNIXTIME(FLOOR(created_epoch/3600)*3600) AS time,
+  count(*) AS value
+FROM events
+WHERE created_epoch BETWEEN 1672531200 AND 1672617600
+GROUP BY 1
+ORDER BY 1
+```
+
+Group and filter a `VARCHAR` column with dates like `2023-01-01`:
+
+```sql
+SELECT
+  $__timeGroup(event_day, '1d', 'yyyy-MM-dd') AS time,
+  count(*) AS value
+FROM events
+WHERE $__timeFilter(event_day, 'yyyy-MM-dd')
+GROUP BY 1
+ORDER BY 1
+```
+
+```sql
+SELECT
+  FROM_UNIXTIME(FLOOR(TO_UNIXTIME(parse_datetime(event_day,'yyyy-MM-dd'))/86400)*86400) AS time,
+  count(*) AS value
+FROM events
+WHERE parse_datetime(event_day,'yyyy-MM-dd') BETWEEN TIMESTAMP '2023-01-01 00:00:00' AND TIMESTAMP '2023-01-02 00:00:00'
+GROUP BY 1
+ORDER BY 1
+```
+
+Parse a string column in a query:
+
+```sql
+SELECT $__parseTime(event_day, 'yyyy-MM-dd') AS time, message
+FROM events
+```
+
+```sql
+SELECT parse_datetime(event_day,'yyyy-MM-dd') AS time, message
+FROM events
+```
 
 ## Templating
 
