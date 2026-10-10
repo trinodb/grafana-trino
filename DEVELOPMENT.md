@@ -84,6 +84,18 @@ provisioning expansion:
 | `TRINO_CLIENT_ID` | OAuth2 client ID |
 | `TRINO_CLIENT_SECRET` | OAuth2 client secret |
 | `TRINO_TLS_SKIP_VERIFY` | `true`/`false` |
+| `TRINO_KERBEROS_ENABLED` | `true`/`false`, requires an `https://` `TRINO_URL` |
+| `TRINO_KERBEROS_PRINCIPAL` | Kerberos principal, without the realm |
+| `TRINO_KERBEROS_REALM` | Realm of the principal |
+| `TRINO_KERBEROS_CONFIG_PATH` | krb5 config, defaults to `/etc/krb5.conf` |
+| `TRINO_KERBEROS_KEYTAB_PATH` | Keytab to log in with |
+| `TRINO_KERBEROS_CREDENTIAL_CACHE_PATH` | Credential cache to use instead of a keytab |
+| `TRINO_KERBEROS_REMOTE_SERVICE_NAME` | Service name of the coordinator, defaults to `trino` |
+| `TRINO_KERBEROS_SERVICE_PRINCIPAL_PATTERN` | Defaults to `${SERVICE}@${HOST}` |
+| `TRINO_KERBEROS_DISABLE_CANONICAL_HOSTNAME` | `true` to use the URL host in the service principal as is |
+
+The Kerberos paths are read inside the Grafana container, which mounts this
+repository at `/root/trino-datasource`.
 
 Restart the stack to pick up changes; Grafana re-reads provisioning files on
 boot.

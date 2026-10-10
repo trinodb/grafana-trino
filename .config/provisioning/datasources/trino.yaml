@@ -18,6 +18,15 @@ datasources:
       tokenUrl: $__env{TRINO_TOKEN_URL}
       clientId: $__env{TRINO_CLIENT_ID}
       tlsSkipVerify: $__env{TRINO_TLS_SKIP_VERIFY}
+      kerberosEnabled: $__env{TRINO_KERBEROS_ENABLED}
+      kerberosPrincipal: $__env{TRINO_KERBEROS_PRINCIPAL}
+      kerberosRealm: $__env{TRINO_KERBEROS_REALM}
+      kerberosConfigPath: $__env{TRINO_KERBEROS_CONFIG_PATH}
+      kerberosKeytabPath: $__env{TRINO_KERBEROS_KEYTAB_PATH}
+      kerberosCredentialCachePath: $__env{TRINO_KERBEROS_CREDENTIAL_CACHE_PATH}
+      kerberosRemoteServiceName: $__env{TRINO_KERBEROS_REMOTE_SERVICE_NAME}
+      kerberosServicePrincipalPattern: $__env{TRINO_KERBEROS_SERVICE_PRINCIPAL_PATTERN}
+      kerberosDisableCanonicalHostname: $__env{TRINO_KERBEROS_DISABLE_CANONICAL_HOSTNAME}
     secureJsonData:
       basicAuthPassword: $__env{TRINO_BASIC_AUTH_PASSWORD}
       accessToken: $__env{TRINO_ACCESS_TOKEN}
