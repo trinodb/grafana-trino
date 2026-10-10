@@ -4,7 +4,7 @@ const GRAFANA_CLIENT = 'grafana-client';
 const EXPORT_DATA = 'Explore data';
 
 async function login(page: Page) {
-    await page.goto('http://localhost:3000/login');
+    await page.goto('/login');
     await page.getByTestId('data-testid Username input field').fill('admin');
     await page.getByTestId('data-testid Password input field').fill('admin');
     await page.getByTestId('data-testid Login button').click();
@@ -48,7 +48,7 @@ async function commitQuery(page: Page) {
 }
 
 async function goToTrinoSettings(page: Page) {
-    await page.goto('http://localhost:3000/connections/datasources/trino-datasource');
+    await page.goto('/connections/datasources/trino-datasource');
     await page.getByRole('button', {name: 'Add new data source'}).click();
 }
 
@@ -350,7 +350,7 @@ test('test template variable backed by trino query', async ({ page }) => {
     // a datasource with no URL for the variable query to use.
     await expect(page.getByText('Data source is working')).toBeVisible({timeout: 15000});
 
-    await page.goto('http://localhost:3000/dashboard/new?editview=templating&editIndex=0');
+    await page.goto('/dashboard/new?editview=templating&editIndex=0');
     await page.getByRole('tab', {name: 'Variables'}).click();
 
     // Newer Grafana versions moved variable management out of this
