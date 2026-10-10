@@ -40,6 +40,9 @@ func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // Open registers a new driver with a unique name
 func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
+	if err := validateKerberos(settings); err != nil {
+		return nil, err
+	}
 	tlsConfig, err := buildTLSConfig(settings.Opts.TLS)
 	if err != nil {
 		return nil, err
@@ -114,7 +117,7 @@ func newConfig(settings models.TrinoDatasourceSettings, clientName string) (trin
 	}
 
 	retryTimeout := requestRetryTimeout
-	return trino.Config{
+	config := trino.Config{
 		ServerURI:                  settings.URL.String(),
 		Source:                     "grafana",
 		CustomClientName:           clientName,
@@ -122,7 +125,67 @@ func newConfig(settings models.TrinoDatasourceSettings, clientName string) (trin
 		AccessToken:                settings.AccessToken,
 		Roles:                      roles,
 		RequestRetryTimeout:        &retryTimeout,
-	}, nil
+	}
+	if !settings.KerberosEnabled {
+		return config, nil
+	}
+	config.KerberosEnabled = true
+	config.KerberosPrincipal = settings.KerberosPrincipal
+	config.KerberosRealm = settings.KerberosRealm
+	config.KerberosConfigPath = settings.KerberosConfigPath
+	config.KerberosKeytabPath = settings.KerberosKeytabPath
+	config.KerberosCredentialCachePath = settings.KerberosCredentialCachePath
+	config.KerberosRemoteServiceName = settings.KerberosRemoteServiceName
+	config.KerberosServicePrincipalPattern = settings.KerberosServicePrincipalPattern
+	config.KerberosDisableCanonicalHostname = settings.KerberosDisableCanonicalHostname
+	return config, nil
+}
+
+// validateKerberos rejects settings trino-go-client would only report once a
+// query runs, or would silently let override the Kerberos authorization
+// header: a password, an access token and an OAuth token all replace it.
+// Kerberos itself works with the registered custom client, since the client
+// adds the header to each request before handing it to the transport.
+func validateKerberos(settings models.TrinoDatasourceSettings) error {
+	if !settings.KerberosEnabled {
+		return nil
+	}
+	if settings.URL.Scheme != "https" {
+		return errors.New("'Kerberos Authentication' requires an HTTPS Trino URL")
+	}
+	var conflicts []string
+	if _, hasPassword := settings.URL.User.Password(); hasPassword {
+		conflicts = append(conflicts, "basic auth password")
+	}
+	if settings.AccessToken != "" {
+		conflicts = append(conflicts, "access token")
+	}
+	if settings.TokenUrl != "" || settings.ClientId != "" || settings.ClientSecret != "" {
+		conflicts = append(conflicts, "'OAuth Trino Authentication'")
+	}
+	if settings.OAuthPassThru {
+		conflicts = append(conflicts, "forwarding the OAuth identity")
+	}
+	if len(conflicts) > 0 {
+		return fmt.Errorf("'Kerberos Authentication' cannot be combined with: %s", strings.Join(conflicts, ", "))
+	}
+	if settings.KerberosKeytabPath != "" && settings.KerberosCredentialCachePath != "" {
+		return errors.New("'Kerberos Authentication' takes either a keytab path or a credential cache path, not both")
+	}
+	if settings.KerberosKeytabPath == "" {
+		return nil
+	}
+	var missingParams []string
+	if settings.KerberosPrincipal == "" {
+		missingParams = append(missingParams, "Principal")
+	}
+	if settings.KerberosRealm == "" {
+		missingParams = append(missingParams, "Realm")
+	}
+	if len(missingParams) > 0 {
+		return fmt.Errorf("missing parameters for logging in with a keytab in 'Kerberos Authentication': %v", strings.Join(missingParams, ", "))
+	}
+	return nil
 }
 
 // buildTLSConfig builds the tls.Config used for connections to Trino from
