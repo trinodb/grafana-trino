@@ -27,6 +27,11 @@ export function QueryEditor(props: Props) {
     onChange({ ...query, clientTags: event.target.value });
   };
 
+  const onTrimEdgesChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const trimEdges = parseInt(event.target.value, 10);
+    onChange({ ...query, trimEdges: trimEdges > 0 ? trimEdges : undefined });
+  };
+
   return (
     <>
       <div className="gf-form-group">
@@ -51,6 +56,21 @@ export function QueryEditor(props: Props) {
             onBlur={onRunQuery}
             width={30}
             placeholder="tag1,tag2,tag3"
+          />
+        </InlineField>
+        <InlineField
+          label="Trim edges"
+          tooltip="Drops this many points from the start and the end of each time series, where time buckets usually only cover part of their interval. Leave empty to keep all points."
+          labelWidth={16}
+        >
+          <Input
+            type="number"
+            min={0}
+            value={queryWithDefaults.trimEdges ?? ''}
+            onChange={onTrimEdgesChange}
+            onBlur={onRunQuery}
+            width={10}
+            placeholder="0"
           />
         </InlineField>
       </div>
