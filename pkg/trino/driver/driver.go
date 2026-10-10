@@ -94,13 +94,27 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 		return nil, err
 	}
 
-	roles, err := parseRoles(settings.Roles)
+	config, err := newConfig(settings, clientName)
 	if err != nil {
 		return nil, err
 	}
+	dsn, err := config.FormatDSN()
+	if err != nil {
+		return nil, err
+	}
+	return sql.Open(DriverName, dsn)
+}
+
+// newConfig maps the data source settings to the trino-go-client
+// configuration, which uses the HTTP client registered as clientName.
+func newConfig(settings models.TrinoDatasourceSettings, clientName string) (trino.Config, error) {
+	roles, err := parseRoles(settings.Roles)
+	if err != nil {
+		return trino.Config{}, err
+	}
 
 	retryTimeout := requestRetryTimeout
-	config := trino.Config{
+	return trino.Config{
 		ServerURI:                  settings.URL.String(),
 		Source:                     "grafana",
 		CustomClientName:           clientName,
@@ -108,13 +122,7 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 		AccessToken:                settings.AccessToken,
 		Roles:                      roles,
 		RequestRetryTimeout:        &retryTimeout,
-	}
-
-	dsn, err := config.FormatDSN()
-	if err != nil {
-		return nil, err
-	}
-	return sql.Open(DriverName, dsn)
+	}, nil
 }
 
 // buildTLSConfig builds the tls.Config used for connections to Trino from
