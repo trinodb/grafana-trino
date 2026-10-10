@@ -132,7 +132,7 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
-      - name: Setup services (Trino, Grafana, PostgreSQL, Keycloak)
+      - name: Setup services (Trino, Grafana, PostgreSQL, Keycloak, KDC)
         run: |
           docker network create trino
 
@@ -218,6 +218,41 @@ jobs:
             serjs/go-socks5-proxy:v0.0.4
           docker network connect trino-pdc-private socks-proxy
 
+          # A Trino instance that only accepts Kerberos over HTTPS, used to
+          # prove the data source really authenticates with Kerberos. The
+          # KDC image is the one Trino's own product tests use; its init
+          # script creates the coordinator's service principal, the
+          # data source's client principal and a self-signed certificate
+          # in the trino-kerberos volume, which the Kerberized Trino and
+          # Grafana mount. The coordinator's service principal is named
+          # after its hostname, so the container sets one explicitly. See
+          # DEVELOPMENT.md for how to reproduce this locally.
+          echo "Starting the KDC..."
+          docker volume create trino-kerberos
+          docker run --rm --detach \
+            --name kdc \
+            --hostname kdc \
+            --net trino \
+            --volume trino-kerberos:/etc/trino-kerberos \
+            --volume "$(pwd)/test-data/kerberos/init.sh:/docker/kerberos-init.d/init.sh:ro" \
+            ghcr.io/trinodb/testing/kdc:127
+
+          echo "Waiting for the KDC to create the keytabs..."
+          until docker exec kdc test -f /etc/trino-kerberos/ready; do
+            echo "Waiting for the KDC..."
+            sleep 2
+          done
+
+          echo "Starting trino-kerberos..."
+          docker run --rm --detach \
+            --name trino-kerberos \
+            --hostname trino-kerberos \
+            --net trino \
+            --volume trino-kerberos:/etc/trino-kerberos:ro \
+            --volume "$(pwd)/test-data/kerberos/krb5.conf:/etc/krb5.conf:ro" \
+            --volume "$(pwd)/test-data/trino/test-trino-config-kerberos.properties:/etc/trino/config.properties" \
+            trinodb/trino:483
+
           echo "Waiting for trino-private to be ready..."
           while true; do
             if docker logs trino-private 2>&1 | grep -q '======== SERVER STARTED ========'; then
@@ -229,12 +264,24 @@ jobs:
           done
           docker exec trino-private trino --user admin --execute "GRANT admin TO USER grafana IN hive;"
 
+          echo "Waiting for trino-kerberos to be ready..."
+          while true; do
+            if docker logs trino-kerberos 2>&1 | grep -q '======== SERVER STARTED ========'; then
+              echo "trino-kerberos is ready!"
+              break
+            fi
+            echo "Waiting for trino-kerberos..."
+            sleep 5
+          done
+
           echo "Starting Grafana grafana/${{ matrix.GRAFANA_IMAGE.name }}:${{ matrix.GRAFANA_IMAGE.version }}..."
           docker run --rm --detach \
             --name grafana \
             --net trino \
             --publish 3000:3000 \
             --volume "$(pwd)/dist:/var/lib/grafana/plugins/trino" \
+            --volume trino-kerberos:/etc/trino-kerberos:ro \
+            --volume "$(pwd)/test-data/kerberos/krb5.conf:/etc/krb5.conf:ro" \
             --env "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=trino-datasource" \
             --env "GF_SECURE_SOCKS_DATASOURCE_PROXY_ENABLED=true" \
             --env "GF_SECURE_SOCKS_DATASOURCE_PROXY_PROXY_ADDRESS=socks-proxy:1080" \
@@ -253,6 +300,9 @@ jobs:
           # containers started above, so they're skipped when unset (e.g. for
           # a plain local `yarn server` stack). See DEVELOPMENT.md.
           PDC_PRIVATE_TRINO_URL: http://trino-private:8080
+          # Opts the Kerberos tests in - they need the kdc/trino-kerberos
+          # containers and the keytab and krb5.conf mounts above.
+          KERBEROS_TRINO_URL: https://trino-kerberos:8443
         run: |
           npx playwright install --with-deps chromium
           npx playwright test
