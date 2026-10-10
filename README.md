@@ -1,6 +1,6 @@
 # Trino Grafana Data Source Plugin
 
-[![Build](https://github.com/trinodb/grafana-trino/workflows/CI/badge.svg)](https://github.com/grafana/grafana-datasource-backend/actions?query=workflow%3A%22CI%22)
+[![CI](https://github.com/trinodb/grafana-trino/actions/workflows/ci.yml/badge.svg)](https://github.com/trinodb/grafana-trino/actions/workflows/ci.yml)
 
 The Trino datasource allows to query and visualize [Trino](https://trino.io/) data from within Grafana.
 
