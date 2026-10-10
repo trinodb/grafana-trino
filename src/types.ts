@@ -1,4 +1,4 @@
-import { DataQuery, DataSourceJsonData, SelectableValue } from '@grafana/data';
+import { DataQuery, DataSourceJsonData, SelectableValue, StandardVariableQuery } from '@grafana/data';
 
 export enum FormatOptions {
   TimeSeries,
@@ -42,6 +42,23 @@ ORDER BY
 `,
   format: FormatOptions.TimeSeries,
 };
+
+// Variables saved while this plugin used StandardVariableSupport store the SQL
+// as a plain string or as a StandardVariableQuery, not as a TrinoQuery.
+export type StoredVariableQuery = TrinoQuery | StandardVariableQuery | string;
+
+const variableRefId = 'TrinoDataSource-QueryVariable';
+
+export function toVariableTrinoQuery(query: StoredVariableQuery): TrinoQuery {
+  if (typeof query === 'string') {
+    return { refId: variableRefId, rawSQL: query };
+  }
+  if (!('query' in query)) {
+    return query;
+  }
+  const { query: rawSQL, ...rest } = query;
+  return { ...rest, refId: rest.refId || variableRefId, rawSQL };
+}
 
 /**
  * These are options configured for each DataSource instance.

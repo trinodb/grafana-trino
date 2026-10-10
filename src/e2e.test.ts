@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Locator, Page } from '@playwright/test';
 
 const GRAFANA_CLIENT = 'grafana-client';
 const EXPORT_DATA = 'Explore data';
@@ -343,7 +343,10 @@ test('test with logs format', async ({ page }) => {
     await expect(page.getByText(/error querying the database/i)).toHaveCount(0);
 });
 
-test('test template variable backed by trino query', async ({ page }) => {
+// Opens the query editor of a new query variable on a new dashboard and
+// returns the narrowest container holding both the editor and the preview of
+// its values, since the rest of the dashboard-builder page also renders text.
+async function openQueryVariableEditor(page: Page): Promise<Locator> {
     await login(page);
     await goToTrinoSettings(page);
     await setupDataSourceWithAccessToken(page);
@@ -367,35 +370,41 @@ test('test template variable backed by trino query', async ({ page }) => {
         // "sidebar"; accept either so both sides of that rename work.
         await page.getByTestId(/data-testid (edit pane|sidebar) add new variable button/).click();
         await page.getByTestId('data-testid variable type query').click();
-        await page.getByTestId('data-testid variable name input').fill('orderstatus');
+        await page.getByTestId('data-testid variable name input').fill('trino');
         await page.getByText('Open variable editor').click();
         // The Trino datasource is already preselected as the only configured
-        // datasource. Falls back to StandardVariableSupport's generic query
-        // textarea, since this plugin doesn't implement a custom variable
-        // query editor.
-        await page.getByTestId('data-testid Variable editor Form Default Variable Query Editor textarea').fill('SELECT DISTINCT orderstatus FROM tpch.tiny.orders');
-        await page.getByRole('button', {name: 'Run query'}).click();
-        await expect(page.getByText(/Preview of values/)).toBeVisible({timeout: 10000});
-        // The query editor opens in a modal dialog - scope to it since the
-        // rest of the dashboard-builder page behind it also renders text.
-        const dialog = page.getByRole('dialog');
-        await expect(dialog.getByText('F', {exact: true}).first()).toBeVisible();
-        await expect(dialog.getByText('O', {exact: true}).first()).toBeVisible();
-        await expect(dialog.getByText('P', {exact: true}).first()).toBeVisible();
-        return;
+        // datasource, and the query editor opens in a modal dialog.
+        return page.getByRole('dialog');
     }
 
     await page.getByRole('button', {name: 'Add variable'}).click();
-    await page.getByTestId('data-testid Variable editor Form Name field').fill('orderstatus');
-    await page.getByRole('textbox', {name: 'Metric name or tags query'}).fill('SELECT DISTINCT orderstatus FROM tpch.tiny.orders');
+    await page.getByTestId('data-testid Variable editor Form Name field').fill('trino');
+    return page.getByRole('form', {name: 'Variable editor form'});
+}
+
+async function runVariableQuery(page: Page, editor: Locator, query: string) {
+    await setQuery(page, query);
     await page.getByRole('button', {name: 'Run query'}).click();
     // Older Grafana versions don't show the "(N)" count suffix.
-    await expect(page.getByText(/Preview of values/)).toBeVisible({timeout: 10000});
+    await expect(editor.getByText(/Preview of values/)).toBeVisible({timeout: 10000});
+}
+
+test('test template variable backed by trino query', async ({ page }) => {
+    const editor = await openQueryVariableEditor(page);
+    await runVariableQuery(page, editor, 'SELECT DISTINCT orderstatus FROM tpch.tiny.orders');
     // Older Grafana renders the preview as plain inline text tags; newer
-    // versions render an actual sortable table. Scope to the variable
-    // editor form and match loosely rather than assume either structure.
-    const variableForm = page.getByRole('form', {name: 'Variable editor form'});
-    await expect(variableForm.getByText('F', {exact: true}).first()).toBeVisible();
-    await expect(variableForm.getByText('O', {exact: true}).first()).toBeVisible();
-    await expect(variableForm.getByText('P', {exact: true}).first()).toBeVisible();
+    // versions render an actual sortable table. Match loosely rather than
+    // assume either structure.
+    await expect(editor.getByText('F', {exact: true}).first()).toBeVisible();
+    await expect(editor.getByText('O', {exact: true}).first()).toBeVisible();
+    await expect(editor.getByText('P', {exact: true}).first()).toBeVisible();
+});
+
+test('test template variable backed by trino query returning numbers', async ({ page }) => {
+    const editor = await openQueryVariableEditor(page);
+    // Computed, so the expected value doesn't also match a token of the SQL
+    // or a line number rendered by the code editor.
+    await runVariableQuery(page, editor, 'SELECT 40 + 2');
+    await expect(editor.getByText('42', {exact: true}).first()).toBeVisible();
+    await expect(page.getByText(/Couldn't find any field of type string/)).toHaveCount(0);
 });
