@@ -41,6 +41,43 @@ services:
     environment:
       REQUIRE_AUTH: "false"
 
+  # Both of these only start under the `kerberos` profile, i.e.
+  # `docker compose --profile kerberos up --build`. trino-kerberos only
+  # accepts Kerberos over HTTPS. The KDC image is the one Trino's own product
+  # tests use; its init script creates the coordinator's service principal,
+  # named after the trino-kerberos hostname, the data source's client
+  # principal and a self-signed certificate in the trino-kerberos volume,
+  # which Grafana mounts too. See DEVELOPMENT.md.
+  kdc:
+    profiles: [kerberos]
+    image: ghcr.io/trinodb/testing/kdc:127
+    hostname: kdc
+    volumes:
+      - trino-kerberos:/etc/trino-kerberos
+      - ./test-data/kerberos/init.sh:/docker/kerberos-init.d/init.sh:ro
+    healthcheck:
+      test: ["CMD", "test", "-f", "/etc/trino-kerberos/ready"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  trino-kerberos:
+    profiles: [kerberos]
+    image: trinodb/trino:483
+    hostname: trino-kerberos
+    depends_on:
+      kdc:
+        condition: service_healthy
+    volumes:
+      - trino-kerberos:/etc/trino-kerberos:ro
+      - ./test-data/kerberos/krb5.conf:/etc/krb5.conf:ro
+      - ./test-data/trino/test-trino-config-kerberos.properties:/etc/trino/config.properties
+    healthcheck:
+      test: ["CMD", "/usr/lib/trino/bin/health-check"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   grafana:
     extends:
       file: .config/docker-compose-base.yaml
@@ -48,6 +85,11 @@ services:
     depends_on:
       trino:
         condition: service_healthy
+    # The client keytab and krb5.conf for the `kerberos` profile; the volume
+    # stays empty without it.
+    volumes:
+      - trino-kerberos:/etc/trino-kerberos:ro
+      - ./test-data/kerberos/krb5.conf:/etc/krb5.conf:ro
     environment:
       # --- Trino connection config hook ---
       # Defaults to the bundled `trino` service above for a self-contained
@@ -85,3 +127,6 @@ services:
       GF_SECURE_SOCKS_DATASOURCE_PROXY_ENABLED: "true"
       GF_SECURE_SOCKS_DATASOURCE_PROXY_PROXY_ADDRESS: socks-proxy:1080
       GF_SECURE_SOCKS_DATASOURCE_PROXY_ALLOW_INSECURE: "true"
+
+volumes:
+  trino-kerberos:
