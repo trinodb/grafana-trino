@@ -250,6 +250,20 @@ test('test with complex types', async ({ page }) => {
     await expect(page.getByText('Inspect value', {exact: true}).first()).toBeVisible();
 });
 
+test('test query ending with a semicolon', async ({ page }) => {
+    await login(page);
+    await goToTrinoSettings(page);
+    await setupDataSourceWithAccessToken(page);
+    await page.getByLabel(EXPORT_DATA).click();
+    await setQuery(page, 'SELECT 6 * 7 AS answer;');
+    await page.getByTestId('data-testid Code editor container').click();
+    await selectFormat(page, 'Time Series', 'Table');
+    await page.getByTestId('data-testid Code editor container').click();
+    await page.getByTestId('data-testid RefreshPicker run button').click();
+    await expect(page.getByText('42', {exact: true})).toBeVisible({timeout: 15000});
+    await expect(page.getByText(/mismatched input/i)).toHaveCount(0);
+});
+
 async function grafanaVersion(page: Page): Promise<number[]> {
     const version: string = await page.evaluate(() => (window as any).grafanaBootData.settings.buildInfo.version);
     return version.split(/[.-]/).slice(0, 2).map(Number);
