@@ -1114,20 +1114,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grafana/eslint-config@npm:^9.0.0":
-  version: 9.0.0
-  resolution: "@grafana/eslint-config@npm:9.0.0"
+"@grafana/eslint-config@npm:^10.0.0":
+  version: 10.0.0
+  resolution: "@grafana/eslint-config@npm:10.0.0"
   peerDependencies:
-    "@stylistic/eslint-plugin-ts": ">=2.9.0"
-    "@typescript-eslint/eslint-plugin": ">=6.18.0"
-    "@typescript-eslint/parser": ">=6.18.0"
-    eslint: ">=8.0.0"
-    eslint-config-prettier: ">=8.8.0"
-    eslint-plugin-jsdoc: ">=46.8.0"
-    eslint-plugin-react: ">=7.33.0"
-    eslint-plugin-react-hooks: ">=7.0.0"
-    typescript: ">=5.2.0"
-  checksum: 10c0/a603561418ff4fae279efb91ffeffee721ae35dfbe33078d8bfa18311a69cfe8249e3d4020141c948cea986ee43b366aced8803a92df48f6abf54e4d71ce9ca9
+    "@stylistic/eslint-plugin": ">=5.0.0"
+    "@typescript-eslint/eslint-plugin": ">=8.9.0"
+    "@typescript-eslint/parser": ">=8.9.0"
+    eslint: ">=8.57.0"
+    eslint-config-prettier: ">=9.1.0"
+    eslint-plugin-jsdoc: ">=50.4.0"
+    eslint-plugin-react: ">=7.37.0"
+    eslint-plugin-react-hooks: ">=7.1.0"
+    typescript: ">=5.5.0"
+  checksum: 10c0/1e06ea9adbc2192649152fb3128e221bd634775e085347b8604428fea05f3423297132d15a39646b2cd7e55ad2cdfb4f436859b3c0065f531fa6917a6bd06d94
   languageName: node
   linkType: hard
 
@@ -2815,16 +2815,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stylistic/eslint-plugin-ts@npm:^4.4.1":
-  version: 4.4.1
-  resolution: "@stylistic/eslint-plugin-ts@npm:4.4.1"
+"@stylistic/eslint-plugin@npm:^5.10.0":
+  version: 5.10.0
+  resolution: "@stylistic/eslint-plugin@npm:5.10.0"
   dependencies:
-    "@typescript-eslint/utils": "npm:^8.32.1"
-    eslint-visitor-keys: "npm:^4.2.0"
-    espree: "npm:^10.3.0"
+    "@eslint-community/eslint-utils": "npm:^4.9.1"
+    "@typescript-eslint/types": "npm:^8.56.0"
+    eslint-visitor-keys: "npm:^4.2.1"
+    espree: "npm:^10.4.0"
+    estraverse: "npm:^5.3.0"
+    picomatch: "npm:^4.0.3"
   peerDependencies:
-    eslint: ">=9.0.0"
-  checksum: 10c0/9b2d88364dc39441666a3963783fdbf2420689e6af88d58556472ee6fd8a6f115f8f42713f0be64db58b03df8c5ebbde2547872cee9372215ec32123f81d33a9
+    eslint: ^9.0.0 || ^10.0.0
+  checksum: 10c0/2cc6e592d5b2ab691290cc39ed377c0f6226667b367ffc6a0bf3a4bf6dd36b011d17c83f377600a48946f6bb037390b35a8b3c273b3c40d161c00b44512a129e
   languageName: node
   linkType: hard
 
@@ -3567,6 +3570,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@typescript-eslint/types@npm:^8.56.0":
+  version: 8.71.1
+  resolution: "@typescript-eslint/types@npm:8.71.1"
+  checksum: 10c0/409c18e0a2331b1d5b743940b3e4468e54b0d37e454291204eefd9dbe77dbc8f8bbae9416262a9c8733dd95ec1feea9eca4a7651dce813f28629401b789b2ded
+  languageName: node
+  linkType: hard
+
 "@typescript-eslint/typescript-estree@npm:8.67.0":
   version: 8.67.0
   resolution: "@typescript-eslint/typescript-estree@npm:8.67.0"
@@ -3620,7 +3630,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/utils@npm:^8.32.1, @typescript-eslint/utils@npm:^8.33.1":
+"@typescript-eslint/utils@npm:^8.33.1":
   version: 8.67.0
   resolution: "@typescript-eslint/utils@npm:8.67.0"
   dependencies:
@@ -4852,7 +4862,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"color-name@npm:~1.1.4":
+"color-name@npm:^1.1.4, color-name@npm:~1.1.4":
   version: 1.1.4
   resolution: "color-name@npm:1.1.4"
   checksum: 10c0/a1a3f914156960902f46f7f56bc62effc6c94e84b2cae157a526b1c1f74b677a47ec602bf68a61abfa2b42d15b7c5651c6dbe72a43af720bc588dff885b10f95
@@ -5066,6 +5076,13 @@ __metadata:
   version: 0.0.10
   resolution: "cssfilter@npm:0.0.10"
   checksum: 10c0/478a227a616fb6e9bb338eb95f690df141b86231ec737cbea574484f31a09a51db894b4921afc4987459dae08d584355fd689ff2a7a7c7a74de4bb4c072ce553
+  languageName: node
+  linkType: hard
+
+"cssfontparser@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "cssfontparser@npm:1.2.1"
+  checksum: 10c0/ceb9b2976d503dbff3ac2aff0229b263affb4fb221a6947b357682cd8a952f6995253646ca5f820020d2fe05b5e29b56dbdd2343388c32203e8dd0ed15bdc1ca
   languageName: node
   linkType: hard
 
@@ -5788,7 +5805,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-visitor-keys@npm:^4.2.0, eslint-visitor-keys@npm:^4.2.1":
+"eslint-visitor-keys@npm:^4.2.1":
   version: 4.2.1
   resolution: "eslint-visitor-keys@npm:4.2.1"
   checksum: 10c0/fcd43999199d6740db26c58dbe0c2594623e31ca307e616ac05153c9272f12f1364f5a0b1917a8e962268fdecc6f3622c1c2908b4fcc2e047a106fe6de69dc43
@@ -5866,7 +5883,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"espree@npm:^10.0.1, espree@npm:^10.3.0, espree@npm:^10.4.0":
+"espree@npm:^10.0.1, espree@npm:^10.4.0":
   version: 10.4.0
   resolution: "espree@npm:10.4.0"
   dependencies:
@@ -6817,6 +6834,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"intersection-observer@npm:^0.12.2":
+  version: 0.12.2
+  resolution: "intersection-observer@npm:0.12.2"
+  checksum: 10c0/9591f46b2b742f5801ed69dbc8860f487771b4af8361e7a5dcb28a377beff2ba56336a2b090af261825430d225dae9417121496d2e6925e000e4a469958843ff
+  languageName: node
+  linkType: hard
+
 "intl-messageformat@npm:^10.1.0":
   version: 10.7.18
   resolution: "intl-messageformat@npm:10.7.18"
@@ -7284,6 +7308,16 @@ __metadata:
     "@pkgjs/parseargs":
       optional: true
   checksum: 10c0/6acc10d139eaefdbe04d2f679e6191b3abf073f111edf10b1de5302c97ec93fffeb2fdd8681ed17f16268aa9dd4f8c588ed9d1d3bffbbfa6e8bf897cbb3149b9
+  languageName: node
+  linkType: hard
+
+"jest-canvas-mock@npm:^2.5.2":
+  version: 2.5.8
+  resolution: "jest-canvas-mock@npm:2.5.8"
+  dependencies:
+    cssfontparser: "npm:^1.2.1"
+    moo-color: "npm:^1.0.2"
+  checksum: 10c0/25e621650bebb0a7c86fa6cf0ba8ab463dd784514a922875b2707e458d29aef943de5b9f3032d378f089c15d6676bd10f4542b822a67d9e715eb93c4ae11c51e
   languageName: node
   linkType: hard
 
@@ -8311,6 +8345,15 @@ __metadata:
   version: 0.34.1
   resolution: "monaco-editor@npm:0.34.1"
   checksum: 10c0/92ea10f7c4947eb5cbe12cfe6de706ee8932d903c343c8de1bbfb6cbb63505d0459c4669082e5c2341cbfb31728f15e97b4f51ad24725d30be1d4c65c2e229e0
+  languageName: node
+  linkType: hard
+
+"moo-color@npm:^1.0.2":
+  version: 1.0.3
+  resolution: "moo-color@npm:1.0.3"
+  dependencies:
+    color-name: "npm:^1.1.4"
+  checksum: 10c0/778c82f67f638c03a1d0fa78dcd6ea376a9f17b5e78e349c7e34a290b496dbdb43fd0b1c38070e2062d5e784bcf08e57f499015fcbcf52b3a1887d7825ebb80d
   languageName: node
   linkType: hard
 
@@ -10893,7 +10936,7 @@ __metadata:
   dependencies:
     "@emotion/css": "npm:11.13.5"
     "@grafana/data": "npm:13.1.0"
-    "@grafana/eslint-config": "npm:^9.0.0"
+    "@grafana/eslint-config": "npm:^10.0.0"
     "@grafana/i18n": "npm:13.1.0"
     "@grafana/plugin-e2e": "npm:^3.14.0"
     "@grafana/runtime": "npm:13.1.0"
@@ -10902,7 +10945,7 @@ __metadata:
     "@grafana/tsconfig": "npm:^2.2.0"
     "@grafana/ui": "npm:13.1.0"
     "@playwright/test": "npm:^1.63.0"
-    "@stylistic/eslint-plugin-ts": "npm:^4.4.1"
+    "@stylistic/eslint-plugin": "npm:^5.10.0"
     "@swc/core": "npm:^1.16.2"
     "@swc/helpers": "npm:^0.5.23"
     "@swc/jest": "npm:^0.2.39"
@@ -10928,7 +10971,9 @@ __metadata:
     glob: "npm:^13.0.6"
     identity-obj-proxy: "npm:^3.0.0"
     imports-loader: "npm:^5.0.0"
+    intersection-observer: "npm:^0.12.2"
     jest: "npm:^30.5.2"
+    jest-canvas-mock: "npm:^2.5.2"
     jest-environment-jsdom: "npm:^30.5.2"
     prettier: "npm:^3.9.8"
     react: "npm:^18.3.0"
