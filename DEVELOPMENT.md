@@ -88,6 +88,20 @@ provisioning expansion:
 Restart the stack to pick up changes; Grafana re-reads provisioning files on
 boot.
 
+### Run a local build in a plain Grafana container
+
+To load a local build into a standalone Grafana container, without the rest of
+the dev stack, mount the `dist` directory and allow the unsigned plugin:
+
+```bash
+yarn build && mage -v
+docker run -d -p 3000:3000 \
+  -v "$(pwd)/dist:/var/lib/grafana/plugins/trino-datasource" \
+  -e "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=trino-datasource" \
+  --name=grafana \
+  grafana/grafana-oss
+```
+
 ## Secure SOCKS proxy (PDC)
 
 The dev stack always enables Grafana's secure SOCKS datasource proxy, so the

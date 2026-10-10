@@ -6,16 +6,52 @@ The Trino datasource allows to query and visualize [Trino](https://trino.io/) da
 
 ## Getting started
 
-Drop this into Grafana's `plugins` directory. To run it locally without installing Grafana, run it in a Docker container using:
+### Install the plugin
 
-```bash
-docker run -d -p 3000:3000 \
-  -v "$(pwd):/var/lib/grafana/plugins/trino" \
-  -e "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=trino-datasource" \
-  --name=grafana \
-  grafana/grafana-oss
+The plugin is published in the [Grafana plugin catalog](https://grafana.com/grafana/plugins/trino-datasource/).
+Install it in one of these ways:
+
+* In the Grafana UI, go to **Administration > Plugins and data > Plugins**, search for
+  "Trino" and click **Install**.
+* With the Grafana CLI, then restart Grafana:
+
+  ```bash
+  grafana cli plugins install trino-datasource
+  ```
+
+  Older Grafana installations provide the same command as `grafana-cli`.
+* In Docker, let Grafana install it on startup:
+
+  ```bash
+  docker run -d -p 3000:3000 \
+    -e "GF_PLUGINS_PREINSTALL=trino-datasource" \
+    --name=grafana \
+    grafana/grafana-oss
+  ```
+
+  Grafana versions that don't support `GF_PLUGINS_PREINSTALL` use
+  `GF_INSTALL_PLUGINS=trino-datasource` instead; newer versions still accept it,
+  but log a deprecation warning.
+
+To run a locally built, unsigned copy of the plugin, see
+[DEVELOPMENT.md](DEVELOPMENT.md).
+
+### Add the data source
+
+1. In Grafana, go to **Connections > Data sources** and click **Add new data source**.
+2. Select **Trino**.
+3. Set **URL** to the Trino coordinator, for example `http://trino.example.com:8080`.
+4. Configure [authentication](#authentication), if your Trino cluster requires it.
+5. Click **Save & test**.
+
+Open **Explore**, or add a panel to a dashboard, select the Trino data source
+and run a query, for example:
+
+```sql
+SELECT * FROM tpch.tiny.orders LIMIT 10
 ```
 
+The `tpch` catalog is only available if it's configured in Trino.
 
 ## Features
 
