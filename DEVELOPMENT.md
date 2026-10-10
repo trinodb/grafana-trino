@@ -95,7 +95,8 @@ provisioning expansion:
 | `TRINO_KERBEROS_DISABLE_CANONICAL_HOSTNAME` | `true` to use the URL host in the service principal as is |
 
 The Kerberos paths are read inside the Grafana container, which mounts this
-repository at `/root/trino-datasource`.
+repository at `/root/trino-datasource`. See [Kerberos](#kerberos) for the
+bundled Kerberized Trino.
 
 Restart the stack to pick up changes; Grafana re-reads provisioning files on
 boot.
@@ -142,6 +143,55 @@ PDC_PRIVATE_TRINO_URL=http://trino-private:8080 yarn e2e
 The two PDC tests are skipped when `PDC_PRIVATE_TRINO_URL` is unset, so a plain
 `yarn e2e` against a default `yarn server` stack is unaffected. CI sets it in
 the `End to end test` step.
+
+## Kerberos
+
+To exercise Kerberos authentication, bring the stack up with the `kerberos`
+profile:
+
+```bash
+yarn build && mage -v
+docker compose --profile kerberos up --build
+```
+
+That adds two containers: `kdc`, a Kerberos KDC for the `TRINO.TEST` realm
+(the image Trino's own product tests use), and `trino-kerberos`, a Trino
+instance that only accepts Kerberos over HTTPS on port 8443, with a self-signed
+certificate. At startup, `test-data/kerberos/init.sh` creates the
+coordinator's `trino/trino-kerberos` service principal, a `grafana` client
+principal and the certificate in a volume that Grafana mounts at
+`/etc/trino-kerberos`, next to `test-data/kerberos/krb5.conf` at
+`/etc/krb5.conf`. Trino maps the `grafana@TRINO.TEST` principal to the
+`grafana` user.
+
+To try it in the UI, create a data source with the URL
+`https://trino-kerberos:8443`, "Skip TLS Verify" on, and Kerberos enabled with
+principal `grafana`, realm `TRINO.TEST`, config path `/etc/krb5.conf` and
+keytab path `/etc/trino-kerberos/grafana.keytab`. Turn off "Use canonical
+hostname": Docker's DNS resolves the coordinator's address back to
+`trino-kerberos.<network>`, which has no service principal, so the service
+principal has to be built from the URL host. To provision it instead, set
+these in `.env`:
+
+```bash
+TRINO_URL=https://trino-kerberos:8443
+TRINO_TLS_SKIP_VERIFY=true
+TRINO_KERBEROS_ENABLED=true
+TRINO_KERBEROS_PRINCIPAL=grafana
+TRINO_KERBEROS_REALM=TRINO.TEST
+TRINO_KERBEROS_CONFIG_PATH=/etc/krb5.conf
+TRINO_KERBEROS_KEYTAB_PATH=/etc/trino-kerberos/grafana.keytab
+TRINO_KERBEROS_DISABLE_CANONICAL_HOSTNAME=true
+```
+
+Run the e2e suite against it with:
+
+```bash
+KERBEROS_TRINO_URL=https://trino-kerberos:8443 yarn e2e
+```
+
+The two Kerberos tests are skipped when `KERBEROS_TRINO_URL` is unset. CI sets
+it in the `End to end test` step.
 
 ## Verifier
 
