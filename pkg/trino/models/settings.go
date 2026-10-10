@@ -15,6 +15,7 @@ import (
 const (
 	ImpersonationIdentityLogin = "login"
 	ImpersonationIdentityEmail = "email"
+	DefaultKerberosConfigPath  = "/etc/krb5.conf"
 )
 
 type TrinoDatasourceSettings struct {
@@ -34,6 +35,17 @@ type TrinoDatasourceSettings struct {
 	ImpersonationUser     string             `json:"impersonationUser"`
 	Roles                 string             `json:"roles"`
 	ClientTags            string             `json:"clientTags"`
+	// OAuthPassThru is Grafana's "Forward OAuth Identity" setting.
+	OAuthPassThru                    bool   `json:"oauthPassThru"`
+	KerberosEnabled                  bool   `json:"kerberosEnabled"`
+	KerberosPrincipal                string `json:"kerberosPrincipal"`
+	KerberosRealm                    string `json:"kerberosRealm"`
+	KerberosConfigPath               string `json:"kerberosConfigPath"`
+	KerberosKeytabPath               string `json:"kerberosKeytabPath"`
+	KerberosCredentialCachePath      string `json:"kerberosCredentialCachePath"`
+	KerberosRemoteServiceName        string `json:"kerberosRemoteServiceName"`
+	KerberosServicePrincipalPattern  string `json:"kerberosServicePrincipalPattern"`
+	KerberosDisableCanonicalHostname bool   `json:"kerberosDisableCanonicalHostname"`
 }
 
 func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataSourceInstanceSettings) error {
@@ -50,19 +62,26 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 	if err != nil {
 		return err
 	}
-	if opts.BasicAuth != nil {
-		if opts.BasicAuth.Password != "" {
-			s.URL.User = url.UserPassword(opts.BasicAuth.User, opts.BasicAuth.Password)
-		} else {
-			s.URL.User = url.User(opts.BasicAuth.User)
-		}
-	} else {
-		s.URL.User = url.User("grafana")
-	}
 	s.Opts = opts
 	err = json.Unmarshal(config.JSONData, &s)
 	if err != nil {
 		return err
+	}
+	switch {
+	case opts.BasicAuth != nil && opts.BasicAuth.Password != "":
+		s.URL.User = url.UserPassword(opts.BasicAuth.User, opts.BasicAuth.Password)
+	case opts.BasicAuth != nil:
+		s.URL.User = url.User(opts.BasicAuth.User)
+	case s.KerberosEnabled:
+		// Without a user, Trino runs queries as the user the Kerberos
+		// principal maps to, instead of requiring the principal to be allowed
+		// to impersonate "grafana".
+		s.URL.User = nil
+	default:
+		s.URL.User = url.User("grafana")
+	}
+	if s.KerberosEnabled && s.KerberosConfigPath == "" {
+		s.KerberosConfigPath = DefaultKerberosConfigPath
 	}
 	switch s.ImpersonationIdentity {
 	case "":
