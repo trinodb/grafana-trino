@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -79,27 +80,79 @@ func (s *TrinoDatasource) Converters() (sc []sqlutil.Converter) {
 	}
 }
 
-// MutateQuery combines the client tags set on the query with the ones
-// configured on the data source. sqlds calls this once per query, in that
-// query's own goroutine, and passes the returned context to SetQueryArgs, so
-// tags set on one query never reach the other queries of the same panel.
+// MutateQuery is called by sqlds once per query, in that query's own
+// goroutine, before it applies macros. Dashboard panels, template variables
+// and alert rules all go through it.
+func (s *TrinoDatasource) MutateQuery(ctx context.Context, req backend.DataQuery) (context.Context, backend.DataQuery) {
+	return withQueryClientTags(ctx, req), withoutTrailingSemicolon(req)
+}
+
+// withQueryClientTags combines the client tags set on the query with the ones
+// configured on the data source. sqlds passes the returned context to
+// SetQueryArgs, so tags set on one query never reach the other queries of the
+// same panel.
 //
 // The data source tags are always kept: they are set by an administrator,
 // while queries carry whatever the user running them sends.
-func (s *TrinoDatasource) MutateQuery(ctx context.Context, req backend.DataQuery) (context.Context, backend.DataQuery) {
+func withQueryClientTags(ctx context.Context, req backend.DataQuery) context.Context {
 	var query struct {
 		ClientTags string `json:"clientTags"`
 	}
 	if err := json.Unmarshal(req.JSON, &query); err != nil {
-		return ctx, req
+		return ctx
 	}
 
 	tags := mergeClientTags(clientTagsFromContext(ctx), query.ClientTags)
 	if tags == "" {
-		return ctx, req
+		return ctx
 	}
 
-	return context.WithValue(ctx, trinoClientTagsKey, tags), req
+	return context.WithValue(ctx, trinoClientTagsKey, tags)
+}
+
+// withoutTrailingSemicolon drops the statement terminator users habitually end
+// their SQL with: Trino runs a single statement, and rejects one followed by a
+// semicolon with "mismatched input ';'". Only one semicolon is removed, so
+// anything else after it still reaches Trino and fails there.
+func withoutTrailingSemicolon(req backend.DataQuery) backend.DataQuery {
+	var query map[string]json.RawMessage
+	if err := json.Unmarshal(req.JSON, &query); err != nil {
+		return req
+	}
+
+	trimmed := false
+	for key, value := range query {
+		// The query editor sends rawSQL, while sqlds reads it into a field
+		// tagged rawSql - which works only because encoding/json matches
+		// object keys to struct fields case-insensitively.
+		if !strings.EqualFold(key, "rawSql") {
+			continue
+		}
+		var rawSQL string
+		if err := json.Unmarshal(value, &rawSQL); err != nil {
+			continue
+		}
+		statement, terminated := strings.CutSuffix(strings.TrimRightFunc(rawSQL, unicode.IsSpace), ";")
+		if !terminated {
+			continue
+		}
+		trimmedSQL, err := json.Marshal(strings.TrimRightFunc(statement, unicode.IsSpace))
+		if err != nil {
+			continue
+		}
+		query[key] = trimmedSQL
+		trimmed = true
+	}
+	if !trimmed {
+		return req
+	}
+
+	trimmedJSON, err := json.Marshal(query)
+	if err != nil {
+		return req
+	}
+	req.JSON = trimmedJSON
+	return req
 }
 
 func (s *TrinoDatasource) MutateResponse(ctx context.Context, frames data.Frames) (data.Frames, error) {

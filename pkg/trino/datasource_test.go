@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/sqlds/v4"
 )
 
 func TestClientTags(t *testing.T) {
@@ -58,6 +59,57 @@ func TestMutateQueryIgnoresUnparseableQuery(t *testing.T) {
 	}
 }
 
+func TestMutateQueryTrimsTrailingSemicolon(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		key    string
+		rawSQL string
+		want   string
+	}{
+		{name: "no semicolon", rawSQL: "SHOW SCHEMAS FROM glue", want: "SHOW SCHEMAS FROM glue"},
+		{name: "trailing semicolon", rawSQL: "SHOW SCHEMAS FROM glue;", want: "SHOW SCHEMAS FROM glue"},
+		{name: "whitespace around the semicolon", rawSQL: "SELECT 1 \n ; \n", want: "SELECT 1"},
+		{name: "only one semicolon is removed", rawSQL: "SELECT 1;;", want: "SELECT 1;"},
+		{name: "semicolon inside the statement", rawSQL: "SELECT ';' AS separator", want: "SELECT ';' AS separator"},
+		{name: "macros are kept", rawSQL: "SELECT * FROM t WHERE $__timeFilter(ts) ;", want: "SELECT * FROM t WHERE $__timeFilter(ts)"},
+		{name: "key spelled as sqlds tags it", key: "rawSql", rawSQL: "SELECT 1;", want: "SELECT 1"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			key := tc.key
+			if key == "" {
+				key = "rawSQL"
+			}
+			_, req := New().MutateQuery(context.Background(), queryWithRawSQL(key, tc.rawSQL))
+
+			query, err := sqlds.GetQuery(req, nil, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if query.RawSQL != tc.want {
+				t.Errorf("got %q, want %q", query.RawSQL, tc.want)
+			}
+			var other struct {
+				ClientTags string `json:"clientTags"`
+			}
+			if err := json.Unmarshal(req.JSON, &other); err != nil {
+				t.Fatal(err)
+			}
+			if other.ClientTags != "queryTag" {
+				t.Errorf("other query fields were lost, got client tags %q", other.ClientTags)
+			}
+		})
+	}
+}
+
+func TestMutateQueryKeepsQueryWithoutRawSQL(t *testing.T) {
+	query := backend.DataQuery{JSON: json.RawMessage(`{"clientTags":"queryTag"}`)}
+	_, req := New().MutateQuery(context.Background(), query)
+
+	if got, want := string(req.JSON), string(query.JSON); got != want {
+		t.Errorf("got %s, want %s", got, want)
+	}
+}
+
 func contextWithDataSourceClientTags(tags string) context.Context {
 	ctx := context.Background()
 	if tags == "" {
@@ -68,6 +120,14 @@ func contextWithDataSourceClientTags(tags string) context.Context {
 
 func queryWithClientTags(tags string) backend.DataQuery {
 	raw, err := json.Marshal(map[string]string{"clientTags": tags})
+	if err != nil {
+		panic(err)
+	}
+	return backend.DataQuery{JSON: raw}
+}
+
+func queryWithRawSQL(key string, rawSQL string) backend.DataQuery {
+	raw, err := json.Marshal(map[string]string{key: rawSQL, "clientTags": "queryTag"})
 	if err != nil {
 		panic(err)
 	}
