@@ -1,5 +1,4 @@
-import { of } from 'rxjs';
-import { TestScheduler } from 'rxjs/testing';
+import { lastValueFrom, of } from 'rxjs';
 
 import { dataFrameToJSON, DataSourceInstanceSettings, dateTime, MutableDataFrame } from '@grafana/data';
 import {
@@ -50,33 +49,16 @@ describe('DataSource', () => {
     return { ds };
   };
 
-  // https://rxjs-dev.firebaseapp.com/guide/testing/marble-testing
-  const runMarbleTest = (args: {
-    options: any;
-    values: { [marble: string]: FetchResponse };
-    marble: string;
-    expectedValues: { [marble: string]: any };
-    expectedMarble: string;
-  }) => {
-    const { expectedValues, expectedMarble, options, values, marble } = args;
-    const scheduler: TestScheduler = new TestScheduler((actual, expected) => {
-      expect(actual).toEqual(expected);
-    });
-
-    const { ds } = setupTestContext({});
-
-    scheduler.run(({ cold, expectObservable }) => {
-      const source = cold(marble, values);
-      jest.clearAllMocks();
-      fetchMock.mockImplementation(() => source);
-
-      const result = ds.query(options);
-      expectObservable(result).toBe(expectedMarble, expectedValues);
-    });
+  // DataSourceWithBackend.query resolves the target data sources before it
+  // calls the backend, so the response is observed by awaiting it instead of
+  // with a marble test, whose virtual clock cannot drive that promise.
+  const runQueryTest = async (args: { options: any; response: unknown; expected: unknown }) => {
+    const { ds } = setupTestContext(args.response);
+    expect(await lastValueFrom(ds.query(args.options))).toEqual(args.expected);
   };
 
   describe('When performing a time series query', () => {
-    it('should transform response correctly', () => {
+    it('should transform response correctly', async () => {
       const options = {
         range: {
           from: dateTime(1432288354),
@@ -113,50 +95,47 @@ describe('DataSource', () => {
         },
       };
 
-      const values = { a: createFetchResponse(response) };
-      const marble = '-a|';
-      const expectedMarble = '-a|';
-      const expectedValues = {
-        a: {
-          data: [
-            {
-              fields: [
-                {
-                  config: {},
-                  entities: {},
-                  name: 'time',
-                  type: 'time',
-                  values: [1599643351085],
-                },
-                {
-                  config: {},
-                  entities: {},
-                  labels: {
-                    metric: 'America',
-                  },
-                  name: 'metric',
-                  type: 'number',
-                  values: [30.226249741223704],
-                },
-              ],
-              length: 1,
-              meta: {
-                executedQueryString: 'select time, metric from grafana_metric',
+      await runQueryTest({
+        options,
+        response,
+        expected: {
+        data: [
+          {
+            fields: [
+              {
+                config: {},
+                entities: {},
+                name: 'time',
+                type: 'time',
+                values: [1599643351085],
               },
-              name: undefined,
-              refId: 'A',
+              {
+                config: {},
+                entities: {},
+                labels: {
+                  metric: 'America',
+                },
+                name: 'metric',
+                type: 'number',
+                values: [30.226249741223704],
+              },
+            ],
+            length: 1,
+            meta: {
+              executedQueryString: 'select time, metric from grafana_metric',
             },
-          ],
-          state: 'Done',
+            name: undefined,
+            refId: 'A',
+          },
+        ],
+        state: 'Done',
         },
-      };
-
-      runMarbleTest({ options, marble, values, expectedMarble, expectedValues });
+      });
     });
   });
 
   describe('When performing a table query', () => {
-    it('should transform response correctly', () => {
+    it('should transform response correctly', async () => {
       const options = {
         range: {
           from: dateTime(1432288354),
@@ -194,49 +173,46 @@ describe('DataSource', () => {
         },
       };
 
-      const values = { a: createFetchResponse(response) };
-      const marble = '-a|';
-      const expectedMarble = '-a|';
-      const expectedValues = {
-        a: {
-          data: [
-            {
-              fields: [
-                {
-                  config: {},
-                  entities: {},
-                  name: 'time',
-                  type: 'time',
-                  values: [1599643351085],
-                },
-                {
-                  config: {},
-                  entities: {},
-                  name: 'metric',
-                  type: 'string',
-                  values: ['America'],
-                },
-                {
-                  config: {},
-                  entities: {},
-                  name: 'value',
-                  type: 'number',
-                  values: [30.226249741223704],
-                },
-              ],
-              length: 1,
-              meta: {
-                executedQueryString: 'select time, metric, value from grafana_metric',
+      await runQueryTest({
+        options,
+        response,
+        expected: {
+        data: [
+          {
+            fields: [
+              {
+                config: {},
+                entities: {},
+                name: 'time',
+                type: 'time',
+                values: [1599643351085],
               },
-              name: undefined,
-              refId: 'A',
+              {
+                config: {},
+                entities: {},
+                name: 'metric',
+                type: 'string',
+                values: ['America'],
+              },
+              {
+                config: {},
+                entities: {},
+                name: 'value',
+                type: 'number',
+                values: [30.226249741223704],
+              },
+            ],
+            length: 1,
+            meta: {
+              executedQueryString: 'select time, metric, value from grafana_metric',
             },
-          ],
-          state: 'Done',
+            name: undefined,
+            refId: 'A',
+          },
+        ],
+        state: 'Done',
         },
-      };
-
-      runMarbleTest({ options, marble, values, expectedMarble, expectedValues });
+      });
     });
   });
 
