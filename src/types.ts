@@ -69,6 +69,8 @@ export function toVariableTrinoQuery(query: StoredVariableQuery): TrinoQuery {
 export interface TrinoSecureJsonData {
   accessToken?: string;
   clientSecret?: string;
+  // set by Grafana's HTTP settings
+  basicAuthPassword?: string;
 }
 
 export type ImpersonationIdentity = 'login' | 'email';
@@ -87,7 +89,27 @@ export interface TrinoDataSourceOptions extends DataSourceJsonData {
   roles?: string;
   clientTags?: string;
   enableSecureSocksProxy?: boolean;
+  // "Forward OAuth Identity", set by Grafana's HTTP settings
+  oauthPassThru?: boolean;
+  kerberosEnabled?: boolean;
+  kerberosPrincipal?: string;
+  kerberosRealm?: string;
+  kerberosConfigPath?: string;
+  kerberosKeytabPath?: string;
+  kerberosCredentialCachePath?: string;
+  kerberosRemoteServiceName?: string;
+  kerberosServicePrincipalPattern?: string;
+  kerberosDisableCanonicalHostname?: boolean;
 }
+
+export type KerberosPathOrName =
+  | 'kerberosPrincipal'
+  | 'kerberosRealm'
+  | 'kerberosConfigPath'
+  | 'kerberosKeytabPath'
+  | 'kerberosCredentialCachePath'
+  | 'kerberosRemoteServiceName'
+  | 'kerberosServicePrincipalPattern';
 /**
  * Value that is used in the backend, but never sent over HTTP to the frontend
  */
