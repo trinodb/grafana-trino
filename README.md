@@ -53,22 +53,105 @@ SELECT * FROM tpch.tiny.orders LIMIT 10
 
 The `tpch` catalog is only available if it's configured in Trino.
 
+## Authentication
+
+Authentication is configured in the data source settings. The options below can
+be combined, except where noted.
+
+### Basic auth
+
+Under **Auth**, enable **Basic auth** and set **User** and **Password**. Trino
+only accepts passwords over HTTPS, unless it's configured to allow them over
+HTTP.
+
+The basic auth user is also the Trino session user, even without a password.
+Without basic auth, the session user is `grafana`. When Trino authenticates a
+request with a token or certificate and its principal differs from the session
+user, Trino's access control must allow impersonating that user. The
+impersonation options below change the session user.
+
+### TLS
+
+Under **Auth**:
+
+* **TLS Client Auth** sends a client certificate and key, for Trino's
+  certificate authentication.
+* **With CA Cert** verifies the Trino server certificate against a custom CA.
+* **Skip TLS Verify** disables server certificate verification.
+
+### Access token
+
+Set **Access token** in the **Trino** section to send a static bearer token, such
+as a JWT, with every request. It can't be combined with the OAuth client
+credentials flow.
+
+### OAuth client credentials
+
+In the **OAuth Trino Authentication** section, set **Token URL**, **Client id** and
+**Client secret**. All three are required. The plugin gets an access token from
+the token URL using the OAuth 2.0 client credentials flow, and sends it to Trino.
+
+**Impersonation user**, if set, is sent as the Trino session user. Trino must
+allow the token's principal to impersonate that user. When
+[impersonation of the signed-in user](#impersonate-the-signed-in-user) is
+enabled, the impersonation user only applies to anonymous users.
+
+### Forward OAuth Identity
+
+If Grafana users sign in with OAuth, enable **Forward OAuth Identity** under
+**Auth** to send the signed-in user's OAuth access token to Trino as a bearer
+token, instead of the configured access token. Trino must be configured to
+accept tokens from the same identity provider. The forwarded token is not used
+when the OAuth client credentials flow is configured, because the token from
+that flow replaces it.
+
+### Impersonate the signed-in user
+
+Enable **Impersonate logged in user** in the **Trino** section to run queries as
+the Grafana user, instead of the data source's user. **Impersonate as** selects
+whether the user's **Login** or **Email** becomes the Trino session user; with
+**Email**, queries from users without an email fail. Trino must allow the
+authenticated user to impersonate other users.
+
+Anonymous users are not impersonated, and run as the data source's user, or the
+OAuth impersonation user if set.
+
+## Other settings
+
+### Roles
+
+**Roles** in the **Trino** section sets authorization roles per catalog, as
+`catalog:role` pairs separated by semicolons. Use `system` for system roles, for
+example `system:admin;hive:analyst`.
+
+### Client tags
+
+**Client Tags** in the **Trino** section is a comma-separated list of tags sent
+with every query, used for example to select a Trino
+[resource group](https://trino.io/docs/current/admin/resource-groups.html).
+Queries can add more tags in the query editor.
+
+### Private Data Source Connect
+
+When Grafana has the secure SOCKS proxy enabled, as in Grafana Cloud with
+[Private Data Source Connect](https://grafana.com/docs/grafana-cloud/connect-externally-hosted/private-data-source-connect/),
+enable **Secure Socks Proxy** to reach a Trino cluster in a private network.
+The toggle is only shown when the proxy is enabled.
+
+Custom HTTP headers are not supported, and the data source fails to load if any
+are set.
+
 ## Features
 
-* Authentication:
-  * HTTP Basic
-  * TLS client authentication
-  * Access token (JWT)
-  * OAuth
+* [Authentication](#authentication) with basic auth, TLS client certificates,
+  access tokens, OAuth client credentials or the signed-in user's forwarded OAuth
+  identity
 * Raw SQL editor only, no query builder yet
 * Macros
 * Client tags support, used to identify resource groups. Tags can be set on the data source,
   and extended with additional tags in the query editor.
 * `ARRAY`, `MAP` and `ROW` columns rendered as JSON.
-* Impersonation of the logged-in Grafana user, by login or email. This takes
-  precedence over the OAuth "Impersonation user", which then only applies to
-  anonymous users. Anonymous users are not impersonated and run as the data
-  source's user, or the OAuth impersonation user if set.
+* [Impersonation](#impersonate-the-signed-in-user) of the signed-in Grafana user, by login or email.
 
 ## Complex types
 
