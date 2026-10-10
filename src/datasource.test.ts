@@ -1,6 +1,6 @@
 import { lastValueFrom, of } from 'rxjs';
 
-import { dataFrameToJSON, DataSourceInstanceSettings, dateTime, MutableDataFrame } from '@grafana/data';
+import { createDataFrame, dataFrameToJSON, DataSourceInstanceSettings, dateTime } from '@grafana/data';
 import {
   BackendSrv,
   DataSourceSrv,
@@ -80,7 +80,7 @@ describe('DataSource', () => {
             refId: 'A',
             frames: [
               dataFrameToJSON(
-                new MutableDataFrame({
+                createDataFrame({
                   fields: [
                     { name: 'time', values: [1599643351085] },
                     { name: 'metric', values: [30.226249741223704], labels: { metric: 'America' } },
@@ -157,7 +157,7 @@ describe('DataSource', () => {
             refId: 'A',
             frames: [
               dataFrameToJSON(
-                new MutableDataFrame({
+                createDataFrame({
                   fields: [
                     { name: 'time', values: [1599643351085] },
                     { name: 'metric', values: ['America'] },

@@ -1,4 +1,5 @@
-import { DataQuery, DataSourceJsonData, SelectableValue, StandardVariableQuery } from '@grafana/data';
+import { DataSourceJsonData, SelectableValue, StandardVariableQuery } from '@grafana/data';
+import { DataQuery } from '@grafana/schema';
 
 export enum FormatOptions {
   TimeSeries,
