@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/proxy"
@@ -18,6 +19,13 @@ import (
 )
 
 const DriverName string = "trino"
+
+// trino-go-client retries a request that failed with a connection error or a
+// 429, 502, 503 or 504 response for two minutes by default. A dashboard
+// pointed at an unreachable or misconfigured coordinator would show a
+// spinner for that long before reporting the error, so the retries are cut
+// short while still covering a brief blip or a coordinator restart.
+const requestRetryTimeout = 10 * time.Second
 
 // just compile time assertion
 var _ http.RoundTripper = &customTransport{}
@@ -91,6 +99,7 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 		return nil, err
 	}
 
+	retryTimeout := requestRetryTimeout
 	config := trino.Config{
 		ServerURI:                  settings.URL.String(),
 		Source:                     "grafana",
@@ -98,6 +107,7 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 		ForwardAuthorizationHeader: true,
 		AccessToken:                settings.AccessToken,
 		Roles:                      roles,
+		RequestRetryTimeout:        &retryTimeout,
 	}
 
 	dsn, err := config.FormatDSN()

@@ -5,12 +5,16 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/grafana/grafana-plugin-sdk-go/data/sqlutil"
+	"github.com/trinodb/trino-go-client/trino"
 )
 
 type trinoTypeKind int
@@ -29,6 +33,7 @@ type rowField struct {
 
 type trinoType struct {
 	kind   trinoTypeKind
+	name   string
 	elem   *trinoType
 	key    *trinoType
 	value  *trinoType
@@ -125,6 +130,12 @@ func writeJSON(buf *bytes.Buffer, v interface{}, typ *trinoType) error {
 		typ = &trinoType{kind: kindScalar}
 	}
 	switch val := v.(type) {
+	case trino.Row:
+		values := make([]interface{}, val.Len())
+		for i := range values {
+			values[i] = val.Value(i)
+		}
+		return writeJSON(buf, values, typ)
 	case []interface{}:
 		if typ.kind == kindRow && typ.keys != nil && len(typ.fields) == len(val) {
 			buf.WriteByte('{')
@@ -175,6 +186,10 @@ func writeJSON(buf *bytes.Buffer, v interface{}, typ *trinoType) error {
 		}
 		buf.WriteByte('}')
 		return nil
+	case time.Time:
+		return writeTime(buf, val, typ)
+	case float64:
+		return writeFloat(buf, val)
 	default:
 		b, err := json.Marshal(val)
 		if err != nil {
@@ -183,6 +198,84 @@ func writeJSON(buf *bytes.Buffer, v interface{}, typ *trinoType) error {
 		buf.Write(b)
 		return nil
 	}
+}
+
+// writeTime renders a temporal value the way Trino prints it, so a DATE
+// stays "2024-01-01" and a TIMESTAMP(3) WITH TIME ZONE
+// "2024-01-01 00:00:00.123 UTC", instead of the RFC 3339 form
+// encoding/json would produce. Without a known type it falls back to that.
+func writeTime(buf *bytes.Buffer, t time.Time, typ *trinoType) error {
+	layout, withTimeZone := temporalLayout(typ.name)
+	if layout == "" {
+		b, err := json.Marshal(t)
+		if err != nil {
+			return err
+		}
+		buf.Write(b)
+		return nil
+	}
+	text := t.Format(layout)
+	if withTimeZone {
+		text += " " + t.Location().String()
+	}
+	return writeString(buf, text)
+}
+
+func temporalLayout(typeName string) (layout string, withTimeZone bool) {
+	switch {
+	case typeName == "DATE":
+		return "2006-01-02", false
+	case strings.HasPrefix(typeName, "TIMESTAMP"):
+		layout = "2006-01-02 15:04:05"
+	case strings.HasPrefix(typeName, "TIME"):
+		layout = "15:04:05"
+	default:
+		return "", false
+	}
+	precision := 3
+	if start := strings.IndexByte(typeName, '('); start >= 0 {
+		end := strings.IndexByte(typeName[start:], ')')
+		if end < 0 {
+			return "", false
+		}
+		p, err := strconv.Atoi(typeName[start+1 : start+end])
+		if err != nil {
+			return "", false
+		}
+		precision = min(p, 9)
+	}
+	if precision > 0 {
+		layout += "." + strings.Repeat("0", precision)
+	}
+	return layout, strings.HasSuffix(typeName, "WITH TIME ZONE")
+}
+
+// writeFloat keeps the names Trino uses for the doubles JSON has no number
+// for, which encoding/json refuses to marshal.
+func writeFloat(buf *bytes.Buffer, f float64) error {
+	switch {
+	case math.IsNaN(f):
+		return writeString(buf, "NaN")
+	case math.IsInf(f, 1):
+		return writeString(buf, "Infinity")
+	case math.IsInf(f, -1):
+		return writeString(buf, "-Infinity")
+	}
+	b, err := json.Marshal(f)
+	if err != nil {
+		return err
+	}
+	buf.Write(b)
+	return nil
+}
+
+func writeString(buf *bytes.Buffer, s string) error {
+	b, err := json.Marshal(s)
+	if err != nil {
+		return err
+	}
+	buf.Write(b)
+	return nil
 }
 
 func elementType(typ *trinoType, i, n int) *trinoType {
@@ -380,10 +473,11 @@ func (p *typeParser) parseScalar() (*trinoType, error) {
 }
 
 func (p *typeParser) scalarFrom(start int) (*trinoType, error) {
-	if strings.TrimSpace(p.s[start:p.pos]) == "" {
+	name := strings.ToUpper(strings.TrimSpace(p.s[start:p.pos]))
+	if name == "" {
 		return nil, fmt.Errorf("missing type in %q at %d", p.s, start)
 	}
-	return &trinoType{kind: kindScalar}, nil
+	return &trinoType{kind: kindScalar, name: name}, nil
 }
 
 func (p *typeParser) parseQuoted() (string, error) {

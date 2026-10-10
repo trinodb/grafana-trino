@@ -177,23 +177,13 @@ test.describe('secure socks proxy (PDC)', () => {
         // Negative control: the same otherwise-unreachable host, without
         // enabling the proxy toggle, must fail - proving the prior test's
         // success is actually caused by the proxy and not some other route.
-        // Save & Test alone can't show this: trino-go-client doesn't implement
-        // database/sql's Pinger interface, so CheckHealth is a no-op regardless
-        // of reachability (see the "check health failure" test above). Only an
-        // actual query attempt forces a real connection.
+        // Save & Test pings the coordinator, so the failure shows up there
+        // once the driver gives up retrying the connection.
         await login(page);
         await goToTrinoSettings(page);
         await page.getByTestId('data-testid Datasource HTTP settings url').fill(PDC_PRIVATE_TRINO_URL!);
         await page.getByTestId('data-testid Data source settings page Save and Test button').click();
-        await page.getByLabel(EXPORT_DATA).click();
-        await commitQuery(page);
-        // The Explore graph view renders a plain "No data" for a query error
-        // instead of visible error text - Table format surfaces it properly
-        // (same as the roles tests above).
-        await selectFormat(page, 'Time Series', 'Table');
-        await page.getByTestId('data-testid Code editor container').click();
-        await page.getByTestId('data-testid RefreshPicker run button').click();
-        await expect(page.getByText(/error querying the database/i)).toBeVisible({timeout: 15000});
+        await expect(page.getByText(/giving up after .*trino-private:8080/)).toBeVisible({timeout: 15000});
     });
 });
 
@@ -296,9 +286,8 @@ async function setQuery(page: Page, query: string) {
 test('test check health failure surfaces an error', async ({ page }) => {
     // driver.Open() rejects this combination synchronously (access token set
     // within the OAuth section, which is reserved for the client secret) -
-    // a deterministic failure to prove Save & Test surfaces backend errors,
-    // since trino-go-client doesn't implement database/sql's Pinger
-    // interface, so an unreachable host alone wouldn't actually fail here.
+    // a deterministic failure to prove Save & Test surfaces backend errors
+    // without depending on the network.
     await login(page);
     await goToTrinoSettings(page);
     await page.getByTestId('data-testid Datasource HTTP settings url').fill('http://trino:8080');
