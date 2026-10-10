@@ -187,6 +187,67 @@ test.describe('secure socks proxy (PDC)', () => {
     });
 });
 
+// KERBEROS_TRINO_URL points at a Trino instance that only accepts Kerberos
+// over HTTPS, with a self-signed certificate. It needs a KDC, the Kerberized
+// Trino, and Grafana mounting the client keytab and krb5.conf at the paths
+// below, which the default `yarn server` stack doesn't start - so these tests
+// are skipped unless the variable is set. CI sets it, and DEVELOPMENT.md
+// covers running them locally.
+const KERBEROS_TRINO_URL = process.env.KERBEROS_TRINO_URL;
+
+async function setupKerberosConnection(page: Page) {
+    await page.getByTestId('data-testid Datasource HTTP settings url').fill(KERBEROS_TRINO_URL!);
+    // The switch's id differs between Grafana versions, but its label text
+    // and the InlineField wrapping both don't.
+    await page.locator('div').filter({hasText: /^Skip TLS Verify$/}).locator('label').last().click();
+}
+
+test.describe('kerberos', () => {
+    test.skip(!KERBEROS_TRINO_URL, 'KERBEROS_TRINO_URL is not set, see DEVELOPMENT.md');
+
+    test('test with kerberos', async ({ page }) => {
+        await login(page);
+        await goToTrinoSettings(page);
+        await setupKerberosConnection(page);
+        await page.locator('label[for="trino-settings-kerberos-enabled"]').last().click();
+        await page.locator('div').filter({hasText: /^Principal$/}).locator('input').fill('grafana');
+        await page.locator('div').filter({hasText: /^Realm$/}).locator('input').fill('TRINO.TEST');
+        await page.locator('div').filter({hasText: /^Config path$/}).locator('input').fill('/etc/krb5.conf');
+        await page.locator('div').filter({hasText: /^Keytab path$/}).locator('input').fill('/etc/trino-kerberos/grafana.keytab');
+        // Docker's DNS resolves the coordinator's address back to
+        // trino-kerberos.<network>, not the trino-kerberos host its service
+        // principal is named after, as reverse DNS often does outside of
+        // Docker too, so the service principal has to use the URL host.
+        await page.locator('label[for="trino-settings-kerberos-use-canonical-hostname"]').last().click();
+        await page.getByTestId('data-testid Data source settings page Save and Test button').click();
+        await expect(page.getByText('Data source is working')).toBeVisible({timeout: 15000});
+        await runQueryAndCheckResults(page);
+        // Without a basic auth user, queries run as the user Trino maps the
+        // principal to, grafana@TRINO.TEST to grafana here.
+        await setQuery(page, 'SELECT current_user AS trino_user');
+        // On Grafana 10.4 the first click still runs the previous query, as
+        // the editor commits its text only when it loses focus; running
+        // again picks up the new one.
+        const runButton = page.getByTestId('data-testid RefreshPicker run button');
+        for (let run = 0; run < 2; run++) {
+            await expect(runButton).toHaveAttribute('aria-label', /run/i, {timeout: 15000});
+            await runButton.click();
+        }
+        await expect(page.getByText('grafana', {exact: true})).toBeVisible({timeout: 15000});
+    });
+
+    test('test without kerberos is rejected by a kerberized coordinator', async ({ page }) => {
+        // Negative control: the same coordinator rejects the request without
+        // Kerberos, proving the prior test's success is caused by Kerberos.
+        await login(page);
+        await goToTrinoSettings(page);
+        await setupKerberosConnection(page);
+        await page.getByTestId('data-testid Data source settings page Save and Test button').click();
+        await expect(page.getByText(/401 Unauthorized/)).toBeVisible({timeout: 15000});
+        await expect(page.getByText('Data source is working')).toHaveCount(0);
+    });
+});
+
 test('test with roles', async ({ page }) => {
     await login(page);
     await goToTrinoSettings(page);
