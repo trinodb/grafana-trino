@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+* Add optional asynchronous query support, so long-running queries are polled over
+  short requests instead of one long-lived one and are no longer cut short by proxy
+  or load balancer timeouts
+
 ## 1.3.0
 
 * Allow adding Trino client tags in the query editor, appended to the ones configured on the data source
