@@ -178,11 +178,48 @@ are set.
 * [Macros](#macros)
 * Client tags support, used to identify resource groups. Tags can be set on the data source,
   and extended with additional tags in the query editor.
+* Asynchronous queries, so long-running queries are not bound to a single HTTP request
 * `ARRAY`, `MAP` and `ROW` columns rendered as JSON.
 * Trimming edges of time series, to hide incomplete first and last time buckets. Set "Trim edges"
   in the query editor to drop that many rows from the start and the end of every result with a
   time column, after ordering it by the first time column. Leave it empty to keep all rows.
 * [Impersonation](#impersonate-the-signed-in-user) of the signed-in Grafana user, by login or email.
+
+## Asynchronous queries
+
+By default a query is answered over one HTTP request, held open from the moment
+the panel runs until the last row arrives. Any proxy or load balancer in front
+of Grafana gets a say in how long that may take, and a long-running query is
+often cut short by an idle timeout even though Trino was still working on it.
+
+Enabling **Asynchronous queries** in the data source settings switches to a
+polling flow: the plugin starts the query, immediately returns a handle, and the
+browser polls for its status every few seconds until the results are ready. Each
+request is short, so timeouts no longer apply, and a dropped connection no longer
+throws away the work the cluster has already done. The data still arrives in one
+piece at the end; the query does not get faster and results are not streamed in
+progressively.
+
+Alerting and expression queries always use the synchronous flow, because there is
+no browser to poll on their behalf.
+
+Three things are worth knowing before turning it on:
+
+* Keep the dashboard's refresh interval longer than the query takes to run. Each
+  refresh cancels the query still in flight and starts a new one, so a dashboard
+  that refreshes faster than its queries finish never shows a result at all, and
+  keeps the cluster busy with work it then throws away. The synchronous flow
+  behaves the same way, but asynchronous queries tend to be enabled for exactly
+  the queries where the two intervals are close enough to collide.
+* Results are held in the plugin's memory between polls. Peak memory is the same
+  as the synchronous flow, but it is held for longer, so consider setting
+  Grafana's [`dataproxy.row_limit`](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#row_limit)
+  if you have not already.
+* If you run more than one Grafana instance behind a load balancer, enable
+  session affinity (sticky sessions). A poll routed to a different instance
+  cannot see the query, because the connection to Trino and the rows read so far
+  live in the instance that started it. Polls that land on the wrong instance
+  fail with an error saying so.
 
 ## Complex types
 
