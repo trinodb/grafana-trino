@@ -41,7 +41,7 @@ func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req 
 		}
 
 		if user == "" {
-			log.DefaultLogger.FromContext(ctx).Info("Not impersonating anonymous Grafana user, query runs as the data source's Trino user")
+			log.DefaultLogger.FromContext(ctx).Debug("Not impersonating anonymous Grafana user, query runs as the data source's Trino user")
 		} else {
 			ctx = context.WithValue(ctx, trinoUserHeader, user)
 			ctx = trinoClient.WithSessionUser(ctx)
