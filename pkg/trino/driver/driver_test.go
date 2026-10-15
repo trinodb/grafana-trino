@@ -2,87 +2,148 @@ package driver
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"database/sql"
+	"encoding/base64"
 	"encoding/pem"
+	"errors"
+	"io"
 	"math/big"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/proxy"
+	"github.com/trinodb/grafana-trino/pkg/trino/models"
 )
 
-func TestBuildTLSConfig(t *testing.T) {
-	certPEM, keyPEM := selfSignedCert(t)
+// TestOpenRejectsBrokenClientCertificates covers the two ways a client
+// certificate can be misconfigured: the SDK reports a key that does not match
+// the certificate, but silently leaves out a certificate without any key.
+func TestOpenRejectsBrokenClientCertificates(t *testing.T) {
+	certPEM, _ := selfSignedCert(t)
 
-	t.Run("nil options", func(t *testing.T) {
-		cfg, err := buildTLSConfig(nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if cfg.RootCAs != nil || cfg.Certificates != nil || cfg.InsecureSkipVerify {
-			t.Errorf("expected an empty config, got %+v", cfg)
-		}
-	})
+	tests := []struct {
+		name string
+		tls  *httpclient.TLSOptions
+	}{
+		{name: "client certificate without key", tls: &httpclient.TLSOptions{ClientCertificate: certPEM}},
+		{name: "mismatched client certificate and key", tls: &httpclient.TLSOptions{ClientCertificate: certPEM, ClientKey: "not a key"}},
+	}
 
-	t.Run("skip verify", func(t *testing.T) {
-		cfg, err := buildTLSConfig(&httpclient.TLSOptions{InsecureSkipVerify: true})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !cfg.InsecureSkipVerify {
-			t.Error("expected InsecureSkipVerify to be true")
-		}
-	})
-
-	t.Run("CA certificate is applied to RootCAs", func(t *testing.T) {
-		// Regression test: this previously silently no-op'd because the CA
-		// certificate pool was built into a shadowed local variable instead
-		// of the one actually used to construct tls.Config.
-		cfg, err := buildTLSConfig(&httpclient.TLSOptions{CACertificate: certPEM})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if cfg.RootCAs == nil {
-			t.Fatal("expected RootCAs to be populated from the configured CA certificate")
-		}
-		if len(cfg.RootCAs.Subjects()) != 1 { //nolint:staticcheck // Subjects() is deprecated but fine for a test assertion
-			t.Errorf("expected exactly one CA subject in the pool, got %d", len(cfg.RootCAs.Subjects()))
-		}
-	})
-
-	t.Run("client certificate and key are applied", func(t *testing.T) {
-		cfg, err := buildTLSConfig(&httpclient.TLSOptions{
-			ClientCertificate: certPEM,
-			ClientKey:         keyPEM,
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u, err := url.Parse("https://trino.example.com:8443")
+			if err != nil {
+				t.Fatalf("parse trino URL: %v", err)
+			}
+			db, err := Open(models.TrinoDatasourceSettings{
+				UID:  "uid-broken-tls",
+				URL:  u,
+				Opts: httpclient.Options{TLS: tt.tls},
+			})
+			if err == nil {
+				_ = db.Close()
+				t.Fatal("expected an error")
+			}
 		})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(cfg.Certificates) != 1 {
-			t.Errorf("expected exactly one client certificate, got %d", len(cfg.Certificates))
-		}
-	})
+	}
+}
 
-	t.Run("client certificate without key is an error", func(t *testing.T) {
-		_, err := buildTLSConfig(&httpclient.TLSOptions{ClientCertificate: certPEM})
-		if err == nil {
-			t.Fatal("expected an error when client certificate is set without a client key")
-		}
-	})
+// TestOpenSendsBasicAuthThroughTheHTTPClient checks that the basic auth
+// password reaches Trino over plain HTTP, where trino-go-client itself refuses
+// to send one, and that a credential set on the request keeps precedence over
+// the data source password.
+func TestOpenSendsBasicAuthThroughTheHTTPClient(t *testing.T) {
+	var mu sync.Mutex
+	var authorizations, users []string
+	trinoServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		authorizations = append(authorizations, r.Header.Get("Authorization"))
+		users = append(users, r.Header.Get("X-Trino-User"))
+		mu.Unlock()
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	t.Cleanup(trinoServer.Close)
 
-	t.Run("invalid client certificate/key pair is an error", func(t *testing.T) {
-		_, err := buildTLSConfig(&httpclient.TLSOptions{ClientCertificate: certPEM, ClientKey: "not a key"})
-		if err == nil {
-			t.Fatal("expected an error for a client certificate/key that don't match")
-		}
+	u, err := url.Parse(trinoServer.URL)
+	if err != nil {
+		t.Fatalf("parse trino URL: %v", err)
+	}
+	u.User = url.User("alice")
+	db, err := Open(models.TrinoDatasourceSettings{
+		UID:  "uid-basic-auth",
+		URL:  u,
+		Opts: httpclient.Options{BasicAuth: &httpclient.BasicAuthOptions{User: "alice", Password: "s3cret"}},
 	})
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	tests := []struct {
+		name              string
+		args              []interface{}
+		wantAuthorization string
+	}{
+		{name: "password", wantAuthorization: "Basic " + base64.StdEncoding.EncodeToString([]byte("alice:s3cret"))},
+		{name: "forwarded access token", args: []interface{}{sql.Named("accessToken", "forwarded")}, wantAuthorization: "Bearer forwarded"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mu.Lock()
+			authorizations, users = nil, nil
+			mu.Unlock()
+			_, _ = db.QueryContext(context.Background(), "SELECT 1", tt.args...)
+			mu.Lock()
+			defer mu.Unlock()
+			if len(authorizations) == 0 {
+				t.Fatal("Trino never received a request")
+			}
+			for i, got := range authorizations {
+				if got != tt.wantAuthorization {
+					t.Errorf("Trino saw Authorization %q, want %q", got, tt.wantAuthorization)
+				}
+				if users[i] != "alice" {
+					t.Errorf("Trino saw user %q, want %q", users[i], "alice")
+				}
+			}
+		})
+	}
+}
+
+// TestNewHTTPClientLimitsResponseSize checks that the SDK's default
+// middlewares are in place, through the one Grafana administrators configure:
+// the response size limit.
+func TestNewHTTPClientLimitsResponseSize(t *testing.T) {
+	t.Setenv("GF_DATAPROXY_RESPONSE_LIMIT", "16")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(bytes.Repeat([]byte("x"), 1024))
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := newHTTPClient(models.TrinoDatasourceSettings{UID: "uid-response-limit"})
+	if err != nil {
+		t.Fatalf("new HTTP client: %v", err)
+	}
+	response, err := client.Get(server.URL)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	defer response.Body.Close()
+	_, err = io.ReadAll(response.Body)
+	if !errors.Is(err, httpclient.ErrResponseBodyTooLarge) {
+		t.Errorf("expected the response limit middleware to cut the body short, got: %v", err)
+	}
 }
 
 // selfSignedCert generates a throwaway self-signed cert/key pair PEM for TLS tests.
@@ -167,30 +228,6 @@ func TestParseRoles(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("got %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestSecureSocksProxyDisabledIsNoop(t *testing.T) {
-	transport := &http.Transport{}
-
-	tests := []struct {
-		name string
-		opts *proxy.Options
-	}{
-		{name: "nil options", opts: nil},
-		{name: "explicitly disabled", opts: &proxy.Options{Enabled: false}},
-		{name: "enabled but no client config", opts: &proxy.Options{Enabled: true}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := proxy.New(tt.opts).ConfigureSecureSocksHTTPProxy(transport); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if transport.DialContext != nil {
-				t.Error("expected transport.DialContext to be left unset when the proxy is not enabled")
 			}
 		})
 	}

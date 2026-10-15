@@ -1,7 +1,6 @@
 package driver
 
 import (
-	"crypto/tls"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/proxy"
 	trinoClient "github.com/trinodb/grafana-trino/pkg/trino/client"
 
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
@@ -43,50 +41,9 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 	if err := validateKerberos(settings); err != nil {
 		return nil, err
 	}
-	tlsConfig, err := buildTLSConfig(settings.Opts.TLS)
+	client, err := newHTTPClient(settings)
 	if err != nil {
 		return nil, err
-	}
-	transport := &http.Transport{
-		TLSClientConfig: tlsConfig,
-	}
-	// Dial through Grafana's secure SOCKS proxy (used by Grafana Cloud's Private
-	// Data Source Connect) when the datasource has it enabled - ProxyOptions is
-	// set from jsonData.enableSecureSocksProxy, see SecureSocksProxyEnabledOnDS
-	// in the SDK - and a true no-op otherwise. Must happen before any wrapping
-	// below, so it applies regardless of which auth method is configured.
-	if err := proxy.New(settings.Opts.ProxyOptions).ConfigureSecureSocksHTTPProxy(transport); err != nil {
-		return nil, fmt.Errorf("failed to configure secure SOCKS proxy: %w", err)
-	}
-	client := &http.Client{Transport: transport}
-	if settings.TokenUrl != "" || settings.ClientId != "" || settings.ClientSecret != "" {
-		if settings.AccessToken != "" {
-			return nil, errors.New("access token must not be set within 'OAuth Trino Authentication' settings")
-		}
-		var missingParams []string
-		if settings.TokenUrl == "" {
-			missingParams = append(missingParams, "Token URL")
-		}
-		if settings.ClientId == "" {
-			missingParams = append(missingParams, "Client id")
-		}
-		if settings.ClientSecret == "" {
-			missingParams = append(missingParams, "Client secret")
-		}
-		if len(missingParams) > 0 {
-			return nil, fmt.Errorf("missing parameters for 'OAuth Trino Authentication': %v", strings.Join(missingParams, ", "))
-		}
-		client = &http.Client{
-			Transport: &customTransport{
-				client: &trinoClient.Client{
-					Client:            client,
-					ClientId:          settings.ClientId,
-					ClientSecret:      settings.ClientSecret,
-					Url:               settings.TokenUrl,
-					ImpersonationUser: settings.ImpersonationUser,
-				},
-			},
-		}
 	}
 	// trino-go-client's custom client registry is process-global and the key
 	// is resolved on every new connection, so it must be unique per data
@@ -106,6 +63,43 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 		return nil, err
 	}
 	return sql.Open(DriverName, dsn)
+}
+
+// newHTTPClient builds the client the Grafana plugin SDK builds for any data
+// source from its HTTP options: TLS, the secure SOCKS proxy of Private Data
+// Source Connect, the proxy environment variables, and the default middlewares
+// that add the basic auth credentials, enforce Grafana's response size limit
+// and report metrics and traces.
+//
+// The basic auth middleware sends the password wherever Trino is configured to
+// accept it, including over HTTP, and only when nothing else set the
+// Authorization header: an access token, a forwarded OAuth identity, the OAuth
+// client token added below and Kerberos all take precedence.
+func newHTTPClient(settings models.TrinoDatasourceSettings) (*http.Client, error) {
+	if err := validateTLS(settings.Opts.TLS); err != nil {
+		return nil, err
+	}
+	client, err := httpclient.New(settings.Opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create the HTTP client: %w", err)
+	}
+	if settings.TokenUrl == "" && settings.ClientId == "" && settings.ClientSecret == "" {
+		return client, nil
+	}
+	if err := validateOAuth(settings); err != nil {
+		return nil, err
+	}
+	return &http.Client{
+		Transport: &customTransport{
+			client: &trinoClient.Client{
+				Client:            client,
+				ClientId:          settings.ClientId,
+				ClientSecret:      settings.ClientSecret,
+				Url:               settings.TokenUrl,
+				ImpersonationUser: settings.ImpersonationUser,
+			},
+		},
+	}, nil
 }
 
 // newConfig maps the data source settings to the trino-go-client
@@ -154,7 +148,7 @@ func validateKerberos(settings models.TrinoDatasourceSettings) error {
 		return errors.New("'Kerberos Authentication' requires an HTTPS Trino URL")
 	}
 	var conflicts []string
-	if _, hasPassword := settings.URL.User.Password(); hasPassword {
+	if settings.Opts.BasicAuth != nil {
 		conflicts = append(conflicts, "basic auth password")
 	}
 	if settings.AccessToken != "" {
@@ -188,15 +182,33 @@ func validateKerberos(settings models.TrinoDatasourceSettings) error {
 	return nil
 }
 
-// buildTLSConfig builds the tls.Config used for connections to Trino from
-// the datasource's TLS settings (CA certificate, client certificate/key,
-// skip-verify).
-func buildTLSConfig(opts *httpclient.TLSOptions) (*tls.Config, error) {
+// validateTLS rejects a client certificate without its key, which the SDK
+// would silently leave out of the TLS config.
+func validateTLS(opts *httpclient.TLSOptions) error {
 	if opts != nil && opts.ClientCertificate != "" && opts.ClientKey == "" {
-		return nil, errors.New("client certificate was configured without a client key")
+		return errors.New("client certificate was configured without a client key")
 	}
+	return nil
+}
 
-	return httpclient.GetTLSConfig(httpclient.Options{TLS: opts})
+func validateOAuth(settings models.TrinoDatasourceSettings) error {
+	if settings.AccessToken != "" {
+		return errors.New("access token must not be set within 'OAuth Trino Authentication' settings")
+	}
+	var missingParams []string
+	if settings.TokenUrl == "" {
+		missingParams = append(missingParams, "Token URL")
+	}
+	if settings.ClientId == "" {
+		missingParams = append(missingParams, "Client id")
+	}
+	if settings.ClientSecret == "" {
+		missingParams = append(missingParams, "Client secret")
+	}
+	if len(missingParams) > 0 {
+		return fmt.Errorf("missing parameters for 'OAuth Trino Authentication': %v", strings.Join(missingParams, ", "))
+	}
+	return nil
 }
 
 func parseRoles(roleStr string) (map[string]string, error) {

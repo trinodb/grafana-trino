@@ -15,6 +15,7 @@ func TestLoad_BasicAuth(t *testing.T) {
 		name             string
 		instanceSettings backend.DataSourceInstanceSettings
 		wantUserinfo     string
+		wantBasicAuth    *httpclient.BasicAuthOptions
 	}{
 		{
 			name: "no basic auth configured defaults to the grafana user",
@@ -35,7 +36,8 @@ func TestLoad_BasicAuth(t *testing.T) {
 				},
 				JSONData: []byte(`{}`),
 			},
-			wantUserinfo: "alice:s3cret",
+			wantUserinfo:  "alice",
+			wantBasicAuth: &httpclient.BasicAuthOptions{User: "alice", Password: "s3cret"},
 		},
 		{
 			name: "basic auth with user only",
@@ -57,6 +59,9 @@ func TestLoad_BasicAuth(t *testing.T) {
 			}
 			if got := settings.URL.User.String(); got != tt.wantUserinfo {
 				t.Errorf("got URL userinfo %q, want %q", got, tt.wantUserinfo)
+			}
+			if !reflect.DeepEqual(settings.Opts.BasicAuth, tt.wantBasicAuth) {
+				t.Errorf("got basic auth %+v, want %+v", settings.Opts.BasicAuth, tt.wantBasicAuth)
 			}
 		})
 	}
