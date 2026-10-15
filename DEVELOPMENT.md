@@ -206,6 +206,9 @@ docker run -it --rm -v $(pwd):/plugin grafana/plugin-validator-cli /app/bin/plug
 
 1. Update the [CHANGELOG.md](CHANGELOG.md)
 1. Update the version in the [package.json](package.json)
-1. Commit the changes and create a `vX.Y` tag matching contents of the `package.json` file.
+1. Merge the changes and wait for CI on `main` to pass: it runs the Grafana
+   plugin validator, which the release workflow runs again and the plugin
+   catalog enforces.
+1. Create a `vX.Y` tag matching contents of the `package.json` file.
 
 The release workflow will be triggered when pushing the tag and will create the GitHub release with the artifacts and release notes.
