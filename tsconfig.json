@@ -1,3 +1,8 @@
 {
-  "extends": "./.config/tsconfig.json"
+  "extends": "./.config/tsconfig.json",
+  "compilerOptions": {
+    // TypeScript 6 no longer includes every @types package by default, and
+    // the e2e and unit tests rely on the Node and Jest globals.
+    "types": ["node", "jest"]
+  }
 }
