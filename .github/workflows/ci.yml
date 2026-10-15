@@ -80,6 +80,31 @@ jobs:
           path: dist
           retention-days: 5
 
+  # The release workflow packages the plugin with this action and the plugin
+  # catalog rejects what its validator flags, so pull requests go through the
+  # same action: same build steps, same validator version. Without a policy
+  # token it skips signing, and the validator only warns about an unsigned
+  # archive.
+  package:
+    name: Package and validate like the release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The action runs a bare `yarn install` and its own setup-node, so the
+      # shim needs GITHUB_PATH to keep precedence over the preinstalled Yarn 1.
+      - name: Enable corepack
+        run: |
+          mkdir -p "$RUNNER_TEMP/corepack-bin"
+          corepack enable --install-directory "$RUNNER_TEMP/corepack-bin"
+          echo "$RUNNER_TEMP/corepack-bin" >> "$GITHUB_PATH"
+
+      - name: Build, package and validate plugin
+        uses: grafana/plugin-actions/package-plugin@main
+        with:
+          node-version: "24"
+          go-version: "1.27.2"
+
   resolve-versions:
     name: Resolve e2e Grafana versions
     runs-on: ubuntu-latest
