@@ -1,7 +1,16 @@
 # Changelog
 
+## 1.4.0
+
+* Drop the build-time dependency on braces, which the plugin catalog's vulnerability scan rejects
+
 ## 1.3.1
 
+* Add Kerberos authentication
+* Accept queries ending with a semicolon
+* Allow dashboard variables to return non-string values
+* Allow trimming the edges of time series
+* Document the authentication and connection settings and what each macro expands to
 * Send the basic auth password over HTTP again, when Trino is configured to accept it
 * Enforce Grafana's response size limit and honor the HTTP proxy environment variables for Trino requests, like other data sources do
 * Don't send the basic auth password when the request already carries an access token, a forwarded OAuth identity or an OAuth client token
