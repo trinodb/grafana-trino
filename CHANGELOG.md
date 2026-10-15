@@ -1,10 +1,19 @@
 # Changelog
 
+## 1.3.1
+
+* Send the basic auth password over HTTP again, when Trino is configured to accept it
+* Enforce Grafana's response size limit and honor the HTTP proxy environment variables for Trino requests, like other data sources do
+* Don't send the basic auth password when the request already carries an access token, a forwarded OAuth identity or an OAuth client token
+* Log skipping impersonation of anonymous users at debug level
+* Update the frontend dependencies
+
 ## 1.3.0
 
 * Allow adding Trino client tags in the query editor, appended to the ones configured on the data source
 * Render ARRAY, MAP and ROW columns as JSON
 * Allow impersonating the Grafana user by email instead of login
+* With "Impersonate logged in user" enabled, the OAuth "Impersonation user" no longer overrides signed-in users and only applies to anonymous ones
 * Upgrade the frontend toolchain to Node 24 and Yarn 4
 * Update dependencies and CI tooling to address known vulnerabilities
 
