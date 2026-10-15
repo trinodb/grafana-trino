@@ -34,7 +34,7 @@ Install it in one of these ways:
   but log a deprecation warning.
 
 To run a locally built, unsigned copy of the plugin, see
-[DEVELOPMENT.md](DEVELOPMENT.md).
+[DEVELOPMENT.md](https://github.com/trinodb/grafana-trino/blob/main/DEVELOPMENT.md).
 
 ### Add the data source
 
