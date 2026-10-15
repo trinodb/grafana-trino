@@ -100,10 +100,20 @@ jobs:
           echo "$RUNNER_TEMP/corepack-bin" >> "$GITHUB_PATH"
 
       - name: Build, package and validate plugin
+        id: package
         uses: grafana/plugin-actions/package-plugin@main
         with:
           node-version: "24"
           go-version: "1.27.2"
+
+      # The plugin catalog reviews submissions with the latest validator,
+      # which can be ahead of the one the action pins: 0.49.16 started
+      # ignoring osv-scanner.toml, and 1.3.1 was rejected over an advisory
+      # that file suppressed while every CI run was green.
+      - name: Validate plugin with the latest validator
+        run: npx -y @grafana/plugin-validator@latest -sourceCodeUri file://./ "$PLUGIN_ARCHIVE"
+        env:
+          PLUGIN_ARCHIVE: ${{ steps.package.outputs.archive }}
 
   resolve-versions:
     name: Resolve e2e Grafana versions
