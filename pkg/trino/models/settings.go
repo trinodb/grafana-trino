@@ -59,7 +59,7 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 	if len(opts.Header) != 0 {
 		return errors.New("Custom headers are not supported and must be not set")
 	}
-	log.DefaultLogger.Info("Loading Trino data source settings")
+	log.DefaultLogger.Debug("Loading Trino data source settings")
 	s.UID = config.UID
 	s.URL, err = parseHTTPURL(config.URL, "Trino URL")
 	if err != nil {
