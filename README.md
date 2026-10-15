@@ -62,7 +62,8 @@ be combined, except where noted.
 
 Under **Auth**, enable **Basic auth** and set **User** and **Password**. Trino
 only accepts passwords over HTTPS, unless it's configured to allow them over
-HTTP.
+HTTP. The password is not sent when the request already carries an access
+token, a forwarded OAuth identity or an OAuth client token.
 
 The basic auth user is also the Trino session user, even without a password.
 Without basic auth, the session user is `grafana`, or with

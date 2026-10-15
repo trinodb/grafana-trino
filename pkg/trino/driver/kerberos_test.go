@@ -46,7 +46,8 @@ func TestOpenRejectsInvalidKerberosSettings(t *testing.T) {
 		{
 			name: "every conflicting authentication method",
 			settings: kerberos("https://trino.example.com:8443", func(s *models.TrinoDatasourceSettings) {
-				s.URL.User = url.UserPassword("alice", "s3cret")
+				s.URL.User = url.User("alice")
+				s.Opts.BasicAuth = &httpclient.BasicAuthOptions{User: "alice", Password: "s3cret"}
 				s.AccessToken = "token"
 				s.TokenUrl = "https://idp.example.com/token"
 				s.OAuthPassThru = true

@@ -23,7 +23,10 @@ type TrinoDatasourceSettings struct {
 	// used to keep per-instance state (such as the registered HTTP client)
 	// isolated between data sources, so it must never be populated from
 	// jsonData.
-	UID                   string             `json:"-"`
+	UID string `json:"-"`
+	// URL names the Trino session user, without the basic auth password: the
+	// HTTP client built from Opts sends the credentials, so they are accepted
+	// wherever Trino is configured to take them, including over HTTP.
 	URL                   *url.URL           `json:"-"`
 	Opts                  httpclient.Options `json:"-"`
 	EnableImpersonation   bool               `json:"enableImpersonation"`
@@ -68,8 +71,6 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 		return err
 	}
 	switch {
-	case opts.BasicAuth != nil && opts.BasicAuth.Password != "":
-		s.URL.User = url.UserPassword(opts.BasicAuth.User, opts.BasicAuth.Password)
 	case opts.BasicAuth != nil:
 		s.URL.User = url.User(opts.BasicAuth.User)
 	case s.KerberosEnabled:
@@ -79,6 +80,11 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 		s.URL.User = nil
 	default:
 		s.URL.User = url.User("grafana")
+	}
+	// A basic auth user without a password only names the session user, so no
+	// Authorization header is sent for it.
+	if opts.BasicAuth != nil && opts.BasicAuth.Password == "" {
+		s.Opts.BasicAuth = nil
 	}
 	if s.KerberosEnabled && s.KerberosConfigPath == "" {
 		s.KerberosConfigPath = DefaultKerberosConfigPath
