@@ -18,6 +18,8 @@ datasources:
       tokenUrl: $__env{TRINO_TOKEN_URL}
       clientId: $__env{TRINO_CLIENT_ID}
       tlsSkipVerify: $__env{TRINO_TLS_SKIP_VERIFY}
+      oauthPassThru: $__env{TRINO_OAUTH_PASS_THRU}
+      enableSecureSocksProxy: $__env{TRINO_ENABLE_SECURE_SOCKS_PROXY}
       kerberosEnabled: $__env{TRINO_KERBEROS_ENABLED}
       kerberosPrincipal: $__env{TRINO_KERBEROS_PRINCIPAL}
       kerberosRealm: $__env{TRINO_KERBEROS_REALM}

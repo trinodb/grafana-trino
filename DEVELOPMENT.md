@@ -75,6 +75,7 @@ provisioning expansion:
 | `TRINO_BASIC_AUTH_USER` | Basic auth username |
 | `TRINO_BASIC_AUTH_PASSWORD` | Basic auth password |
 | `TRINO_ACCESS_TOKEN` | Bearer access token |
+| `TRINO_OAUTH_PASS_THRU` | `true`/`false`: forward the signed-in user's OAuth identity |
 | `TRINO_ENABLE_IMPERSONATION` | `true`/`false` |
 | `TRINO_IMPERSONATION_IDENTITY` | `login`/`email`: which Grafana user attribute to impersonate as |
 | `TRINO_IMPERSONATION_USER` | User to impersonate |
@@ -84,6 +85,7 @@ provisioning expansion:
 | `TRINO_CLIENT_ID` | OAuth2 client ID |
 | `TRINO_CLIENT_SECRET` | OAuth2 client secret |
 | `TRINO_TLS_SKIP_VERIFY` | `true`/`false` |
+| `TRINO_ENABLE_SECURE_SOCKS_PROXY` | `true`/`false`: connect through the secure SOCKS proxy (PDC) |
 | `TRINO_KERBEROS_ENABLED` | `true`/`false`, requires an `https://` `TRINO_URL` |
 | `TRINO_KERBEROS_PRINCIPAL` | Kerberos principal, without the realm |
 | `TRINO_KERBEROS_REALM` | Realm of the principal |
