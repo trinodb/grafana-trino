@@ -30,6 +30,34 @@ describe('ConfigEditor impersonation warning', () => {
   });
 });
 
+describe('ConfigEditor password over HTTP warning', () => {
+  const WARNING = 'The password is sent unencrypted over HTTP';
+
+  function renderWithPassword(url: string, basicAuth: boolean) {
+    const options = {
+      url,
+      basicAuth,
+      jsonData: {},
+      secureJsonData: {},
+      secureJsonFields: { basicAuthPassword: true },
+    } as unknown as DataSourceSettings<TrinoDataSourceOptions, TrinoSecureJsonData>;
+    render(<ConfigEditor options={options} onOptionsChange={jest.fn()} />);
+  }
+
+  it('warns about a password with an HTTP URL', () => {
+    renderWithPassword('http://trino.example.com:8080', true);
+    expect(screen.getByText(WARNING)).toBeInTheDocument();
+  });
+
+  it.each([
+    { url: 'https://trino.example.com:8443', basicAuth: true },
+    { url: 'http://trino.example.com:8080', basicAuth: false },
+  ])('does not warn for %o', ({ url, basicAuth }) => {
+    renderWithPassword(url, basicAuth);
+    expect(screen.queryByText(WARNING)).not.toBeInTheDocument();
+  });
+});
+
 describe('ConfigEditor Kerberos section', () => {
   const HTTPS_REQUIRED = 'Kerberos requires HTTPS';
   const CONFLICT = 'Kerberos cannot be combined with other authentication';

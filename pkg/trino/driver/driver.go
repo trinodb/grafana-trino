@@ -72,11 +72,13 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 // The basic auth middleware sends the password wherever Trino is configured to
 // accept it, including over HTTP, and only when nothing else set the
 // Authorization header: an access token, a forwarded OAuth identity, the OAuth
-// client token added below and Kerberos all take precedence.
+// client token added below and Kerberos all take precedence. The middleware
+// explaining a 401 runs after it, so it sees the credential that was sent.
 func newHTTPClient(settings models.TrinoDatasourceSettings) (*http.Client, error) {
 	if err := validateTLS(settings.Opts.TLS); err != nil {
 		return nil, err
 	}
+	settings.Opts.Middlewares = append(httpclient.DefaultMiddlewares(), unauthorizedMiddleware())
 	client, err := httpclient.New(settings.Opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the HTTP client: %w", err)

@@ -2,6 +2,7 @@
 
 ## 1.4.1
 
+* Explain a 401 Unauthorized response from Trino by naming the credential of the data source it rejected
 * Take the Kerberos configuration and keytab as data source settings instead of paths of files on the Grafana server, which Grafana's plugin policy forbids reading, and drop the credential cache, which fell back to the Grafana server's own tickets. Kerberos data sources need their config and keytab set again
 
 ## 1.4.0
@@ -15,7 +16,7 @@
 * Allow dashboard variables to return non-string values
 * Allow trimming the edges of time series
 * Document the authentication and connection settings and what each macro expands to
-* Send the basic auth password over HTTP again, when Trino is configured to accept it
+* Send the basic auth password over HTTP, unencrypted, when Trino is configured to accept it. Earlier versions silently dropped the password over HTTP, so a data source with an `http://` URL and a password now fails with 401 Unauthorized if Trino does not authenticate with passwords; remove the password from it
 * Enforce Grafana's response size limit and honor the HTTP proxy environment variables for Trino requests, like other data sources do
 * Don't send the basic auth password when the request already carries an access token, a forwarded OAuth identity or an OAuth client token
 * Log skipping impersonation of anonymous users at debug level

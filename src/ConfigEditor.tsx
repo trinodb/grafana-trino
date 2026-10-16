@@ -103,6 +103,13 @@ export function ConfigEditor(props: Props) {
   return (
     <div className="gf-form-group">
       <DataSourceHttpSettings defaultUrl="http://localhost:8080" dataSourceConfig={options} onChange={onOptionsChange} />
+      {options.url && !/^https:\/\//i.test(options.url) && hasBasicAuthPassword(options) && (
+        <Alert severity="warning" title="The password is sent unencrypted over HTTP">
+          Trino only accepts a password over HTTPS unless it is configured to allow it over HTTP, and rejects it
+          with 401 Unauthorized if it does not authenticate with passwords. Use an https:// URL, or remove the
+          password.
+        </Alert>
+      )}
 
       <h3 className="page-heading">Trino</h3>
       <div className="gf-form-group">
@@ -383,9 +390,15 @@ function base64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+function hasBasicAuthPassword(options: Props['options']): boolean {
+  return Boolean(
+    options.basicAuth && (options.secureJsonFields?.basicAuthPassword || options.secureJsonData?.basicAuthPassword)
+  );
+}
+
 function conflictingWithKerberos(options: Props['options']): string[] {
   const conflicts: string[] = [];
-  if (options.basicAuth && (options.secureJsonFields?.basicAuthPassword || options.secureJsonData?.basicAuthPassword)) {
+  if (hasBasicAuthPassword(options)) {
     conflicts.push('basic auth password');
   }
   if (options.secureJsonFields?.accessToken || options.secureJsonData?.accessToken) {
