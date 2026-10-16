@@ -13,6 +13,12 @@ export class DataSource extends DataSourceWithBackend<TrinoQuery, TrinoDataSourc
     this.interpolateQueryStr = this.interpolateQueryStr.bind(this);
   }
 
+  // A query with no SQL yet, such as a freshly added one whose editor has not
+  // been committed, would only make the backend report an error for it.
+  filterQuery(query: TrinoQuery): boolean {
+    return Boolean(query.rawSQL?.trim());
+  }
+
   applyTemplateVariables(query: TrinoQuery, scopedVars: ScopedVars) {
     return {
       ...query,
