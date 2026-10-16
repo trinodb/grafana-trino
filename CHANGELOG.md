@@ -2,6 +2,7 @@
 
 ## 1.4.1
 
+* Keep the full precision of day-to-second intervals from Trino 484, which used to arrive rounded to milliseconds
 * Allow provisioning "Forward OAuth Identity" and the secure SOCKS proxy setting
 * Skip queries with no SQL instead of sending them to Trino
 * Reject a basic auth password together with the OAuth client credentials flow, instead of sending the password to the token URL
