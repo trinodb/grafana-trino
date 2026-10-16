@@ -212,7 +212,7 @@ jobs:
             --net trino \
             --volume "$(pwd)/test-data/trino/test-trino-config.properties:/etc/trino/config.properties" \
             --volume "$(pwd)/test-data/trino/catalog/hive.properties:/etc/trino/catalog/hive.properties" \
-            trinodb/trino:483
+            trinodb/trino:484
 
           echo "Waiting for Trino to be ready..."
           while true; do
@@ -243,7 +243,7 @@ jobs:
             --net trino-pdc-private \
             --volume "$(pwd)/test-data/trino/test-trino-config-pdc.properties:/etc/trino/config.properties" \
             --volume "$(pwd)/test-data/trino/catalog/hive.properties:/etc/trino/catalog/hive.properties" \
-            trinodb/trino:483
+            trinodb/trino:484
 
           echo "Starting the SOCKS proxy (dual-homed)..."
           docker run --rm --detach \
@@ -286,7 +286,7 @@ jobs:
             --volume trino-kerberos:/etc/trino-kerberos:ro \
             --volume "$(pwd)/test-data/kerberos/krb5.conf:/etc/krb5.conf:ro" \
             --volume "$(pwd)/test-data/trino/test-trino-config-kerberos.properties:/etc/trino/config.properties" \
-            trinodb/trino:483
+            trinodb/trino:484
 
           echo "Waiting for trino-private to be ready..."
           while true; do
