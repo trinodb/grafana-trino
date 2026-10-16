@@ -9,7 +9,7 @@ networks:
 
 services:
   trino:
-    image: trinodb/trino:483
+    image: trinodb/trino:484
     healthcheck:
       test: ["CMD", "/usr/lib/trino/bin/health-check"]
       interval: 5s
@@ -20,7 +20,7 @@ services:
   # `docker compose --profile pdc up --build`.
   trino-private:
     profiles: [pdc]
-    image: trinodb/trino:483
+    image: trinodb/trino:484
     networks:
       - pdc-private
     volumes:
@@ -63,7 +63,7 @@ services:
 
   trino-kerberos:
     profiles: [kerberos]
-    image: trinodb/trino:483
+    image: trinodb/trino:484
     hostname: trino-kerberos
     depends_on:
       kdc:
