@@ -47,7 +47,6 @@ func TestOpenRejectsBrokenClientCertificates(t *testing.T) {
 				t.Fatalf("parse trino URL: %v", err)
 			}
 			db, err := Open(models.TrinoDatasourceSettings{
-				UID:  "uid-broken-tls",
 				URL:  u,
 				Opts: httpclient.Options{TLS: tt.tls},
 			})
@@ -81,7 +80,6 @@ func TestOpenSendsBasicAuthThroughTheHTTPClient(t *testing.T) {
 	}
 	u.User = url.User("alice")
 	db, err := Open(models.TrinoDatasourceSettings{
-		UID:  "uid-basic-auth",
 		URL:  u,
 		Opts: httpclient.Options{BasicAuth: &httpclient.BasicAuthOptions{User: "alice", Password: "s3cret"}},
 	})
@@ -131,7 +129,7 @@ func TestNewHTTPClientLimitsResponseSize(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	client, err := newHTTPClient(models.TrinoDatasourceSettings{UID: "uid-response-limit"})
+	client, err := newHTTPClient(models.TrinoDatasourceSettings{})
 	if err != nil {
 		t.Fatalf("new HTTP client: %v", err)
 	}

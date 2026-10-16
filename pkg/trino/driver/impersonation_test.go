@@ -31,7 +31,6 @@ func TestOAuthImpersonationUserYieldsToSessionUser(t *testing.T) {
 	}
 	u.User = url.User("grafana")
 	db, err := Open(models.TrinoDatasourceSettings{
-		UID:               "uid-impersonation",
 		URL:               u,
 		TokenUrl:          tokenServer.URL,
 		ClientId:          "client-a",

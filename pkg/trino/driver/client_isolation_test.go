@@ -27,14 +27,13 @@ func TestOpenIsolatesClientsBetweenDatasources(t *testing.T) {
 	tokenB := recorder.server(t, "B")
 	trinoServer := unreachableTrino(t)
 
-	settings := func(uid, tokenURL, clientID string) models.TrinoDatasourceSettings {
+	settings := func(tokenURL, clientID string) models.TrinoDatasourceSettings {
 		u, err := url.Parse(trinoServer.URL)
 		if err != nil {
 			t.Fatalf("parse trino URL: %v", err)
 		}
 		u.User = url.User("grafana")
 		return models.TrinoDatasourceSettings{
-			UID:          uid,
 			URL:          u,
 			TokenUrl:     tokenURL,
 			ClientId:     clientID,
@@ -42,14 +41,14 @@ func TestOpenIsolatesClientsBetweenDatasources(t *testing.T) {
 		}
 	}
 
-	dbA, err := Open(settings("uid-a", tokenA.URL, "client-a"))
+	dbA, err := Open(settings(tokenA.URL, "client-a"))
 	if err != nil {
 		t.Fatalf("open data source A: %v", err)
 	}
 	defer dbA.Close()
 
 	// Opening B second is what used to overwrite A's registry entry.
-	dbB, err := Open(settings("uid-b", tokenB.URL, "client-b"))
+	dbB, err := Open(settings(tokenB.URL, "client-b"))
 	if err != nil {
 		t.Fatalf("open data source B: %v", err)
 	}
@@ -75,28 +74,27 @@ func TestOpenIsolatesTransportBetweenDatasources(t *testing.T) {
 	}))
 	t.Cleanup(trinoServer.Close)
 
-	settings := func(uid string, skipVerify bool) models.TrinoDatasourceSettings {
+	settings := func(skipVerify bool) models.TrinoDatasourceSettings {
 		u, err := url.Parse(trinoServer.URL)
 		if err != nil {
 			t.Fatalf("parse trino URL: %v", err)
 		}
 		u.User = url.User("grafana")
 		return models.TrinoDatasourceSettings{
-			UID:  uid,
 			URL:  u,
 			Opts: httpclient.Options{TLS: &httpclient.TLSOptions{InsecureSkipVerify: skipVerify}},
 		}
 	}
 
 	// A verifies certificates and must reject the server's self-signed cert.
-	dbA, err := Open(settings("uid-verifying", false))
+	dbA, err := Open(settings(false))
 	if err != nil {
 		t.Fatalf("open verifying data source: %v", err)
 	}
 	defer dbA.Close()
 
 	// B skips verification. Opening it second used to overwrite A's transport.
-	dbB, err := Open(settings("uid-skip-verify", true))
+	dbB, err := Open(settings(true))
 	if err != nil {
 		t.Fatalf("open skip-verify data source: %v", err)
 	}

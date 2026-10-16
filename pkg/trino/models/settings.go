@@ -19,11 +19,6 @@ const (
 )
 
 type TrinoDatasourceSettings struct {
-	// UID identifies the data source instance these settings belong to. It is
-	// used to keep per-instance state (such as the registered HTTP client)
-	// isolated between data sources, so it must never be populated from
-	// jsonData.
-	UID string `json:"-"`
 	// URL names the Trino session user, without the basic auth password: the
 	// HTTP client built from Opts sends the credentials, so they are accepted
 	// wherever Trino is configured to take them, including over HTTP.
@@ -60,7 +55,6 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 		return errors.New("Custom headers are not supported and must be not set")
 	}
 	log.DefaultLogger.Debug("Loading Trino data source settings")
-	s.UID = config.UID
 	s.URL, err = parseHTTPURL(config.URL, "Trino URL")
 	if err != nil {
 		return err
