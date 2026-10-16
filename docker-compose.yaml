@@ -46,8 +46,9 @@ services:
   # accepts Kerberos over HTTPS. The KDC image is the one Trino's own product
   # tests use; its init script creates the coordinator's service principal,
   # named after the trino-kerberos hostname, the data source's client
-  # principal and a self-signed certificate in the trino-kerberos volume,
-  # which Grafana mounts too. See DEVELOPMENT.md.
+  # principal and a self-signed certificate in the trino-kerberos volume.
+  # The data source takes the client keytab as a setting, so Grafana does not
+  # mount the volume; DEVELOPMENT.md shows how to copy the keytab out of it.
   kdc:
     profiles: [kerberos]
     image: ghcr.io/trinodb/testing/kdc:127
@@ -85,11 +86,6 @@ services:
     depends_on:
       trino:
         condition: service_healthy
-    # The client keytab and krb5.conf for the `kerberos` profile; the volume
-    # stays empty without it.
-    volumes:
-      - trino-kerberos:/etc/trino-kerberos:ro
-      - ./test-data/kerberos/krb5.conf:/etc/krb5.conf:ro
     environment:
       # --- Trino connection config hook ---
       # Defaults to the bundled `trino` service above for a self-contained
@@ -113,9 +109,8 @@ services:
       TRINO_KERBEROS_ENABLED: ${TRINO_KERBEROS_ENABLED:-false}
       TRINO_KERBEROS_PRINCIPAL: ${TRINO_KERBEROS_PRINCIPAL:-}
       TRINO_KERBEROS_REALM: ${TRINO_KERBEROS_REALM:-}
-      TRINO_KERBEROS_CONFIG_PATH: ${TRINO_KERBEROS_CONFIG_PATH:-}
-      TRINO_KERBEROS_KEYTAB_PATH: ${TRINO_KERBEROS_KEYTAB_PATH:-}
-      TRINO_KERBEROS_CREDENTIAL_CACHE_PATH: ${TRINO_KERBEROS_CREDENTIAL_CACHE_PATH:-}
+      TRINO_KERBEROS_CONFIG: ${TRINO_KERBEROS_CONFIG:-}
+      TRINO_KERBEROS_KEYTAB: ${TRINO_KERBEROS_KEYTAB:-}
       TRINO_KERBEROS_REMOTE_SERVICE_NAME: ${TRINO_KERBEROS_REMOTE_SERVICE_NAME:-}
       TRINO_KERBEROS_SERVICE_PRINCIPAL_PATTERN: ${TRINO_KERBEROS_SERVICE_PRINCIPAL_PATTERN:-}
       TRINO_KERBEROS_DISABLE_CANONICAL_HOSTNAME: ${TRINO_KERBEROS_DISABLE_CANONICAL_HOSTNAME:-false}

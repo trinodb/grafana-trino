@@ -69,6 +69,8 @@ export function toVariableTrinoQuery(query: StoredVariableQuery): TrinoQuery {
 export interface TrinoSecureJsonData {
   accessToken?: string;
   clientSecret?: string;
+  // the keytab file, encoded in base64
+  kerberosKeytab?: string;
   // set by Grafana's HTTP settings
   basicAuthPassword?: string;
 }
@@ -94,20 +96,17 @@ export interface TrinoDataSourceOptions extends DataSourceJsonData {
   kerberosEnabled?: boolean;
   kerberosPrincipal?: string;
   kerberosRealm?: string;
-  kerberosConfigPath?: string;
-  kerberosKeytabPath?: string;
-  kerberosCredentialCachePath?: string;
+  // the content of a krb5.conf
+  kerberosConfig?: string;
   kerberosRemoteServiceName?: string;
   kerberosServicePrincipalPattern?: string;
   kerberosDisableCanonicalHostname?: boolean;
 }
 
-export type KerberosPathOrName =
+export type KerberosTextSetting =
   | 'kerberosPrincipal'
   | 'kerberosRealm'
-  | 'kerberosConfigPath'
-  | 'kerberosKeytabPath'
-  | 'kerberosCredentialCachePath'
+  | 'kerberosConfig'
   | 'kerberosRemoteServiceName'
   | 'kerberosServicePrincipalPattern';
 /**

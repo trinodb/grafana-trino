@@ -5,6 +5,7 @@ go 1.27
 require (
 	github.com/grafana/grafana-plugin-sdk-go v0.297.0
 	github.com/grafana/sqlds/v4 v4.2.7
+	github.com/jcmturner/gokrb5/v8 v8.4.4
 	github.com/trinodb/trino-go-client v1.4.1
 )
 
@@ -43,7 +44,6 @@ require (
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
 	github.com/jcmturner/gofork v1.7.6 // indirect
 	github.com/jcmturner/goidentity/v6 v6.0.1 // indirect
-	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/jszwedko/go-datemath v0.1.1-0.20260113213115-7f666eef0523 // indirect

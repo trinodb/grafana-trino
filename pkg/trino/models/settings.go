@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +16,6 @@ import (
 const (
 	ImpersonationIdentityLogin = "login"
 	ImpersonationIdentityEmail = "email"
-	DefaultKerberosConfigPath  = "/etc/krb5.conf"
 )
 
 type TrinoDatasourceSettings struct {
@@ -34,13 +34,15 @@ type TrinoDatasourceSettings struct {
 	Roles                 string             `json:"roles"`
 	ClientTags            string             `json:"clientTags"`
 	// OAuthPassThru is Grafana's "Forward OAuth Identity" setting.
-	OAuthPassThru                    bool   `json:"oauthPassThru"`
-	KerberosEnabled                  bool   `json:"kerberosEnabled"`
-	KerberosPrincipal                string `json:"kerberosPrincipal"`
-	KerberosRealm                    string `json:"kerberosRealm"`
-	KerberosConfigPath               string `json:"kerberosConfigPath"`
-	KerberosKeytabPath               string `json:"kerberosKeytabPath"`
-	KerberosCredentialCachePath      string `json:"kerberosCredentialCachePath"`
+	OAuthPassThru     bool   `json:"oauthPassThru"`
+	KerberosEnabled   bool   `json:"kerberosEnabled"`
+	KerberosPrincipal string `json:"kerberosPrincipal"`
+	KerberosRealm     string `json:"kerberosRealm"`
+	// KerberosConfig is the content of a krb5.conf, and KerberosKeytab the
+	// decoded keytab: the plugin never reads either from the Grafana server's
+	// filesystem, as Grafana's plugin policy forbids.
+	KerberosConfig                   string `json:"kerberosConfig"`
+	KerberosKeytab                   []byte `json:"-"`
 	KerberosRemoteServiceName        string `json:"kerberosRemoteServiceName"`
 	KerberosServicePrincipalPattern  string `json:"kerberosServicePrincipalPattern"`
 	KerberosDisableCanonicalHostname bool   `json:"kerberosDisableCanonicalHostname"`
@@ -80,9 +82,6 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 	if opts.BasicAuth != nil && opts.BasicAuth.Password == "" {
 		s.Opts.BasicAuth = nil
 	}
-	if s.KerberosEnabled && s.KerberosConfigPath == "" {
-		s.KerberosConfigPath = DefaultKerberosConfigPath
-	}
 	switch s.ImpersonationIdentity {
 	case "":
 		s.ImpersonationIdentity = ImpersonationIdentityLogin
@@ -102,6 +101,12 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 	}
 	if clientSecret, ok := config.DecryptedSecureJSONData["clientSecret"]; ok {
 		s.ClientSecret = clientSecret
+	}
+	if keytab, ok := config.DecryptedSecureJSONData["kerberosKeytab"]; ok && keytab != "" {
+		s.KerberosKeytab, err = base64.StdEncoding.DecodeString(keytab)
+		if err != nil {
+			return fmt.Errorf("invalid Kerberos keytab, expected the keytab file encoded in base64: %w", err)
+		}
 	}
 	return nil
 }

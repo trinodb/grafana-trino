@@ -1,4 +1,5 @@
 import { test, expect, Locator, Page } from '@playwright/test';
+import { readFileSync } from 'fs';
 
 const GRAFANA_CLIENT = 'grafana-client';
 const EXPORT_DATA = 'Explore data';
@@ -194,6 +195,10 @@ test.describe('secure socks proxy (PDC)', () => {
 // are skipped unless the variable is set. CI sets it, and DEVELOPMENT.md
 // covers running them locally.
 const KERBEROS_TRINO_URL = process.env.KERBEROS_TRINO_URL;
+// The keytab of the grafana principal, as the KDC's init script created it,
+// encoded in base64: the data source takes the keytab as a setting, not as a
+// file on the Grafana server, so the test uploads it.
+const KERBEROS_KEYTAB_BASE64 = process.env.KERBEROS_KEYTAB_BASE64;
 
 async function setupKerberosConnection(page: Page) {
     await page.getByTestId('data-testid Datasource HTTP settings url').fill(KERBEROS_TRINO_URL!);
@@ -203,7 +208,7 @@ async function setupKerberosConnection(page: Page) {
 }
 
 test.describe('kerberos', () => {
-    test.skip(!KERBEROS_TRINO_URL, 'KERBEROS_TRINO_URL is not set, see DEVELOPMENT.md');
+    test.skip(!KERBEROS_TRINO_URL || !KERBEROS_KEYTAB_BASE64, 'KERBEROS_TRINO_URL or KERBEROS_KEYTAB_BASE64 is not set, see DEVELOPMENT.md');
 
     test('test with kerberos', async ({ page }) => {
         await login(page);
@@ -212,8 +217,14 @@ test.describe('kerberos', () => {
         await page.locator('label[for="trino-settings-kerberos-enabled"]').last().click();
         await page.locator('div').filter({hasText: /^Principal$/}).locator('input').fill('grafana');
         await page.locator('div').filter({hasText: /^Realm$/}).locator('input').fill('TRINO.TEST');
-        await page.locator('div').filter({hasText: /^Config path$/}).locator('input').fill('/etc/krb5.conf');
-        await page.locator('div').filter({hasText: /^Keytab path$/}).locator('input').fill('/etc/trino-kerberos/grafana.keytab');
+        // The same krb5.conf the Kerberized Trino uses; Grafana resolves the
+        // KDC it names on the Docker network too.
+        await page.locator('div').filter({hasText: /^Config$/}).locator('textarea').fill(readFileSync('test-data/kerberos/krb5.conf', 'utf8'));
+        await page.locator('div').filter({hasText: /^Keytab/}).locator('input[type="file"]').setInputFiles({
+            name: 'grafana.keytab',
+            mimeType: 'application/octet-stream',
+            buffer: Buffer.from(KERBEROS_KEYTAB_BASE64!, 'base64'),
+        });
         // Docker's DNS resolves the coordinator's address back to
         // trino-kerberos.<network>, not the trino-kerberos host its service
         // principal is named after, as reverse DNS often does outside of

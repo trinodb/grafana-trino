@@ -1,11 +1,12 @@
 #!/bin/bash
 # Run by the ghcr.io/trinodb/testing/kdc entrypoint once the KDC starts, from
-# /docker/kerberos-init.d. Provisions everything the Kerberized Trino and
-# Grafana need into the volume mounted at /etc/trino-kerberos, which both of
-# them mount too:
+# /docker/kerberos-init.d. Provisions everything the Kerberized Trino and the
+# data source need into the volume mounted at /etc/trino-kerberos, which the
+# Kerberized Trino mounts too:
 # - trino.keytab for the coordinator's service principal, named after the
 #   trino-kerberos container's hostname,
-# - grafana.keytab for the client principal the data source logs in as,
+# - grafana.keytab for the client principal the data source logs in as, which
+#   is uploaded to the data source rather than mounted into Grafana,
 # - trino-kerberos.pem, a self-signed certificate and key for the coordinator's
 #   HTTPS endpoint, since Trino only accepts Kerberos over HTTPS,
 # - ready, created last, which the other containers wait for.

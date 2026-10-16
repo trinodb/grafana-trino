@@ -47,14 +47,22 @@ describe('ConfigEditor Kerberos section', () => {
 
   it('hides the Kerberos settings while Kerberos is disabled', () => {
     renderKerberosEditor({ jsonData: {} });
-    expect(screen.queryByText('Keytab path')).not.toBeInTheDocument();
+    expect(screen.queryByText('Keytab')).not.toBeInTheDocument();
   });
 
   it('shows the Kerberos settings without warnings for an HTTPS URL', () => {
     renderKerberosEditor({});
-    expect(screen.getByText('Keytab path')).toBeInTheDocument();
+    expect(screen.getByText('Keytab')).toBeInTheDocument();
+    expect(screen.getByText('Upload keytab')).toBeInTheDocument();
     expect(screen.queryByText(HTTPS_REQUIRED)).not.toBeInTheDocument();
     expect(screen.queryByText(CONFLICT)).not.toBeInTheDocument();
+  });
+
+  it('offers to reset a saved keytab instead of uploading one', () => {
+    renderKerberosEditor({ secureJsonFields: { kerberosKeytab: true } });
+    expect(screen.getByDisplayValue('configured')).toBeInTheDocument();
+    expect(screen.getByText('Reset')).toBeInTheDocument();
+    expect(screen.queryByText('Upload keytab')).not.toBeInTheDocument();
   });
 
   it('warns about an HTTP URL', () => {

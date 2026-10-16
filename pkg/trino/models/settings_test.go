@@ -1,7 +1,9 @@
 package models
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"net/url"
 	"reflect"
 	"testing"
@@ -152,13 +154,12 @@ func TestLoad_Kerberos(t *testing.T) {
 			"kerberosEnabled": true,
 			"kerberosPrincipal": "grafana",
 			"kerberosRealm": "EXAMPLE.COM",
-			"kerberosConfigPath": "/etc/grafana/krb5.conf",
-			"kerberosKeytabPath": "/etc/grafana/grafana.keytab",
-			"kerberosCredentialCachePath": "/tmp/krb5cc_grafana",
+			"kerberosConfig": "[libdefaults]\n  default_realm = EXAMPLE.COM\n",
 			"kerberosRemoteServiceName": "HTTP",
 			"kerberosServicePrincipalPattern": "${SERVICE}@trino.example.com",
 			"kerberosDisableCanonicalHostname": true
 		}`),
+		DecryptedSecureJSONData: map[string]string{"kerberosKeytab": base64.StdEncoding.EncodeToString([]byte("keytab bytes"))},
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -172,9 +173,8 @@ func TestLoad_Kerberos(t *testing.T) {
 		KerberosEnabled:                  true,
 		KerberosPrincipal:                "grafana",
 		KerberosRealm:                    "EXAMPLE.COM",
-		KerberosConfigPath:               "/etc/grafana/krb5.conf",
-		KerberosKeytabPath:               "/etc/grafana/grafana.keytab",
-		KerberosCredentialCachePath:      "/tmp/krb5cc_grafana",
+		KerberosConfig:                   "[libdefaults]\n  default_realm = EXAMPLE.COM\n",
+		KerberosKeytab:                   []byte("keytab bytes"),
 		KerberosRemoteServiceName:        "HTTP",
 		KerberosServicePrincipalPattern:  "${SERVICE}@trino.example.com",
 		KerberosDisableCanonicalHostname: true,
@@ -184,28 +184,37 @@ func TestLoad_Kerberos(t *testing.T) {
 	}
 }
 
-func TestLoad_KerberosConfigPathDefault(t *testing.T) {
+func TestLoad_KerberosKeytab(t *testing.T) {
 	tests := []struct {
-		name     string
-		jsonData string
-		want     string
+		name    string
+		keytab  string
+		want    []byte
+		wantErr string
 	}{
-		{name: "Kerberos disabled", jsonData: `{}`, want: ""},
-		{name: "Kerberos enabled", jsonData: `{"kerberosEnabled": true}`, want: DefaultKerberosConfigPath},
+		{name: "absent", want: nil},
+		{name: "base64", keytab: base64.StdEncoding.EncodeToString([]byte{5, 2, 0}), want: []byte{5, 2, 0}},
+		{name: "raw keytab", keytab: "\x05\x02", wantErr: "invalid Kerberos keytab, expected the keytab file encoded in base64: illegal base64 data at input byte 0"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			settings := TrinoDatasourceSettings{}
 			err := settings.Load(context.Background(), backend.DataSourceInstanceSettings{
-				URL:      "https://trino.example.com:8443",
-				JSONData: []byte(tt.jsonData),
+				URL:                     "https://trino.example.com:8443",
+				JSONData:                []byte(`{"kerberosEnabled": true}`),
+				DecryptedSecureJSONData: map[string]string{"kerberosKeytab": tt.keytab},
 			})
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("got error %v, want %q", err, tt.wantErr)
+				}
+				return
+			}
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if settings.KerberosConfigPath != tt.want {
-				t.Errorf("got %q, want %q", settings.KerberosConfigPath, tt.want)
+			if !bytes.Equal(settings.KerberosKeytab, tt.want) {
+				t.Errorf("got keytab %v, want %v", settings.KerberosKeytab, tt.want)
 			}
 		})
 	}

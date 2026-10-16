@@ -87,16 +87,13 @@ provisioning expansion:
 | `TRINO_KERBEROS_ENABLED` | `true`/`false`, requires an `https://` `TRINO_URL` |
 | `TRINO_KERBEROS_PRINCIPAL` | Kerberos principal, without the realm |
 | `TRINO_KERBEROS_REALM` | Realm of the principal |
-| `TRINO_KERBEROS_CONFIG_PATH` | krb5 config, defaults to `/etc/krb5.conf` |
-| `TRINO_KERBEROS_KEYTAB_PATH` | Keytab to log in with |
-| `TRINO_KERBEROS_CREDENTIAL_CACHE_PATH` | Credential cache to use instead of a keytab |
+| `TRINO_KERBEROS_CONFIG` | Content of the krb5.conf, quoted |
+| `TRINO_KERBEROS_KEYTAB` | Keytab to log in with, encoded in base64 |
 | `TRINO_KERBEROS_REMOTE_SERVICE_NAME` | Service name of the coordinator, defaults to `trino` |
 | `TRINO_KERBEROS_SERVICE_PRINCIPAL_PATTERN` | Defaults to `${SERVICE}@${HOST}` |
 | `TRINO_KERBEROS_DISABLE_CANONICAL_HOSTNAME` | `true` to use the URL host in the service principal as is |
 
-The Kerberos paths are read inside the Grafana container, which mounts this
-repository at `/root/trino-datasource`. See [Kerberos](#kerberos) for the
-bundled Kerberized Trino.
+See [Kerberos](#kerberos) for the bundled Kerberized Trino.
 
 Restart the stack to pick up changes; Grafana re-reads provisioning files on
 boot.
@@ -159,19 +156,27 @@ That adds two containers: `kdc`, a Kerberos KDC for the `TRINO.TEST` realm
 instance that only accepts Kerberos over HTTPS on port 8443, with a self-signed
 certificate. At startup, `test-data/kerberos/init.sh` creates the
 coordinator's `trino/trino-kerberos` service principal, a `grafana` client
-principal and the certificate in a volume that Grafana mounts at
+principal and the certificate in a volume that `trino-kerberos` mounts at
 `/etc/trino-kerberos`, next to `test-data/kerberos/krb5.conf` at
 `/etc/krb5.conf`. Trino maps the `grafana@TRINO.TEST` principal to the
 `grafana` user.
 
+The data source takes the krb5.conf and the keytab as settings, so Grafana
+mounts none of this. Copy the client keytab out of the volume once the KDC is
+up:
+
+```bash
+docker compose cp kdc:/etc/trino-kerberos/grafana.keytab grafana.keytab
+```
+
 To try it in the UI, create a data source with the URL
 `https://trino-kerberos:8443`, "Skip TLS Verify" on, and Kerberos enabled with
-principal `grafana`, realm `TRINO.TEST`, config path `/etc/krb5.conf` and
-keytab path `/etc/trino-kerberos/grafana.keytab`. Turn off "Use canonical
-hostname": Docker's DNS resolves the coordinator's address back to
-`trino-kerberos.<network>`, which has no service principal, so the service
-principal has to be built from the URL host. To provision it instead, set
-these in `.env`:
+principal `grafana`, realm `TRINO.TEST`, the content of
+`test-data/kerberos/krb5.conf` as the config and `grafana.keytab` uploaded as
+the keytab. Turn off "Use canonical hostname": Docker's DNS resolves the
+coordinator's address back to `trino-kerberos.<network>`, which has no service
+principal, so the service principal has to be built from the URL host. To
+provision it instead, set these in `.env`:
 
 ```bash
 TRINO_URL=https://trino-kerberos:8443
@@ -179,19 +184,28 @@ TRINO_TLS_SKIP_VERIFY=true
 TRINO_KERBEROS_ENABLED=true
 TRINO_KERBEROS_PRINCIPAL=grafana
 TRINO_KERBEROS_REALM=TRINO.TEST
-TRINO_KERBEROS_CONFIG_PATH=/etc/krb5.conf
-TRINO_KERBEROS_KEYTAB_PATH=/etc/trino-kerberos/grafana.keytab
 TRINO_KERBEROS_DISABLE_CANONICAL_HOSTNAME=true
+```
+
+and append the config and the keytab, which `.env` cannot compute itself:
+
+```bash
+{
+  echo "TRINO_KERBEROS_CONFIG=\"$(cat test-data/kerberos/krb5.conf)\""
+  echo "TRINO_KERBEROS_KEYTAB=$(base64 < grafana.keytab | tr -d '\n')"
+} >> .env
 ```
 
 Run the e2e suite against it with:
 
 ```bash
-KERBEROS_TRINO_URL=https://trino-kerberos:8443 yarn e2e
+KERBEROS_TRINO_URL=https://trino-kerberos:8443 \
+KERBEROS_KEYTAB_BASE64=$(base64 < grafana.keytab | tr -d '\n') \
+yarn e2e
 ```
 
-The two Kerberos tests are skipped when `KERBEROS_TRINO_URL` is unset. CI sets
-it in the `End to end test` step.
+The two Kerberos tests are skipped when `KERBEROS_TRINO_URL` or
+`KERBEROS_KEYTAB_BASE64` is unset. CI sets them in the `End to end test` step.
 
 ## Verifier
 
