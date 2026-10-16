@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+* Take the Kerberos configuration and keytab as data source settings instead of paths of files on the Grafana server, which Grafana's plugin policy forbids reading, and drop the credential cache, which fell back to the Grafana server's own tickets. Kerberos data sources need their config and keytab set again
+
 ## 1.4.0
 
 * Drop the build-time dependency on braces, which the plugin catalog's vulnerability scan rejects

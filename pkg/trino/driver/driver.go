@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
+	"github.com/jcmturner/gokrb5/v8/client"
+	"github.com/jcmturner/gokrb5/v8/config"
+	"github.com/jcmturner/gokrb5/v8/keytab"
 	trinoClient "github.com/trinodb/grafana-trino/pkg/trino/client"
 
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
@@ -41,11 +44,15 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 	if err := validateKerberos(settings); err != nil {
 		return nil, err
 	}
-	client, err := newHTTPClient(settings)
+	httpClient, err := newHTTPClient(settings)
 	if err != nil {
 		return nil, err
 	}
-	config, err := newConfig(settings, client)
+	kerberosClient, err := newKerberosClient(settings)
+	if err != nil {
+		return nil, err
+	}
+	config, err := newConfig(settings, httpClient, kerberosClient)
 	if err != nil {
 		return nil, err
 	}
@@ -93,9 +100,33 @@ func newHTTPClient(settings models.TrinoDatasourceSettings) (*http.Client, error
 	}, nil
 }
 
+// newKerberosClient logs in with the keytab, so that an unreachable KDC or
+// a keytab without the principal's key is reported right away, instead of by
+// every connection. trino-go-client reuses the client for all connections and
+// gokrb5 renews or replaces the ticket from the keytab when it expires.
+func newKerberosClient(settings models.TrinoDatasourceSettings) (*client.Client, error) {
+	if !settings.KerberosEnabled {
+		return nil, nil
+	}
+	krb5Config, err := config.NewFromString(settings.KerberosConfig)
+	if err != nil {
+		return nil, fmt.Errorf("invalid Kerberos config: %w", err)
+	}
+	kt := keytab.New()
+	if err := kt.Unmarshal(settings.KerberosKeytab); err != nil {
+		return nil, fmt.Errorf("invalid Kerberos keytab: %w", err)
+	}
+	kerberosClient := client.NewWithKeytab(settings.KerberosPrincipal, settings.KerberosRealm, kt, krb5Config)
+	if err := kerberosClient.Login(); err != nil {
+		return nil, fmt.Errorf("Kerberos login as %s@%s failed: %w", settings.KerberosPrincipal, settings.KerberosRealm, err)
+	}
+	return kerberosClient, nil
+}
+
 // newConfig maps the data source settings to the trino-go-client
-// configuration, which sends every request through client.
-func newConfig(settings models.TrinoDatasourceSettings, client *http.Client) (trino.Config, error) {
+// configuration, which sends every request through httpClient and
+// authenticates them with kerberosClient when Kerberos is enabled.
+func newConfig(settings models.TrinoDatasourceSettings, httpClient *http.Client, kerberosClient *client.Client) (trino.Config, error) {
 	roles, err := parseRoles(settings.Roles)
 	if err != nil {
 		return trino.Config{}, err
@@ -105,7 +136,7 @@ func newConfig(settings models.TrinoDatasourceSettings, client *http.Client) (tr
 	config := trino.Config{
 		ServerURI:                  settings.URL.String(),
 		Source:                     "grafana",
-		HTTPClient:                 client,
+		HTTPClient:                 httpClient,
 		ForwardAuthorizationHeader: true,
 		AccessToken:                settings.AccessToken,
 		Roles:                      roles,
@@ -115,11 +146,9 @@ func newConfig(settings models.TrinoDatasourceSettings, client *http.Client) (tr
 		return config, nil
 	}
 	config.KerberosEnabled = true
+	config.KerberosClient = kerberosClient
 	config.KerberosPrincipal = settings.KerberosPrincipal
 	config.KerberosRealm = settings.KerberosRealm
-	config.KerberosConfigPath = settings.KerberosConfigPath
-	config.KerberosKeytabPath = settings.KerberosKeytabPath
-	config.KerberosCredentialCachePath = settings.KerberosCredentialCachePath
 	config.KerberosRemoteServiceName = settings.KerberosRemoteServiceName
 	config.KerberosServicePrincipalPattern = settings.KerberosServicePrincipalPattern
 	config.KerberosDisableCanonicalHostname = settings.KerberosDisableCanonicalHostname
@@ -129,7 +158,7 @@ func newConfig(settings models.TrinoDatasourceSettings, client *http.Client) (tr
 // validateKerberos rejects settings trino-go-client would only report once a
 // query runs, or would silently let override the Kerberos authorization
 // header: a password, an access token and an OAuth token all replace it.
-// Kerberos itself works with the registered custom client, since the client
+// Kerberos itself works with the HTTP client built here, since trino-go-client
 // adds the header to each request before handing it to the transport.
 func validateKerberos(settings models.TrinoDatasourceSettings) error {
 	if !settings.KerberosEnabled {
@@ -154,12 +183,6 @@ func validateKerberos(settings models.TrinoDatasourceSettings) error {
 	if len(conflicts) > 0 {
 		return fmt.Errorf("'Kerberos Authentication' cannot be combined with: %s", strings.Join(conflicts, ", "))
 	}
-	if settings.KerberosKeytabPath != "" && settings.KerberosCredentialCachePath != "" {
-		return errors.New("'Kerberos Authentication' takes either a keytab path or a credential cache path, not both")
-	}
-	if settings.KerberosKeytabPath == "" {
-		return nil
-	}
 	var missingParams []string
 	if settings.KerberosPrincipal == "" {
 		missingParams = append(missingParams, "Principal")
@@ -167,8 +190,14 @@ func validateKerberos(settings models.TrinoDatasourceSettings) error {
 	if settings.KerberosRealm == "" {
 		missingParams = append(missingParams, "Realm")
 	}
+	if settings.KerberosConfig == "" {
+		missingParams = append(missingParams, "Config")
+	}
+	if len(settings.KerberosKeytab) == 0 {
+		missingParams = append(missingParams, "Keytab")
+	}
 	if len(missingParams) > 0 {
-		return fmt.Errorf("missing parameters for logging in with a keytab in 'Kerberos Authentication': %v", strings.Join(missingParams, ", "))
+		return fmt.Errorf("missing parameters in 'Kerberos Authentication': %v", strings.Join(missingParams, ", "))
 	}
 	return nil
 }

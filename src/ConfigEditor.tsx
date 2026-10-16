@@ -1,10 +1,21 @@
-import React, { ChangeEvent } from 'react';
-import { Alert, DataSourceHttpSettings, InlineField, InlineSwitch, SecretInput, Input, RadioButtonGroup } from '@grafana/ui';
+import React, { ChangeEvent, SyntheticEvent } from 'react';
+import {
+  Alert,
+  Button,
+  DataSourceHttpSettings,
+  FileUpload,
+  InlineField,
+  InlineSwitch,
+  SecretInput,
+  Input,
+  RadioButtonGroup,
+  TextArea,
+} from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import { config } from '@grafana/runtime';
 import {
   ImpersonationIdentity,
-  KerberosPathOrName,
+  KerberosTextSetting,
   SelectableImpersonationIdentities,
   TrinoDataSourceOptions,
   TrinoSecureJsonData,
@@ -62,8 +73,24 @@ export function ConfigEditor(props: Props) {
   const onKerberosEnabledChange = (event: ChangeEvent<HTMLInputElement>) => {
     onOptionsChange({ ...options, jsonData: { ...options.jsonData, kerberosEnabled: event.target.checked } });
   };
-  const onKerberosSettingChange = (setting: KerberosPathOrName) => (event: ChangeEvent<HTMLInputElement>) => {
-    onOptionsChange({ ...options, jsonData: { ...options.jsonData, [setting]: event.target.value } });
+  const onKerberosSettingChange =
+    (setting: KerberosTextSetting) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      onOptionsChange({ ...options, jsonData: { ...options.jsonData, [setting]: event.target.value } });
+    };
+  const onKerberosKeytabUpload = async (event: SyntheticEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) {
+      return;
+    }
+    const keytab = base64(new Uint8Array(await file.arrayBuffer()));
+    onOptionsChange({ ...options, secureJsonData: { ...options.secureJsonData, kerberosKeytab: keytab } });
+  };
+  const onResetKerberosKeytab = () => {
+    onOptionsChange({
+      ...options,
+      secureJsonFields: { ...options.secureJsonFields, kerberosKeytab: false },
+      secureJsonData: { ...options.secureJsonData, kerberosKeytab: '' },
+    });
   };
   const onKerberosUseCanonicalHostnameChange = (event: ChangeEvent<HTMLInputElement>) => {
     onOptionsChange({
@@ -183,7 +210,7 @@ export function ConfigEditor(props: Props) {
         <div className="gf-form-inline">
           <InlineField
             label="Enable Kerberos"
-            tooltip="Authenticate to Trino with Kerberos (SPNEGO). Requires an HTTPS URL. All paths refer to files on the Grafana server."
+            tooltip="Authenticate to Trino with Kerberos (SPNEGO). Requires an HTTPS URL. The configuration and keytab are stored with the data source; nothing is read from the Grafana server."
             labelWidth={26}
           >
             <InlineSwitch
@@ -208,7 +235,7 @@ export function ConfigEditor(props: Props) {
             <div className="gf-form-inline">
               <InlineField
                 label="Principal"
-                tooltip="Kerberos principal to authenticate as, without the realm. Required with a keytab. With a credential cache, it is taken from the cache and must match it if set."
+                tooltip="Kerberos principal to log in as with the keytab, without the realm."
                 labelWidth={26}
               >
                 <Input
@@ -222,7 +249,7 @@ export function ConfigEditor(props: Props) {
             <div className="gf-form-inline">
               <InlineField
                 label="Realm"
-                tooltip="Realm of the principal. Required with a keytab. With a credential cache, it must match the cache if set."
+                tooltip="Realm of the principal."
                 labelWidth={26}
               >
                 <Input
@@ -235,44 +262,37 @@ export function ConfigEditor(props: Props) {
             </div>
             <div className="gf-form-inline">
               <InlineField
-                label="Config path"
-                tooltip="Path to the krb5 configuration file, which lists the KDCs and maps hosts to realms."
+                label="Config"
+                tooltip="Content of the krb5.conf naming the KDCs of the realm and mapping hosts to realms."
                 labelWidth={26}
               >
-                <Input
-                  value={options.jsonData?.kerberosConfigPath ?? ''}
-                  onChange={onKerberosSettingChange('kerberosConfigPath')}
-                  width={60}
-                  placeholder="/etc/krb5.conf"
+                <TextArea
+                  value={options.jsonData?.kerberosConfig ?? ''}
+                  onChange={onKerberosSettingChange('kerberosConfig')}
+                  rows={8}
+                  cols={58}
+                  placeholder={KERBEROS_CONFIG_PLACEHOLDER}
                 />
               </InlineField>
             </div>
             <div className="gf-form-inline">
               <InlineField
-                label="Keytab path"
-                tooltip="Path to the keytab to log in with as the principal. Leave empty to use a credential cache instead."
+                label="Keytab"
+                tooltip="The keytab file holding the principal's key, stored encrypted with the data source."
                 labelWidth={26}
               >
-                <Input
-                  value={options.jsonData?.kerberosKeytabPath ?? ''}
-                  onChange={onKerberosSettingChange('kerberosKeytabPath')}
-                  width={60}
-                  disabled={Boolean(options.jsonData?.kerberosCredentialCachePath)}
-                />
-              </InlineField>
-            </div>
-            <div className="gf-form-inline">
-              <InlineField
-                label="Credential cache path"
-                tooltip="Path to a credential cache holding a ticket, for example from kinit, used when no keytab is set. Defaults to KRB5CCNAME, then /tmp/krb5cc_<uid> of the Grafana server process."
-                labelWidth={26}
-              >
-                <Input
-                  value={options.jsonData?.kerberosCredentialCachePath ?? ''}
-                  onChange={onKerberosSettingChange('kerberosCredentialCachePath')}
-                  width={60}
-                  disabled={Boolean(options.jsonData?.kerberosKeytabPath)}
-                />
+                {options.secureJsonFields?.kerberosKeytab ? (
+                  <div className="gf-form-inline">
+                    <Input value="configured" disabled width={40} />
+                    <Button variant="secondary" onClick={onResetKerberosKeytab}>
+                      Reset
+                    </Button>
+                  </div>
+                ) : (
+                  <FileUpload onFileUpload={onKerberosKeytabUpload} showFileName>
+                    Upload keytab
+                  </FileUpload>
+                )}
               </InlineField>
             </div>
             <div className="gf-form-inline">
@@ -342,6 +362,25 @@ export function ConfigEditor(props: Props) {
       )}
     </div>
   );
+}
+
+const KERBEROS_CONFIG_PLACEHOLDER = `[libdefaults]
+  default_realm = EXAMPLE.COM
+
+[realms]
+  EXAMPLE.COM = {
+    kdc = kdc.example.com
+  }
+
+[domain_realm]
+  .example.com = EXAMPLE.COM`;
+
+function base64(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
 }
 
 function conflictingWithKerberos(options: Props['options']): string[] {

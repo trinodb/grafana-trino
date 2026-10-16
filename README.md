@@ -112,20 +112,24 @@ that flow replaces it.
 Enable **Enable Kerberos** in the **Kerberos Authentication** section to
 authenticate to a Trino cluster secured with
 [Kerberos](https://trino.io/docs/current/security/kerberos.html). Trino only
-accepts Kerberos over HTTPS, so the URL must use `https://`. All paths refer to
-files on the Grafana server:
+accepts Kerberos over HTTPS, so the URL must use `https://`. The data source
+logs in with a keytab; everything it needs is stored with the data source, and
+nothing is read from the Grafana server's filesystem or environment:
 
-* **Config path** is the krb5 configuration, `/etc/krb5.conf` by default.
-* **Keytab path**, with **Principal** and **Realm**, logs in with a keytab.
-* **Credential cache path** uses a ticket obtained with `kinit` instead. Without
-  a keytab or a credential cache, the cache in `KRB5CCNAME` of the Grafana
-  server process is used, then `/tmp/krb5cc_<uid>`.
+* **Principal** and **Realm** name the principal to log in as.
+* **Config** is the content of a krb5.conf, which lists the KDCs of the realm
+  and maps hosts to realms.
+* **Keytab** is the keytab file holding the principal's key, uploaded from
+  your machine and stored encrypted, like a password.
 * **Remote service name**, **Service principal pattern** and **Use canonical
   hostname** name the coordinator's service principal, `trino@<host>` by
   default. The host is first resolved to its canonical name through reverse
   DNS; turn off **Use canonical hostname** when that name differs from the one
   in the service principal, as it does in Docker, which appends the network
   name.
+
+The data source logs in when it is saved or loaded and renews its ticket from
+the keytab, so a KDC that is unreachable at that point fails **Save & test**.
 
 Kerberos can't be combined with a basic auth password, an access token, the
 OAuth client credentials flow or **Forward OAuth Identity**, which would replace
