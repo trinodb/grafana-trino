@@ -13,10 +13,7 @@ import (
 
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
 	"github.com/trinodb/trino-go-client/trino"
-	_ "github.com/trinodb/trino-go-client/trino"
 )
-
-const DriverName string = "trino"
 
 // trino-go-client retries a request that failed with a connection error or a
 // 429, 502, 503 or 504 response for two minutes by default. A dashboard
@@ -36,7 +33,10 @@ func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.client.Do(req)
 }
 
-// Open registers a new driver with a unique name
+// Open connects to Trino through the HTTP client built from the data source
+// settings. The client is handed to trino-go-client directly instead of
+// through its process-global custom client registry, so nothing is shared
+// between data sources and nothing has to be unregistered when one is closed.
 func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 	if err := validateKerberos(settings); err != nil {
 		return nil, err
@@ -45,24 +45,15 @@ func Open(settings models.TrinoDatasourceSettings) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	// trino-go-client's custom client registry is process-global and the key
-	// is resolved on every new connection, so it must be unique per data
-	// source. The prefix keeps it clear of the keys RegisterCustomClient
-	clientName := "grafana-" + settings.UID
-	err = trino.RegisterCustomClient(clientName, client)
+	config, err := newConfig(settings, client)
 	if err != nil {
 		return nil, err
 	}
-
-	config, err := newConfig(settings, clientName)
+	connector, err := trino.NewConnector(&config)
 	if err != nil {
 		return nil, err
 	}
-	dsn, err := config.FormatDSN()
-	if err != nil {
-		return nil, err
-	}
-	return sql.Open(DriverName, dsn)
+	return sql.OpenDB(connector), nil
 }
 
 // newHTTPClient builds the client the Grafana plugin SDK builds for any data
@@ -103,8 +94,8 @@ func newHTTPClient(settings models.TrinoDatasourceSettings) (*http.Client, error
 }
 
 // newConfig maps the data source settings to the trino-go-client
-// configuration, which uses the HTTP client registered as clientName.
-func newConfig(settings models.TrinoDatasourceSettings, clientName string) (trino.Config, error) {
+// configuration, which sends every request through client.
+func newConfig(settings models.TrinoDatasourceSettings, client *http.Client) (trino.Config, error) {
 	roles, err := parseRoles(settings.Roles)
 	if err != nil {
 		return trino.Config{}, err
@@ -114,7 +105,7 @@ func newConfig(settings models.TrinoDatasourceSettings, clientName string) (trin
 	config := trino.Config{
 		ServerURI:                  settings.URL.String(),
 		Source:                     "grafana",
-		CustomClientName:           clientName,
+		HTTPClient:                 client,
 		ForwardAuthorizationHeader: true,
 		AccessToken:                settings.AccessToken,
 		Roles:                      roles,

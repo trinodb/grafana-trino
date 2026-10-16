@@ -24,7 +24,6 @@ func TestOpenRejectsInvalidKerberosSettings(t *testing.T) {
 			t.Fatalf("parse trino URL: %v", err)
 		}
 		settings := models.TrinoDatasourceSettings{
-			UID:                "uid-kerberos-invalid",
 			URL:                u,
 			KerberosEnabled:    true,
 			KerberosConfigPath: models.DefaultKerberosConfigPath,
@@ -99,7 +98,6 @@ func TestOpenAcceptsKerberosWithSessionUser(t *testing.T) {
 	}
 	u.User = url.User("alice")
 	db, err := Open(models.TrinoDatasourceSettings{
-		UID:                         "uid-kerberos-session-user",
 		URL:                         u,
 		KerberosEnabled:             true,
 		KerberosConfigPath:          models.DefaultKerberosConfigPath,
@@ -128,8 +126,9 @@ func TestNewConfigMapsKerberosSettings(t *testing.T) {
 		KerberosDisableCanonicalHostname: true,
 	}
 
+	client := &http.Client{}
 	t.Run("disabled", func(t *testing.T) {
-		config, err := newConfig(settings, "grafana-uid")
+		config, err := newConfig(settings, client)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -141,7 +140,7 @@ func TestNewConfigMapsKerberosSettings(t *testing.T) {
 	t.Run("enabled", func(t *testing.T) {
 		enabled := settings
 		enabled.KerberosEnabled = true
-		config, err := newConfig(enabled, "grafana-uid")
+		config, err := newConfig(enabled, client)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -149,7 +148,7 @@ func TestNewConfigMapsKerberosSettings(t *testing.T) {
 		want := trino.Config{
 			ServerURI:                        "https://trino.example.com:8443",
 			Source:                           "grafana",
-			CustomClientName:                 "grafana-uid",
+			HTTPClient:                       client,
 			ForwardAuthorizationHeader:       true,
 			Roles:                            map[string]string{},
 			RequestRetryTimeout:              &retryTimeout,
@@ -194,7 +193,6 @@ func TestOpenPassesKerberosSettingsToClient(t *testing.T) {
 		t.Fatalf("parse trino URL: %v", err)
 	}
 	db, err := Open(models.TrinoDatasourceSettings{
-		UID:                "uid-kerberos",
 		URL:                u,
 		Opts:               httpclient.Options{TLS: &httpclient.TLSOptions{InsecureSkipVerify: true}},
 		KerberosEnabled:    true,
