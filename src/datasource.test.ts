@@ -34,6 +34,18 @@ jest.mock('@grafana/runtime', () => ({
   getDataSourceSrv: () => mockDataSource,
 }));
 
+describe('DataSource.filterQuery', () => {
+  const ds = new DataSource({ jsonData: {} } as DataSourceInstanceSettings<TrinoDataSourceOptions>);
+
+  it.each(['SELECT 1', '  SELECT 1\n'])('keeps %j', (rawSQL) => {
+    expect(ds.filterQuery({ refId: 'A', rawSQL })).toBe(true);
+  });
+
+  it.each([undefined, '', '  \n'])('skips %j', (rawSQL) => {
+    expect(ds.filterQuery({ refId: 'A', rawSQL })).toBe(false);
+  });
+});
+
 describe('DataSource', () => {
   const fetchMock = jest.spyOn(mockBackend, 'fetch');
   const setupTestContext = (data: any) => {
