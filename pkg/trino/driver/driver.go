@@ -213,9 +213,15 @@ func validateTLS(opts *httpclient.TLSOptions) error {
 	return nil
 }
 
+// validateOAuth also rejects a basic auth password, which the HTTP client
+// would send to the token URL along with the client credentials, while Trino
+// itself never sees it behind the bearer token.
 func validateOAuth(settings models.TrinoDatasourceSettings) error {
 	if settings.AccessToken != "" {
 		return errors.New("access token must not be set within 'OAuth Trino Authentication' settings")
+	}
+	if settings.Opts.BasicAuth != nil {
+		return errors.New("'OAuth Trino Authentication' cannot be combined with a basic auth password, which would be sent to the token URL")
 	}
 	var missingParams []string
 	if settings.TokenUrl == "" {

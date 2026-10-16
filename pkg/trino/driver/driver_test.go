@@ -119,6 +119,33 @@ func TestOpenSendsBasicAuthThroughTheHTTPClient(t *testing.T) {
 	}
 }
 
+// TestOpenRejectsOAuthWithBasicAuthPassword guards against the password of
+// the data source reaching the OAuth token endpoint: the client credentials
+// request goes through the same HTTP client, whose basic auth middleware adds
+// the password to any request without an Authorization header.
+func TestOpenRejectsOAuthWithBasicAuthPassword(t *testing.T) {
+	u, err := url.Parse("https://trino.example.com:8443")
+	if err != nil {
+		t.Fatalf("parse trino URL: %v", err)
+	}
+	u.User = url.User("alice")
+	db, err := Open(models.TrinoDatasourceSettings{
+		URL:          u,
+		Opts:         httpclient.Options{BasicAuth: &httpclient.BasicAuthOptions{User: "alice", Password: "s3cret"}},
+		TokenUrl:     "https://idp.example.com/token",
+		ClientId:     "grafana",
+		ClientSecret: "secret",
+	})
+	if err == nil {
+		_ = db.Close()
+		t.Fatal("expected an error")
+	}
+	want := "'OAuth Trino Authentication' cannot be combined with a basic auth password, which would be sent to the token URL"
+	if err.Error() != want {
+		t.Errorf("got error %q, want %q", err, want)
+	}
+}
+
 // TestNewHTTPClientLimitsResponseSize checks that the SDK's default
 // middlewares are in place, through the one Grafana administrators configure:
 // the response size limit.

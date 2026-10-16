@@ -174,6 +174,12 @@ export function ConfigEditor(props: Props) {
 
       <h3 className="page-heading">OAuth Trino Authentication</h3>
       <div className="gf-form-group">
+        {hasOAuthClientCredentials(options) && hasBasicAuthPassword(options) && (
+          <Alert severity="error" title="OAuth client credentials cannot be combined with a basic auth password">
+            The password would be sent to the token URL, while Trino only sees the OAuth token. Remove the password;
+            a basic auth user without one still sets the Trino session user.
+          </Alert>
+        )}
         <div className="gf-form-inline">
           <InlineField
             label="Token URL"
@@ -396,6 +402,15 @@ function hasBasicAuthPassword(options: Props['options']): boolean {
   );
 }
 
+function hasOAuthClientCredentials(options: Props['options']): boolean {
+  return Boolean(
+    options.jsonData?.tokenUrl ||
+      options.jsonData?.clientId ||
+      options.secureJsonFields?.clientSecret ||
+      options.secureJsonData?.clientSecret
+  );
+}
+
 function conflictingWithKerberos(options: Props['options']): string[] {
   const conflicts: string[] = [];
   if (hasBasicAuthPassword(options)) {
@@ -404,12 +419,7 @@ function conflictingWithKerberos(options: Props['options']): string[] {
   if (options.secureJsonFields?.accessToken || options.secureJsonData?.accessToken) {
     conflicts.push('access token');
   }
-  if (
-    options.jsonData?.tokenUrl ||
-    options.jsonData?.clientId ||
-    options.secureJsonFields?.clientSecret ||
-    options.secureJsonData?.clientSecret
-  ) {
+  if (hasOAuthClientCredentials(options)) {
     conflicts.push('OAuth Trino Authentication');
   }
   if (options.jsonData?.oauthPassThru) {
