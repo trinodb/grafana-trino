@@ -62,7 +62,11 @@ be combined, except where noted.
 
 Under **Auth**, enable **Basic auth** and set **User** and **Password**. Trino
 only accepts passwords over HTTPS, unless it's configured to allow them over
-HTTP. The password is not sent when the request already carries an access
+HTTP. With an `http://` URL, the password is sent unencrypted, so only set one
+when Trino sits behind a proxy that terminates TLS. Versions up to 1.2.0 never
+sent the password over HTTP, and a Trino without password authentication
+rejects one with 401 Unauthorized: remove the password from such a data
+source. The password is not sent when the request already carries an access
 token, a forwarded OAuth identity or an OAuth client token.
 
 The basic auth user is also the Trino session user, even without a password.
