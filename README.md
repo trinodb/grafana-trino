@@ -96,6 +96,9 @@ credentials flow.
 In the **OAuth Trino Authentication** section, set **Token URL**, **Client id** and
 **Client secret**. All three are required. The plugin gets an access token from
 the token URL using the OAuth 2.0 client credentials flow, and sends it to Trino.
+The flow can't be combined with a basic auth password, which would be sent to
+the token URL too; a basic auth user without a password still sets the session
+user.
 
 **Impersonation user**, if set, is sent as the Trino session user. Trino must
 allow the token's principal to impersonate that user. When

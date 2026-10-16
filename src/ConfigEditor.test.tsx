@@ -58,6 +58,34 @@ describe('ConfigEditor password over HTTP warning', () => {
   });
 });
 
+describe('ConfigEditor OAuth client credentials conflict', () => {
+  const CONFLICT = 'OAuth client credentials cannot be combined with a basic auth password';
+
+  function renderOAuthEditor(basicAuthPassword: boolean, jsonData: TrinoDataSourceOptions) {
+    const options = {
+      url: 'https://trino.example.com:8443',
+      basicAuth: basicAuthPassword,
+      jsonData,
+      secureJsonData: {},
+      secureJsonFields: { basicAuthPassword },
+    } as unknown as DataSourceSettings<TrinoDataSourceOptions, TrinoSecureJsonData>;
+    render(<ConfigEditor options={options} onOptionsChange={jest.fn()} />);
+  }
+
+  it('rejects a password next to a token URL', () => {
+    renderOAuthEditor(true, { tokenUrl: 'https://idp.example.com/token' });
+    expect(screen.getByText(CONFLICT)).toBeInTheDocument();
+  });
+
+  it.each([
+    { basicAuthPassword: true, jsonData: {} },
+    { basicAuthPassword: false, jsonData: { tokenUrl: 'https://idp.example.com/token' } },
+  ])('does not warn for %o', ({ basicAuthPassword, jsonData }) => {
+    renderOAuthEditor(basicAuthPassword, jsonData);
+    expect(screen.queryByText(CONFLICT)).not.toBeInTheDocument();
+  });
+});
+
 describe('ConfigEditor Kerberos section', () => {
   const HTTPS_REQUIRED = 'Kerberos requires HTTPS';
   const CONFLICT = 'Kerberos cannot be combined with other authentication';

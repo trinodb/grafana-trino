@@ -2,6 +2,7 @@
 
 ## 1.4.1
 
+* Reject a basic auth password together with the OAuth client credentials flow, instead of sending the password to the token URL
 * Explain a 401 Unauthorized response from Trino by naming the credential of the data source it rejected
 * Take the Kerberos configuration and keytab as data source settings instead of paths of files on the Grafana server, which Grafana's plugin policy forbids reading, and drop the credential cache, which fell back to the Grafana server's own tickets. Kerberos data sources need their config and keytab set again
 
