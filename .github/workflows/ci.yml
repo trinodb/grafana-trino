@@ -126,7 +126,7 @@ jobs:
 
       - name: Resolve Grafana E2E versions
         id: resolve-versions
-        uses: grafana/plugin-actions/e2e-version@e2e-version/v3.1.3
+        uses: grafana/plugin-actions/e2e-version@e2e-version/v3.2.0
         with:
           # Resolves against plugin.json's dependencies.grafanaDependency
           # (>=10.4.0): the latest patch of every minor satisfying that
