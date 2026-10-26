@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+* Add optional asynchronous query support, so long-running queries are polled over
+  short requests instead of one long-lived one and are no longer cut short by proxy
+  or load balancer timeouts
+
 ## 1.4.1
 
 * Keep the full precision of day-to-second intervals from Trino 484, which used to arrive rounded to milliseconds
