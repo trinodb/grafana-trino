@@ -154,7 +154,11 @@ whether the user's **Login** or **Email** becomes the Trino session user; with
 authenticated user to impersonate other users.
 
 Anonymous users are not impersonated, and run as the data source's user, or the
-OAuth impersonation user if set.
+OAuth impersonation user if set. So do the Grafana logins listed, separated by
+commas, in **Exclude from impersonation**. Grafana evaluates alert and recording rules as
+its internal `grafana_scheduler` user, which has no email and is not a Trino
+user: add `grafana_scheduler` to **Exclude from impersonation** to use the data source
+in alert rules.
 
 ## Other settings
 

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
@@ -26,6 +27,7 @@ type TrinoDatasourceSettings struct {
 	Opts                  httpclient.Options `json:"-"`
 	EnableImpersonation   bool               `json:"enableImpersonation"`
 	ImpersonationIdentity string             `json:"impersonationIdentity"`
+	ImpersonationExcluded string             `json:"impersonationExcludedLogins"`
 	AccessToken           string             `json:"accessToken"`
 	TokenUrl              string             `json:"tokenUrl"`
 	ClientId              string             `json:"clientId"`
@@ -109,6 +111,16 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 		}
 	}
 	return nil
+}
+
+func (s *TrinoDatasourceSettings) ImpersonationExcludedLogins() []string {
+	var logins []string
+	for _, login := range strings.Split(s.ImpersonationExcluded, ",") {
+		if login = strings.TrimSpace(login); login != "" {
+			logins = append(logins, login)
+		}
+	}
+	return logins
 }
 
 func parseHTTPURL(value string, name string) (*url.URL, error) {

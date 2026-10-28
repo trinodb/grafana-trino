@@ -18,6 +18,7 @@ func TestImpersonatedUser(t *testing.T) {
 		name     string
 		user     *backend.User
 		identity string
+		excluded []string
 		want     string
 		wantErr  bool
 	}{
@@ -29,12 +30,17 @@ func TestImpersonatedUser(t *testing.T) {
 		{name: "anonymous user is not impersonated by email", user: &backend.User{}, identity: models.ImpersonationIdentityEmail, want: ""},
 		{name: "email for user without login", user: &backend.User{Email: "carol@example.com"}, identity: models.ImpersonationIdentityEmail, want: "carol@example.com"},
 		{name: "login for user without login", user: &backend.User{Email: "carol@example.com"}, identity: models.ImpersonationIdentityLogin, wantErr: true},
+		{name: "excluded user is not impersonated by login", user: &backend.User{Login: "grafana_scheduler"}, identity: models.ImpersonationIdentityLogin, excluded: []string{"grafana_scheduler"}, want: ""},
+		{name: "excluded user is not impersonated by email", user: &backend.User{Login: "grafana_scheduler"}, identity: models.ImpersonationIdentityEmail, excluded: []string{"grafana_scheduler"}, want: ""},
+		{name: "excluded user with an email is not impersonated", user: alice, identity: models.ImpersonationIdentityEmail, excluded: []string{"bob", "alice"}, want: ""},
+		{name: "user not in the excluded list is impersonated", user: alice, identity: models.ImpersonationIdentityEmail, excluded: []string{"bob"}, want: "alice@example.com"},
+		{name: "alert rule without exclusion fails by email", user: &backend.User{Login: "grafana_scheduler"}, identity: models.ImpersonationIdentityEmail, wantErr: true},
 		{name: "no user", user: nil, identity: models.ImpersonationIdentityLogin, wantErr: true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := impersonatedUser(tt.user, tt.identity)
+			got, err := impersonatedUser(tt.user, tt.identity, tt.excluded)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("expected an error, got %q", got)

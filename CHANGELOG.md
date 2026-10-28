@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.2
+
+* Add "Exclude from impersonation", Grafana logins that run as the data source's user, or the OAuth impersonation user if set, when "Impersonate logged in user" is enabled. Add `grafana_scheduler` to it to use the data source in alert and recording rules, which otherwise fail with "Grafana user "grafana_scheduler" has no email" when impersonating by email, and run as a Trino user named `grafana_scheduler` when impersonating by login
+
 ## 1.4.1
 
 * Keep the full precision of day-to-second intervals from Trino 484, which used to arrive rounded to milliseconds

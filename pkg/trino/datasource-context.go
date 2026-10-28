@@ -3,6 +3,7 @@ package trino
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -35,13 +36,13 @@ func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req 
 	ctx = injectAccessToken(ctx, req)
 
 	if settings.EnableImpersonation {
-		user, err := impersonatedUser(req.PluginContext.User, settings.ImpersonationIdentity)
+		user, err := impersonatedUser(req.PluginContext.User, settings.ImpersonationIdentity, settings.ImpersonationExcludedLogins())
 		if err != nil {
 			return errorForEachQuery(req, err), nil
 		}
 
 		if user == "" {
-			log.DefaultLogger.FromContext(ctx).Debug("Not impersonating anonymous Grafana user, query runs as the data source's Trino user")
+			log.DefaultLogger.FromContext(ctx).Debug("Not impersonating anonymous or excluded Grafana user, query runs as the data source's Trino user")
 		} else {
 			ctx = context.WithValue(ctx, trinoUserHeader, user)
 			ctx = trinoClient.WithSessionUser(ctx)
@@ -89,16 +90,19 @@ func clientTagsFromContext(ctx context.Context) string {
 	return tags
 }
 
-func impersonatedUser(user *backend.User, identity string) (string, error) {
+func impersonatedUser(user *backend.User, identity string, excluded []string) (string, error) {
 	if user == nil {
 		return "", fmt.Errorf("user can't be nil if impersonation is enabled")
 	}
 	if user.Login == "" && user.Email == "" {
 		return "", nil
 	}
+	if user.Login != "" && slices.Contains(excluded, user.Login) {
+		return "", nil
+	}
 	if identity == models.ImpersonationIdentityEmail {
 		if user.Email == "" {
-			return "", fmt.Errorf("impersonation is configured to use the user's email, but Grafana user %q has no email", user.Login)
+			return "", fmt.Errorf("impersonation is configured to use the user's email, but Grafana user %q has no email; add it to \"Exclude from impersonation\" in the data source settings to run its queries as the data source's user", user.Login)
 		}
 		return user.Email, nil
 	}

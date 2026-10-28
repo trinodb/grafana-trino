@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"net/url"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -140,6 +141,33 @@ func TestLoad_ImpersonationIdentity(t *testing.T) {
 			}
 			if settings.ImpersonationIdentity != tt.want {
 				t.Errorf("got %q, want %q", settings.ImpersonationIdentity, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoad_ImpersonationExcludedLogins(t *testing.T) {
+	tests := []struct {
+		jsonData string
+		want     []string
+	}{
+		{jsonData: `{}`, want: nil},
+		{jsonData: `{"impersonationExcludedLogins":"grafana_scheduler"}`, want: []string{"grafana_scheduler"}},
+		{jsonData: `{"impersonationExcludedLogins":" grafana_scheduler, ,admin "}`, want: []string{"grafana_scheduler", "admin"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.jsonData, func(t *testing.T) {
+			settings := TrinoDatasourceSettings{}
+			err := settings.Load(context.Background(), backend.DataSourceInstanceSettings{
+				URL:      "http://localhost:8080",
+				JSONData: []byte(tt.jsonData),
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := settings.ImpersonationExcludedLogins(); !slices.Equal(got, tt.want) {
+				t.Errorf("got %q, want %q", got, tt.want)
 			}
 		})
 	}

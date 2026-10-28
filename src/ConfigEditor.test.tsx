@@ -138,3 +138,18 @@ describe('ConfigEditor Kerberos section', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('ConfigEditor logins excluded from impersonation', () => {
+  const LABEL = "Exclude from impersonation";
+
+  it('shows the logins with impersonation enabled', () => {
+    renderEditor({ enableImpersonation: true, impersonationExcludedLogins: 'grafana_scheduler' });
+    expect(screen.getByText(LABEL)).toBeInTheDocument();
+    expect(screen.getByDisplayValue('grafana_scheduler')).toBeInTheDocument();
+  });
+
+  it('hides the logins with impersonation disabled', () => {
+    renderEditor({ enableImpersonation: false, impersonationExcludedLogins: 'grafana_scheduler' });
+    expect(screen.queryByText(LABEL)).not.toBeInTheDocument();
+  });
+});

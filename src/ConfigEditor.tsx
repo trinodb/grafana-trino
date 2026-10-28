@@ -32,6 +32,9 @@ export function ConfigEditor(props: Props) {
   const onImpersonationIdentityChange = (value: ImpersonationIdentity) => {
     onOptionsChange({ ...options, jsonData: { ...options.jsonData, impersonationIdentity: value } });
   };
+  const onImpersonationExcludedLoginsChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onOptionsChange({ ...options, jsonData: { ...options.jsonData, impersonationExcludedLogins: event.target.value } });
+  };
   const onTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
     onOptionsChange({ ...options, secureJsonData: { ...options.secureJsonData, accessToken: event.target.value } });
   };
@@ -137,6 +140,23 @@ export function ConfigEditor(props: Props) {
                 options={SelectableImpersonationIdentities}
                 value={options.jsonData?.impersonationIdentity ?? 'login'}
                 onChange={onImpersonationIdentityChange}
+              />
+            </InlineField>
+          </div>
+        )}
+        {options.jsonData?.enableImpersonation && (
+          <div className="gf-form-inline">
+            <InlineField
+              label="Exclude from impersonation"
+              tooltip="Grafana logins, separated by commas, that run as the data source's user, or the OAuth impersonation user if set, instead of themselves. Add grafana_scheduler to run alert and recording rules this way."
+              labelWidth={26}
+            >
+              <Input
+                id="trino-settings-impersonation-excluded-logins"
+                value={options.jsonData?.impersonationExcludedLogins ?? ''}
+                onChange={onImpersonationExcludedLoginsChange}
+                placeholder="grafana_scheduler"
+                width={40}
               />
             </InlineField>
           </div>

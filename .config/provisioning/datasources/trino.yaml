@@ -12,6 +12,7 @@ datasources:
     jsonData:
       enableImpersonation: $__env{TRINO_ENABLE_IMPERSONATION}
       impersonationIdentity: $__env{TRINO_IMPERSONATION_IDENTITY}
+      impersonationExcludedLogins: $__env{TRINO_IMPERSONATION_EXCLUDED_LOGINS}
       impersonationUser: $__env{TRINO_IMPERSONATION_USER}
       roles: $__env{TRINO_ROLES}
       clientTags: $__env{TRINO_CLIENT_TAGS}

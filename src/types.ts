@@ -85,6 +85,8 @@ export const SelectableImpersonationIdentities: Array<SelectableValue<Impersonat
 export interface TrinoDataSourceOptions extends DataSourceJsonData {
   enableImpersonation?: boolean;
   impersonationIdentity?: ImpersonationIdentity;
+  // Grafana logins, separated by commas, that are not impersonated
+  impersonationExcludedLogins?: string;
   tokenUrl?: string;
   clientId?: string;
   impersonationUser?: string;
