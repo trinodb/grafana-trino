@@ -2,6 +2,7 @@
 
 ## 1.4.2
 
+* Add "Fall back to login or email" to impersonation: a Grafana user without the selected attribute is impersonated by the other one instead of failing. With "Impersonate as" set to Email, alert and recording rules, which run as Grafana's `grafana_scheduler` user without an email, now run as `grafana_scheduler` instead of failing with "Grafana user has no email"
 * Warn in the data source settings when an access token, the OAuth client token or the forwarded OAuth identity would be sent unencrypted over HTTP
 * Keep the session user on every request of a query that doesn't impersonate the Grafana user. Earlier versions replaced it with an empty `X-Trino-User` header after the first request, which some deployments reject with "400 Bad Request: Ambiguous or empty X-Trino-User header"
 

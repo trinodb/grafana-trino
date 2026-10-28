@@ -171,3 +171,17 @@ describe('ConfigEditor Kerberos section', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('ConfigEditor impersonation fallback', () => {
+  const LABEL = 'Fall back to login or email';
+
+  it('shows the fallback with impersonation enabled', () => {
+    renderEditor({ enableImpersonation: true, impersonationFallback: true });
+    expect(screen.getByText(LABEL)).toBeInTheDocument();
+  });
+
+  it('hides the fallback with impersonation disabled', () => {
+    renderEditor({ enableImpersonation: false, impersonationFallback: true });
+    expect(screen.queryByText(LABEL)).not.toBeInTheDocument();
+  });
+});

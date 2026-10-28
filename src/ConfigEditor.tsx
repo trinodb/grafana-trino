@@ -32,6 +32,9 @@ export function ConfigEditor(props: Props) {
   const onImpersonationIdentityChange = (value: ImpersonationIdentity) => {
     onOptionsChange({ ...options, jsonData: { ...options.jsonData, impersonationIdentity: value } });
   };
+  const onImpersonationFallbackChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onOptionsChange({ ...options, jsonData: { ...options.jsonData, impersonationFallback: event.target.checked } });
+  };
   const onTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
     onOptionsChange({ ...options, secureJsonData: { ...options.secureJsonData, accessToken: event.target.value } });
   };
@@ -137,13 +140,28 @@ export function ConfigEditor(props: Props) {
           <div className="gf-form-inline">
             <InlineField
               label="Impersonate as"
-              tooltip="Which attribute of the Grafana user to send as the Trino session user. Queries fail for users without an email if Email is selected."
+              tooltip="Which attribute of the Grafana user to send as the Trino session user. Without the fallback, queries fail for users who don't have it."
               labelWidth={26}
             >
               <RadioButtonGroup
                 options={SelectableImpersonationIdentities}
                 value={options.jsonData?.impersonationIdentity ?? 'login'}
                 onChange={onImpersonationIdentityChange}
+              />
+            </InlineField>
+          </div>
+        )}
+        {options.jsonData?.enableImpersonation && (
+          <div className="gf-form-inline">
+            <InlineField
+              label="Fall back to login or email"
+              tooltip="If the Grafana user has no value for the attribute above, impersonate it by the other one instead of failing. Alert and recording rules run as Grafana's grafana_scheduler user, which has no email."
+              labelWidth={26}
+            >
+              <InlineSwitch
+                id="trino-settings-impersonation-fallback"
+                value={options.jsonData?.impersonationFallback ?? false}
+                onChange={onImpersonationFallbackChange}
               />
             </InlineField>
           </div>

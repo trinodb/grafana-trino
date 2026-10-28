@@ -18,6 +18,7 @@ func TestImpersonatedUser(t *testing.T) {
 		name     string
 		user     *backend.User
 		identity string
+		fallback bool
 		want     string
 		wantErr  bool
 	}{
@@ -29,12 +30,18 @@ func TestImpersonatedUser(t *testing.T) {
 		{name: "anonymous user is not impersonated by email", user: &backend.User{}, identity: models.ImpersonationIdentityEmail, want: ""},
 		{name: "email for user without login", user: &backend.User{Email: "carol@example.com"}, identity: models.ImpersonationIdentityEmail, want: "carol@example.com"},
 		{name: "login for user without login", user: &backend.User{Email: "carol@example.com"}, identity: models.ImpersonationIdentityLogin, wantErr: true},
+		{name: "email falls back to the login", user: noEmail, identity: models.ImpersonationIdentityEmail, fallback: true, want: "bob"},
+		{name: "email falls back to the login for an alert rule", user: &backend.User{Login: "grafana_scheduler"}, identity: models.ImpersonationIdentityEmail, fallback: true, want: "grafana_scheduler"},
+		{name: "email with fallback still uses the email", user: alice, identity: models.ImpersonationIdentityEmail, fallback: true, want: "alice@example.com"},
+		{name: "login falls back to the email", user: &backend.User{Email: "carol@example.com"}, identity: models.ImpersonationIdentityLogin, fallback: true, want: "carol@example.com"},
+		{name: "login with fallback still uses the login", user: alice, identity: models.ImpersonationIdentityLogin, fallback: true, want: "alice"},
+		{name: "anonymous user is not impersonated with fallback", user: &backend.User{}, identity: models.ImpersonationIdentityEmail, fallback: true, want: ""},
 		{name: "no user", user: nil, identity: models.ImpersonationIdentityLogin, wantErr: true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := impersonatedUser(tt.user, tt.identity)
+			got, err := impersonatedUser(tt.user, tt.identity, tt.fallback)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("expected an error, got %q", got)

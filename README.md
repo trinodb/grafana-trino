@@ -151,9 +151,13 @@ another session user, which the principal must be allowed to impersonate.
 
 Enable **Impersonate logged in user** in the **Trino** section to run queries as
 the Grafana user, instead of the data source's user. **Impersonate as** selects
-whether the user's **Login** or **Email** becomes the Trino session user; with
-**Email**, queries from users without an email fail. Trino must allow the
-authenticated user to impersonate other users.
+whether the user's **Login** or **Email** becomes the Trino session user. If
+the user has no value for it, queries fail, unless **Fall back to login or
+email** is enabled: then the other attribute becomes the session user. Alert and
+recording rules run as Grafana's `grafana_scheduler` user, which has no email,
+so with **Email** they need the fallback, and run as `grafana_scheduler`. Trino
+must allow the authenticated user to impersonate other users, including these
+logins.
 
 Anonymous users are not impersonated, and run as the data source's user, or the
 OAuth impersonation user if set.
