@@ -1,30 +1,38 @@
 version: 2
+# The vulnerability scan and the plugin validator check go.mod and yarn.lock
+# together, so a pull request updating only one of them fails on any advisory
+# in the other. One group for both lets the fixes land in the same pull request.
+multi-ecosystem-groups:
+  dependencies:
+    schedule:
+      interval: "weekly"
 updates:
   - package-ecosystem: "gomod"
     directory: "/"
-    schedule:
-      interval: "weekly"
+    multi-ecosystem-group: "dependencies"
+    patterns: ["*"]
+    # Advisories often hit indirect modules, such as golang.org/x/net, which
+    # version updates leave alone by default.
+    allow:
+      - dependency-type: "all"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
-      dependency-updates:
-        applies-to: version-updates
-        update-types:
-        - major
-        - minor
-        - patch
       security-updates:
         applies-to: security-updates
         dependency-type: production
   - package-ecosystem: "npm"
     directory: "/"
-    schedule:
-      interval: "weekly"
+    multi-ecosystem-group: "dependencies"
+    patterns: ["*"]
+    # Major updates need code changes, such as TypeScript 7, which
+    # typescript-eslint does not support yet, and one failing major would hold
+    # back every other update in the group.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
-      dependency-updates:
-        applies-to: version-updates
-        update-types:
-        - major
-        - minor
-        - patch
       security-updates:
         applies-to: security-updates
         dependency-type: production
