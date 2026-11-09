@@ -13,3 +13,7 @@ reason = "The plugin does not import React Router or render navigation links, an
 [[IgnoredVulns]]
 id = "GHSA-hp3w-g68c-fv3c"
 reason = "No release of sprintf-js fixes the unbounded precision specifiers, and it is only reached through jest's coverage config loader at build time, where no format string comes from user input."
+
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"
+reason = "No release of deepmerge fixes the prototype poisoning, and it is only reached through jest-config and fork-ts-checker-webpack-plugin at build time, which merge their own configuration objects, not user input."
