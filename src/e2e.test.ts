@@ -51,6 +51,15 @@ async function commitQuery(page: Page) {
 async function goToTrinoSettings(page: Page) {
     await page.goto('/connections/datasources/trino-datasource');
     await page.getByRole('button', {name: 'Add new data source'}).click();
+    // Grafana 13.3 turns the button into a menu offering to set the data
+    // source up with the Grafana Assistant, but only once the Assistant app
+    // has loaded; a click before that still opens the settings page directly.
+    const setUpManually = page.getByRole('menuitem', {name: /Set up manually/});
+    const urlInput = page.getByTestId('data-testid Datasource HTTP settings url');
+    await expect(setUpManually.or(urlInput).first()).toBeVisible();
+    if (await setUpManually.isVisible()) {
+        await setUpManually.click();
+    }
 }
 
 async function setupDataSourceWithAccessToken(page: Page) {
