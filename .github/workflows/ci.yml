@@ -11,7 +11,7 @@ on:
 jobs:
   vulnerability-scan:
     name: Scan dependencies for known vulnerabilities
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.6.0
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.7.0
     with:
       scan-args: |-
         --no-call-analysis=go
@@ -126,7 +126,7 @@ jobs:
 
       - name: Resolve Grafana E2E versions
         id: resolve-versions
-        uses: grafana/plugin-actions/e2e-version@e2e-version/v3.1.3
+        uses: grafana/plugin-actions/e2e-version@e2e-version/v3.2.4
         with:
           # Resolves against plugin.json's dependencies.grafanaDependency
           # (>=10.4.0): the latest patch of every minor satisfying that
