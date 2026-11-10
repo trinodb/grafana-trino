@@ -444,8 +444,11 @@ async function openQueryVariableEditor(page: Page): Promise<Locator> {
     // Settings tab into the dashboard's edit sidebar; the tab now just
     // shows a "Take me there" banner instead of an "Add variable" button.
     // Both flows end up at the same query editor, just reached differently.
+    // isVisible() does not wait, so wait for either control to render first.
     const takeMeThere = page.getByRole('button', {name: 'Take me there'});
-    if (await takeMeThere.isVisible({timeout: 3000}).catch(() => false)) {
+    const addVariable = page.getByRole('button', {name: 'Add variable'});
+    await expect(takeMeThere.or(addVariable).first()).toBeVisible();
+    if (await takeMeThere.isVisible()) {
         await takeMeThere.click();
         // Grafana 13.2 renamed this control's test id from "edit pane" to
         // "sidebar"; accept either so both sides of that rename work.
@@ -458,7 +461,7 @@ async function openQueryVariableEditor(page: Page): Promise<Locator> {
         return page.getByRole('dialog');
     }
 
-    await page.getByRole('button', {name: 'Add variable'}).click();
+    await addVariable.click();
     await page.getByTestId('data-testid Variable editor Form Name field').fill('trino');
     return page.getByRole('form', {name: 'Variable editor form'});
 }
