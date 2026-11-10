@@ -37,6 +37,11 @@ export class DataSource extends DatasourceWithAsyncBackend<TrinoQuery, TrinoData
     // polling a query the backend has already collected. The base class only
     // skips the cache once a query is known to be running, which still leaves
     // the request that starts one cacheable.
+    //
+    // @grafana/async-query-data substitutes template variables before calling
+    // DataSourceWithBackend.query, which substitutes them again. A value that
+    // itself contains $other or $__from is expanded a second time on this
+    // path. The synchronous path expands them once.
     return super.query({ ...request, skipQueryCache: true });
   }
 

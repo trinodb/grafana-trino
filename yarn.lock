@@ -1103,7 +1103,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grafana/async-query-data@npm:^0.4.3":
+"@grafana/async-query-data@npm:0.4.3":
   version: 0.4.3
   resolution: "@grafana/async-query-data@npm:0.4.3"
   dependencies:
@@ -10681,7 +10681,7 @@ __metadata:
   resolution: "trino-datasource@workspace:."
   dependencies:
     "@emotion/css": "npm:11.13.5"
-    "@grafana/async-query-data": "npm:^0.4.3"
+    "@grafana/async-query-data": "npm:0.4.3"
     "@grafana/data": "npm:13.2.3"
     "@grafana/eslint-config": "npm:^10.0.0"
     "@grafana/i18n": "npm:13.2.3"

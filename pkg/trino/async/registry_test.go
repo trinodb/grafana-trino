@@ -59,6 +59,32 @@ func TestStartRunsQueryAndCollectsResultOnce(t *testing.T) {
 	}
 }
 
+func TestQueryIsRunningWhileTheFunctionRuns(t *testing.T) {
+	r := newRegistry()
+	defer r.Close()
+
+	release := make(chan struct{})
+	started := make(chan struct{})
+	id, err := r.Start(context.Background(), func(context.Context) (data.Frames, error) {
+		close(started)
+		<-release
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatalf("Start returned %v", err)
+	}
+	defer close(release)
+
+	<-started
+	status, err := r.Status(id)
+	if err != nil {
+		t.Fatalf("Status returned %v", err)
+	}
+	if status != StatusRunning {
+		t.Errorf("status = %s, want %s", status, StatusRunning)
+	}
+}
+
 func TestCollectWhileRunningFails(t *testing.T) {
 	r := newRegistry()
 	defer r.Close()

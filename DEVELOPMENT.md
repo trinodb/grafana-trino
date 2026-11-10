@@ -77,6 +77,7 @@ provisioning expansion:
 | `TRINO_ACCESS_TOKEN` | Bearer access token |
 | `TRINO_OAUTH_PASS_THRU` | `true`/`false`: forward the signed-in user's OAuth identity |
 | `TRINO_ENABLE_IMPERSONATION` | `true`/`false` |
+| `TRINO_ENABLE_ASYNC_QUERY_DATA` | `true`/`false`: poll long-running queries instead of one long request |
 | `TRINO_IMPERSONATION_IDENTITY` | `login`/`email`: which Grafana user attribute to impersonate as |
 | `TRINO_IMPERSONATION_USER` | User to impersonate |
 | `TRINO_ROLES` | `catalog:role;catalog:role` pairs |

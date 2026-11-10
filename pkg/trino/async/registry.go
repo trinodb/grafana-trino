@@ -68,6 +68,12 @@ const (
 	reaperInterval = 10 * time.Second
 )
 
+// processID is minted once per process. A data source save disposes the old
+// registry and builds a new one; a per-registry id would make polls for
+// queries that were already running look like they had been routed to another
+// Grafana instance.
+var processID = uuid.NewString()
+
 var (
 	// ErrNotFound is returned for a handle this process has no record of,
 	// either because it was reaped or because it was never ours.
@@ -75,8 +81,9 @@ var (
 
 	// ErrOtherInstance is returned for a well-formed handle minted by a
 	// different plugin process, which means the poll was routed to another
-	// Grafana instance.
-	ErrOtherInstance = errors.New("query belongs to another Grafana instance")
+	// Grafana instance. The message names the fix, because this is the error
+	// a user sees when the load balancer has no session affinity.
+	ErrOtherInstance = errors.New("query belongs to another Grafana instance; enable session affinity (sticky sessions) on the load balancer")
 
 	// ErrTooManyQueries is returned once MaxConcurrent in-flight queries are
 	// already running.
@@ -99,9 +106,8 @@ type entry struct {
 // Registry tracks the queries this plugin process is running on behalf of
 // polling clients. The zero value is not usable; call NewRegistry.
 type Registry struct {
-	// processID distinguishes handles minted by this process from handles
-	// minted by another Grafana instance, so that a poll routed to the wrong
-	// instance reports that rather than looking like an expired query.
+	// processID is the process-wide id, copied so a handle can be told apart
+	// from one minted by another Grafana instance.
 	processID string
 
 	MaxDuration     time.Duration
@@ -131,7 +137,7 @@ func NewRegistry() *Registry {
 // drive reap directly instead of waiting on a ticker.
 func newRegistry() *Registry {
 	return &Registry{
-		processID:       uuid.NewString(),
+		processID:       processID,
 		MaxDuration:     DefaultMaxDuration,
 		UnpolledTimeout: DefaultUnpolledTimeout,
 		ResultTTL:       DefaultResultTTL,
@@ -166,6 +172,15 @@ func (r *Registry) Start(ctx context.Context, fn RunFunc) (string, error) {
 
 	go func() {
 		defer cancel()
+		// Running means the query function has started. The frontend keeps
+		// polling for either submitted or running. A cancel that arrived
+		// first has already left the cancelled status, which this must not
+		// overwrite.
+		r.mu.Lock()
+		if e, ok := r.queries[id]; ok && e.status == StatusSubmitted {
+			e.status = StatusRunning
+		}
+		r.mu.Unlock()
 		frames, err := fn(runCtx)
 		r.finish(id, frames, err)
 	}()
@@ -310,7 +325,7 @@ func (r *Registry) reap() {
 	for id, e := range r.queries {
 		switch {
 		case e.status.Running() && now.Sub(e.lastPolled) > r.UnpolledTimeout:
-			backend.Logger.Info("cancelling asynchronous query nobody is polling", "queryID", id)
+			backend.Logger.Debug("cancelling asynchronous query nobody is polling", "queryID", id)
 			e.cancel()
 			delete(r.queries, id)
 		case !e.status.Running() && now.Sub(e.doneAt) > r.ResultTTL:

@@ -215,7 +215,7 @@ progressively.
 Alerting and expression queries always use the synchronous flow, because there is
 no browser to poll on their behalf.
 
-Three things are worth knowing before turning it on:
+Two things are worth knowing before turning it on:
 
 * Keep the dashboard's refresh interval longer than the query takes to run. Each
   refresh cancels the query still in flight and starts a new one, so a dashboard
@@ -224,9 +224,7 @@ Three things are worth knowing before turning it on:
   behaves the same way, but asynchronous queries tend to be enabled for exactly
   the queries where the two intervals are close enough to collide.
 * Results are held in the plugin's memory between polls. Peak memory is the same
-  as the synchronous flow, but it is held for longer, so consider setting
-  Grafana's [`dataproxy.row_limit`](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#row_limit)
-  if you have not already.
+  as the synchronous flow, but it is held for longer.
 * If you run more than one Grafana instance behind a load balancer, enable
   session affinity (sticky sessions). A poll routed to a different instance
   cannot see the query, because the connection to Trino and the rows read so far
