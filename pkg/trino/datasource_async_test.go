@@ -197,7 +197,7 @@ func TestCancelResourceStopsTheQuery(t *testing.T) {
 	}
 	// The query is either gone, if it had already finished, or marked
 	// cancelled. What must not happen is it still being reported as running.
-	if status, err := ds.async.Status(queryID); err == nil && status.Running() {
+	if status, err := ds.async.Status(queryID, nil); err == nil && status.Running() {
 		t.Errorf("the query is still %s after being cancelled", status)
 	}
 }
@@ -245,6 +245,55 @@ func TestCancelRouteIsReachable(t *testing.T) {
 	}
 	if sender.res.Status != http.StatusOK {
 		t.Fatalf("cancel route returned %d, want %d: the route is not registered", sender.res.Status, http.StatusOK)
+	}
+}
+
+func TestAnotherUserCannotCollectOrCancel(t *testing.T) {
+	ds, settings := newAsyncTestDatasource(t, true)
+	alice := &backend.User{Login: "alice"}
+	bob := &backend.User{Login: "bob"}
+
+	start := asyncRequest(settings, "")
+	start.PluginContext.User = alice
+	res, err := ds.QueryData(context.Background(), start)
+	if err != nil {
+		t.Fatalf("starting the query: %v", err)
+	}
+	queryID := metaOf(t, res.Responses["A"]).QueryID
+
+	poll := asyncRequest(settings, queryID)
+	poll.PluginContext.User = bob
+	polled, err := ds.QueryData(context.Background(), poll)
+	if err != nil {
+		t.Fatalf("polling as another user: %v", err)
+	}
+	if polled.Responses["A"].Error == nil {
+		t.Fatal("another user received the query instead of an error")
+	}
+
+	body, err := json.Marshal(map[string]string{"queryId": queryID})
+	if err != nil {
+		t.Fatalf("marshalling the cancel body: %v", err)
+	}
+	sender := &recordingSender{}
+	if err := ds.CallResource(context.Background(), &backend.CallResourceRequest{
+		PluginContext: backend.PluginContext{DataSourceInstanceSettings: &settings, User: bob},
+		Path:          "cancel",
+		Method:        http.MethodPost,
+		Body:          body,
+	}, sender); err != nil {
+		t.Fatalf("CallResource returned %v", err)
+	}
+	if sender.res == nil || sender.res.Status != http.StatusForbidden {
+		got := 0
+		if sender.res != nil {
+			got = sender.res.Status
+		}
+		t.Fatalf("cancel as another user returned %d, want %d", got, http.StatusForbidden)
+	}
+
+	if _, err := ds.async.Status(queryID, alice); err != nil {
+		t.Fatalf("the owner lost the query after the rejected calls: %v", err)
 	}
 }
 

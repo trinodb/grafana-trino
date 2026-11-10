@@ -88,6 +88,11 @@ var (
 	// ErrTooManyQueries is returned once MaxConcurrent in-flight queries are
 	// already running.
 	ErrTooManyQueries = errors.New("too many concurrent asynchronous queries")
+
+	// ErrWrongUser is returned when the caller is not the Grafana user who
+	// started the query. Holding the handle is not enough: with impersonation
+	// or a forwarded OAuth identity the frames are that user's data.
+	ErrWrongUser = errors.New("query belongs to another user")
 )
 
 // RunFunc executes the query. It receives a context detached from the Grafana
@@ -101,6 +106,28 @@ type entry struct {
 	cancel     context.CancelFunc
 	lastPolled time.Time
 	doneAt     time.Time
+	// owner is the Grafana user who started the query. Empty means anonymous.
+	owner string
+}
+
+// ownerID names the Grafana user a query belongs to. Empty is anonymous: a
+// nil user, or one with neither a login nor an email. A login is kept distinct
+// from an email, so one user's login cannot match another user's email.
+func ownerID(user *backend.User) string {
+	if user == nil {
+		return ""
+	}
+	if user.Login != "" {
+		return "login:" + user.Login
+	}
+	if user.Email != "" {
+		return "email:" + user.Email
+	}
+	return ""
+}
+
+func (e *entry) allows(user *backend.User) bool {
+	return e.owner == ownerID(user)
 }
 
 // Registry tracks the queries this plugin process is running on behalf of
@@ -152,7 +179,7 @@ func newRegistry() *Registry {
 // with. The handle is minted before fn is scheduled because the first response
 // must already carry it: at that point nothing has been sent to Trino yet, so
 // Trino's own query ID does not exist.
-func (r *Registry) Start(ctx context.Context, fn RunFunc) (string, error) {
+func (r *Registry) Start(ctx context.Context, user *backend.User, fn RunFunc) (string, error) {
 	// Keep the request context's values - the OAuth access token and the
 	// impersonated user live there - while severing its cancellation, so the
 	// query outlives the HTTP request that started it.
@@ -167,7 +194,7 @@ func (r *Registry) Start(ctx context.Context, fn RunFunc) (string, error) {
 		cancel()
 		return "", ErrTooManyQueries
 	}
-	r.queries[id] = &entry{status: StatusSubmitted, cancel: cancel, lastPolled: now}
+	r.queries[id] = &entry{status: StatusSubmitted, cancel: cancel, lastPolled: now, owner: ownerID(user)}
 	r.mu.Unlock()
 
 	go func() {
@@ -190,13 +217,16 @@ func (r *Registry) Start(ctx context.Context, fn RunFunc) (string, error) {
 
 // Status reports on a query without consuming it, and records the poll so the
 // reaper can tell a live client from an abandoned one.
-func (r *Registry) Status(id string) (Status, error) {
+func (r *Registry) Status(id string, user *backend.User) (Status, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	e, ok := r.queries[id]
 	if !ok {
 		return "", r.missLocked(id)
+	}
+	if !e.allows(user) {
+		return "", ErrWrongUser
 	}
 	e.lastPolled = r.now()
 	return e.status, nil
@@ -205,13 +235,16 @@ func (r *Registry) Status(id string) (Status, error) {
 // Collect returns the result of a finished query and forgets it. Calling it
 // for a query that is still running returns ErrNotFound, so callers should
 // check Status first.
-func (r *Registry) Collect(id string) (data.Frames, error) {
+func (r *Registry) Collect(id string, user *backend.User) (data.Frames, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	e, ok := r.queries[id]
 	if !ok {
 		return nil, r.missLocked(id)
+	}
+	if !e.allows(user) {
+		return nil, ErrWrongUser
 	}
 	if e.status.Running() {
 		return nil, fmt.Errorf("query %s is still %s", id, e.status)
@@ -223,13 +256,17 @@ func (r *Registry) Collect(id string) (data.Frames, error) {
 // Cancel stops a running query. Cancelling the run context makes the Trino
 // driver send DELETE /v1/query/{id} on its way out, so the cancellation
 // reaches the cluster rather than just abandoning the goroutine.
-func (r *Registry) Cancel(id string) error {
+func (r *Registry) Cancel(id string, user *backend.User) error {
 	r.mu.Lock()
 	e, ok := r.queries[id]
 	if !ok {
 		err := r.missLocked(id)
 		r.mu.Unlock()
 		return err
+	}
+	if !e.allows(user) {
+		r.mu.Unlock()
+		return ErrWrongUser
 	}
 	if !e.status.Running() {
 		// Already finished; just drop the buffered result.

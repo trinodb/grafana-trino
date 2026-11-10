@@ -3,6 +3,7 @@ package trino
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -88,8 +89,9 @@ func (ds *SQLDatasourceWithTrinoUserContext) handleAsyncQuery(ctx context.Contex
 		return backend.ErrorResponseWithErrorSource(backend.PluginError(err))
 	}
 
+	user := req.PluginContext.User
 	if q.QueryID == "" {
-		queryID, err := ds.async.Start(ctx, func(runCtx context.Context) (data.Frames, error) {
+		queryID, err := ds.async.Start(ctx, user, func(runCtx context.Context) (data.Frames, error) {
 			return ds.runSingleQuery(runCtx, req, query)
 		})
 		if err != nil {
@@ -98,16 +100,21 @@ func (ds *SQLDatasourceWithTrinoUserContext) handleAsyncQuery(ctx context.Contex
 		return backend.DataResponse{Frames: async.StatusFrames(query.RefID, queryID, async.StatusSubmitted)}
 	}
 
-	status, err := ds.async.Status(q.QueryID)
+	status, err := ds.async.Status(q.QueryID, user)
 	if err != nil {
-		return backend.ErrorResponseWithErrorSource(backend.DownstreamError(err))
+		return asyncCallError(err)
 	}
 	if status.Running() {
 		return backend.DataResponse{Frames: async.StatusFrames(query.RefID, q.QueryID, status)}
 	}
 
-	frames, err := ds.async.Collect(q.QueryID)
+	frames, err := ds.async.Collect(q.QueryID, user)
 	if err != nil {
+		if errors.Is(err, async.ErrWrongUser) {
+			return backend.ErrorResponseWithErrorSource(backend.PluginError(err))
+		}
+		// The query already ran. Its error is returned as the registry stored
+		// it, including a failure that came back from Trino.
 		return backend.ErrorResponseWithErrorSource(err)
 	}
 	return backend.DataResponse{Frames: async.WithMeta(frames, q.QueryID, status)}
@@ -151,12 +158,26 @@ func (ds *SQLDatasourceWithTrinoUserContext) handleCancel(rw http.ResponseWriter
 		http.Error(rw, "queryId is required", http.StatusBadRequest)
 		return
 	}
-	if err := ds.async.Cancel(body.QueryID); err != nil {
+	if err := ds.async.Cancel(body.QueryID, backend.UserFromContext(req.Context())); err != nil {
+		if errors.Is(err, async.ErrWrongUser) {
+			http.Error(rw, err.Error(), http.StatusForbidden)
+			return
+		}
 		// A query that already finished or was reaped is not worth an error
 		// at the client: there is nothing left to cancel either way.
 		backend.Logger.Debug("could not cancel query", "queryID", body.QueryID, "error", err)
 	}
 	rw.WriteHeader(http.StatusOK)
+}
+
+// asyncCallError reports a registry failure. A handle presented by someone
+// other than the user who started the query is the plugin refusing the call.
+// Anything else is a problem talking to the query that is already running.
+func asyncCallError(err error) backend.DataResponse {
+	if errors.Is(err, async.ErrWrongUser) {
+		return backend.ErrorResponseWithErrorSource(backend.PluginError(err))
+	}
+	return backend.ErrorResponseWithErrorSource(backend.DownstreamError(err))
 }
 
 // Dispose stops the async queries this instance is running. sqlds calls it

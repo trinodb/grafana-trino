@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
@@ -15,7 +16,7 @@ func waitForStatus(t *testing.T, r *Registry, id string) Status {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for {
-		status, err := r.Status(id)
+		status, err := r.Status(id, nil)
 		if err != nil {
 			t.Fatalf("Status(%s) returned %v", id, err)
 		}
@@ -34,7 +35,7 @@ func TestStartRunsQueryAndCollectsResultOnce(t *testing.T) {
 	defer r.Close()
 
 	frames := data.Frames{data.NewFrame("A", data.NewField("n", nil, []int64{1}))}
-	id, err := r.Start(context.Background(), func(context.Context) (data.Frames, error) {
+	id, err := r.Start(context.Background(), nil, func(context.Context) (data.Frames, error) {
 		return frames, nil
 	})
 	if err != nil {
@@ -45,7 +46,7 @@ func TestStartRunsQueryAndCollectsResultOnce(t *testing.T) {
 		t.Errorf("status = %s, want %s", status, StatusFinished)
 	}
 
-	got, err := r.Collect(id)
+	got, err := r.Collect(id, nil)
 	if err != nil {
 		t.Fatalf("Collect returned %v", err)
 	}
@@ -54,7 +55,7 @@ func TestStartRunsQueryAndCollectsResultOnce(t *testing.T) {
 	}
 
 	// The result is handed over once; a repeat poll must not find it again.
-	if _, err := r.Collect(id); !errors.Is(err, ErrNotFound) {
+	if _, err := r.Collect(id, nil); !errors.Is(err, ErrNotFound) {
 		t.Errorf("second Collect returned %v, want %v", err, ErrNotFound)
 	}
 }
@@ -65,7 +66,7 @@ func TestQueryIsRunningWhileTheFunctionRuns(t *testing.T) {
 
 	release := make(chan struct{})
 	started := make(chan struct{})
-	id, err := r.Start(context.Background(), func(context.Context) (data.Frames, error) {
+	id, err := r.Start(context.Background(), nil, func(context.Context) (data.Frames, error) {
 		close(started)
 		<-release
 		return nil, nil
@@ -76,7 +77,7 @@ func TestQueryIsRunningWhileTheFunctionRuns(t *testing.T) {
 	defer close(release)
 
 	<-started
-	status, err := r.Status(id)
+	status, err := r.Status(id, nil)
 	if err != nil {
 		t.Fatalf("Status returned %v", err)
 	}
@@ -90,7 +91,7 @@ func TestCollectWhileRunningFails(t *testing.T) {
 	defer r.Close()
 
 	release := make(chan struct{})
-	id, err := r.Start(context.Background(), func(context.Context) (data.Frames, error) {
+	id, err := r.Start(context.Background(), nil, func(context.Context) (data.Frames, error) {
 		<-release
 		return nil, nil
 	})
@@ -99,7 +100,7 @@ func TestCollectWhileRunningFails(t *testing.T) {
 	}
 	defer close(release)
 
-	if _, err := r.Collect(id); err == nil {
+	if _, err := r.Collect(id, nil); err == nil {
 		t.Error("Collect on a running query returned no error")
 	}
 }
@@ -109,7 +110,7 @@ func TestFailedQueryReportsItsError(t *testing.T) {
 	defer r.Close()
 
 	queryErr := errors.New("line 1:8: column x does not exist")
-	id, err := r.Start(context.Background(), func(context.Context) (data.Frames, error) {
+	id, err := r.Start(context.Background(), nil, func(context.Context) (data.Frames, error) {
 		return nil, queryErr
 	})
 	if err != nil {
@@ -119,7 +120,7 @@ func TestFailedQueryReportsItsError(t *testing.T) {
 	if status := waitForStatus(t, r, id); status != StatusFailed {
 		t.Errorf("status = %s, want %s", status, StatusFailed)
 	}
-	if _, err := r.Collect(id); !errors.Is(err, queryErr) {
+	if _, err := r.Collect(id, nil); !errors.Is(err, queryErr) {
 		t.Errorf("Collect returned %v, want the query error", err)
 	}
 }
@@ -134,7 +135,7 @@ func TestStartDetachesFromTheRequestContext(t *testing.T) {
 	started := make(chan struct{})
 	observed := make(chan error, 1)
 	value := make(chan any, 1)
-	id, err := r.Start(reqCtx, func(runCtx context.Context) (data.Frames, error) {
+	id, err := r.Start(reqCtx, nil, func(runCtx context.Context) (data.Frames, error) {
 		value <- runCtx.Value(key{})
 		close(started)
 		// Give the cancelled request context time to propagate, if it were
@@ -166,7 +167,7 @@ func TestCancelStopsTheRunContext(t *testing.T) {
 	defer r.Close()
 
 	cancelled := make(chan struct{})
-	id, err := r.Start(context.Background(), func(runCtx context.Context) (data.Frames, error) {
+	id, err := r.Start(context.Background(), nil, func(runCtx context.Context) (data.Frames, error) {
 		<-runCtx.Done()
 		close(cancelled)
 		return nil, runCtx.Err()
@@ -175,7 +176,7 @@ func TestCancelStopsTheRunContext(t *testing.T) {
 		t.Fatalf("Start returned %v", err)
 	}
 
-	if err := r.Cancel(id); err != nil {
+	if err := r.Cancel(id, nil); err != nil {
 		t.Fatalf("Cancel returned %v", err)
 	}
 
@@ -194,10 +195,10 @@ func TestUnknownHandleFromAnotherProcessIsReportedSeparately(t *testing.T) {
 	r := newRegistry()
 	defer r.Close()
 
-	if _, err := r.Status("some-other-grafana:d3adbeef"); !errors.Is(err, ErrOtherInstance) {
+	if _, err := r.Status("some-other-grafana:d3adbeef", nil); !errors.Is(err, ErrOtherInstance) {
 		t.Errorf("Status of a handle from another process returned %v, want %v", err, ErrOtherInstance)
 	}
-	if _, err := r.Status(r.processID + ":d3adbeef"); !errors.Is(err, ErrNotFound) {
+	if _, err := r.Status(r.processID+":d3adbeef", nil); !errors.Is(err, ErrNotFound) {
 		t.Errorf("Status of an expired handle returned %v, want %v", err, ErrNotFound)
 	}
 }
@@ -212,12 +213,12 @@ func TestMaxConcurrentRejectsFurtherStarts(t *testing.T) {
 		<-release
 		return nil, nil
 	}
-	if _, err := r.Start(context.Background(), block); err != nil {
+	if _, err := r.Start(context.Background(), nil, block); err != nil {
 		t.Fatalf("first Start returned %v", err)
 	}
 	defer close(release)
 
-	if _, err := r.Start(context.Background(), block); !errors.Is(err, ErrTooManyQueries) {
+	if _, err := r.Start(context.Background(), nil, block); !errors.Is(err, ErrTooManyQueries) {
 		t.Errorf("second Start returned %v, want %v", err, ErrTooManyQueries)
 	}
 }
@@ -230,7 +231,7 @@ func TestReapCancelsQueriesNobodyIsPolling(t *testing.T) {
 	r.now = func() time.Time { return now }
 
 	cancelled := make(chan struct{})
-	id, err := r.Start(context.Background(), func(runCtx context.Context) (data.Frames, error) {
+	id, err := r.Start(context.Background(), nil, func(runCtx context.Context) (data.Frames, error) {
 		<-runCtx.Done()
 		close(cancelled)
 		return nil, runCtx.Err()
@@ -242,7 +243,7 @@ func TestReapCancelsQueriesNobodyIsPolling(t *testing.T) {
 	// Still within the window: a client that is polling must be left alone.
 	now = now.Add(r.UnpolledTimeout / 2)
 	r.reap()
-	if _, err := r.Status(id); err != nil {
+	if _, err := r.Status(id, nil); err != nil {
 		t.Fatalf("query was reaped while still being polled: %v", err)
 	}
 
@@ -254,7 +255,7 @@ func TestReapCancelsQueriesNobodyIsPolling(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("reaping did not cancel the query")
 	}
-	if _, err := r.Status(id); !errors.Is(err, ErrNotFound) {
+	if _, err := r.Status(id, nil); !errors.Is(err, ErrNotFound) {
 		t.Errorf("Status after reaping returned %v, want %v", err, ErrNotFound)
 	}
 }
@@ -266,7 +267,7 @@ func TestReapDropsResultsNobodyCollects(t *testing.T) {
 	now := time.Now()
 	r.now = func() time.Time { return now }
 
-	id, err := r.Start(context.Background(), func(context.Context) (data.Frames, error) {
+	id, err := r.Start(context.Background(), nil, func(context.Context) (data.Frames, error) {
 		return data.Frames{data.NewFrame("A")}, nil
 	})
 	if err != nil {
@@ -277,7 +278,108 @@ func TestReapDropsResultsNobodyCollects(t *testing.T) {
 	now = now.Add(r.ResultTTL * 2)
 	r.reap()
 
-	if _, err := r.Collect(id); !errors.Is(err, ErrNotFound) {
+	if _, err := r.Collect(id, nil); !errors.Is(err, ErrNotFound) {
 		t.Errorf("Collect after the TTL returned %v, want %v", err, ErrNotFound)
+	}
+}
+
+func TestWrongUserCannotReadOrCancel(t *testing.T) {
+	r := newRegistry()
+	defer r.Close()
+
+	alice := &backend.User{Login: "alice", Email: "alice@example.com"}
+	bob := &backend.User{Login: "bob", Email: "bob@example.com"}
+	anonymous := &backend.User{}
+
+	release := make(chan struct{})
+	id, err := r.Start(context.Background(), alice, func(context.Context) (data.Frames, error) {
+		<-release
+		return data.Frames{data.NewFrame("A")}, nil
+	})
+	if err != nil {
+		t.Fatalf("Start returned %v", err)
+	}
+
+	if _, err := r.Status(id, bob); !errors.Is(err, ErrWrongUser) {
+		t.Errorf("Status as another user returned %v, want %v", err, ErrWrongUser)
+	}
+	if _, err := r.Status(id, anonymous); !errors.Is(err, ErrWrongUser) {
+		t.Errorf("Status as anonymous returned %v, want %v", err, ErrWrongUser)
+	}
+	if err := r.Cancel(id, bob); !errors.Is(err, ErrWrongUser) {
+		t.Errorf("Cancel as another user returned %v, want %v", err, ErrWrongUser)
+	}
+	// A rejected caller must not drop the query. The owner can still see it.
+	status, err := r.Status(id, alice)
+	if err != nil {
+		t.Fatalf("Status as the owner returned %v", err)
+	}
+	if !status.Running() {
+		t.Errorf("status = %s, want the query to still be running", status)
+	}
+
+	close(release)
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		status, err = r.Status(id, alice)
+		if err != nil {
+			t.Fatalf("Status as the owner returned %v", err)
+		}
+		if !status.Running() {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("query still %s after 5s", status)
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if status != StatusFinished {
+		t.Fatalf("status = %s, want %s", status, StatusFinished)
+	}
+	if _, err := r.Collect(id, bob); !errors.Is(err, ErrWrongUser) {
+		t.Errorf("Collect as another user returned %v, want %v", err, ErrWrongUser)
+	}
+	got, err := r.Collect(id, alice)
+	if err != nil {
+		t.Fatalf("Collect as the owner returned %v", err)
+	}
+	if len(got) != 1 || got[0].Name != "A" {
+		t.Errorf("Collect returned %v, want the owner's frames", got)
+	}
+}
+
+func TestEmailOwnerCollectsWithoutALogin(t *testing.T) {
+	r := newRegistry()
+	defer r.Close()
+
+	carol := &backend.User{Email: "carol@example.com"}
+	id, err := r.Start(context.Background(), carol, func(context.Context) (data.Frames, error) {
+		return data.Frames{data.NewFrame("A")}, nil
+	})
+	if err != nil {
+		t.Fatalf("Start returned %v", err)
+	}
+
+	deadline := time.Now().Add(5 * time.Second)
+	var status Status
+	for {
+		var statusErr error
+		status, statusErr = r.Status(id, &backend.User{Email: "carol@example.com"})
+		if statusErr != nil {
+			t.Fatalf("Status returned %v", statusErr)
+		}
+		if !status.Running() {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("query still %s after 5s", status)
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if _, err := r.Collect(id, &backend.User{Login: "carol@example.com"}); !errors.Is(err, ErrWrongUser) {
+		t.Errorf("Collect with the email used as a login returned %v, want %v", err, ErrWrongUser)
+	}
+	if _, err := r.Collect(id, carol); err != nil {
+		t.Fatalf("Collect as the same email returned %v", err)
 	}
 }
