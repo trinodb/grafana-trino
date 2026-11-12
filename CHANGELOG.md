@@ -2,6 +2,8 @@
 
 ## 1.4.2
 
+* Add a "Limit rows" data source setting, off by default, that stops reading the results of a query after Grafana's `row_limit` rows (`[dataproxy]` section, 1000000 by default), cancels the query in Trino and shows a warning on the panel, so a query returning millions of rows can no longer exhaust the memory of the Grafana server
+
 ## 1.4.1
 
 * Keep the full precision of day-to-second intervals from Trino 484, which used to arrive rounded to milliseconds

@@ -81,6 +81,7 @@ provisioning expansion:
 | `TRINO_IMPERSONATION_USER` | User to impersonate |
 | `TRINO_ROLES` | `catalog:role;catalog:role` pairs |
 | `TRINO_CLIENT_TAGS` | Comma-separated client tags |
+| `TRINO_ENABLE_ROW_LIMIT` | `true`/`false`: stop reading results after Grafana's `row_limit` rows |
 | `TRINO_TOKEN_URL` | OAuth2 token URL |
 | `TRINO_CLIENT_ID` | OAuth2 client ID |
 | `TRINO_CLIENT_SECRET` | OAuth2 client secret |
