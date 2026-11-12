@@ -171,6 +171,22 @@ with every query, used for example to select a Trino
 [resource group](https://trino.io/docs/current/admin/resource-groups.html).
 Queries can add more tags in the query editor.
 
+### Row limit
+
+Enable **Limit rows** in the **Trino** section to stop reading the results of a
+query after `row_limit` rows, set in the `[dataproxy]` section of Grafana's
+configuration, 1000000 by default, like Grafana's built-in SQL data sources do.
+The plugin then cancels the query in Trino, and the panel shows a warning that
+the results were limited.
+
+This keeps a query that returns far more rows than a panel can display, such as
+raw data over a time range much longer than intended, from exhausting the
+memory of the Grafana server. Queries aggregating data over long time ranges
+return few rows and are not affected.
+
+The limit is off by default. If the plugin can't read Grafana's configuration,
+it uses 1000000.
+
 ### Private Data Source Connect
 
 When Grafana has the secure SOCKS proxy enabled, as in Grafana Cloud with
@@ -195,6 +211,8 @@ are set.
   in the query editor to drop that many rows from the start and the end of every result with a
   time column, after ordering it by the first time column. Leave it empty to keep all rows.
 * [Impersonation](#impersonate-the-signed-in-user) of the signed-in Grafana user, by login or email.
+* An optional [row limit](#row-limit), cancelling queries that return more rows than Grafana's
+  `row_limit`.
 
 ## Complex types
 

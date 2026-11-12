@@ -110,6 +110,55 @@ func TestMutateQueryKeepsQueryWithoutRawSQL(t *testing.T) {
 	}
 }
 
+func TestRowLimit(t *testing.T) {
+	// sqlds falls back to this variable when the driver settings carry no
+	// row limit; the plugin must never let it apply.
+	t.Setenv("GF_DATAPROXY_ROW_LIMIT", "7")
+
+	for _, tc := range []struct {
+		name          string
+		jsonData      string
+		grafanaConfig map[string]string
+		want          int64
+	}{
+		{name: "disabled by default", jsonData: `{}`, grafanaConfig: grafanaSQLConfig("500"), want: -1},
+		{name: "disabled", jsonData: `{"enableRowLimit":false}`, grafanaConfig: grafanaSQLConfig("500"), want: -1},
+		{name: "Grafana's row limit", jsonData: `{"enableRowLimit":true}`, grafanaConfig: grafanaSQLConfig("500"), want: 500},
+		{name: "Grafana's default without its configuration", jsonData: `{"enableRowLimit":true}`, want: 1_000_000},
+		{name: "Grafana's default for an invalid row limit", jsonData: `{"enableRowLimit":true}`, grafanaConfig: grafanaSQLConfig("0"), want: 1_000_000},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			if tc.grafanaConfig != nil {
+				ctx = backend.WithGrafanaConfig(ctx, backend.NewGrafanaCfg(tc.grafanaConfig))
+			}
+			ds := NewDatasource(New())
+			_, err := ds.NewDatasource(ctx, backend.DataSourceInstanceSettings{
+				URL:      "http://localhost:8080",
+				JSONData: json.RawMessage(tc.jsonData),
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if got := ds.GetRowLimit(); got != tc.want {
+				t.Errorf("got %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
+
+// grafanaSQLConfig returns the SQL data source configuration Grafana passes
+// to plugins, with the given row_limit.
+func grafanaSQLConfig(rowLimit string) map[string]string {
+	return map[string]string{
+		backend.SQLRowLimit:                      rowLimit,
+		backend.SQLMaxOpenConnsDefault:           "100",
+		backend.SQLMaxIdleConnsDefault:           "100",
+		backend.SQLMaxConnLifetimeSecondsDefault: "14400",
+	}
+}
+
 func contextWithDataSourceClientTags(tags string) context.Context {
 	ctx := context.Background()
 	if tags == "" {

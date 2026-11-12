@@ -70,6 +70,9 @@ func (ds *SQLDatasourceWithTrinoUserContext) NewDatasource(ctx context.Context, 
 
 func NewDatasource(c sqlds.Driver) *SQLDatasourceWithTrinoUserContext {
 	base := sqlds.NewDatasource(c)
+	// Makes sqlds apply the row limit returned by TrinoDatasource.Settings,
+	// which is -1 unless the data source enables it.
+	base.EnableRowLimit = true
 	return &SQLDatasourceWithTrinoUserContext{*base}
 }
 

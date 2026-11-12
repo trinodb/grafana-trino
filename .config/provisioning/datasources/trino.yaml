@@ -15,6 +15,7 @@ datasources:
       impersonationUser: $__env{TRINO_IMPERSONATION_USER}
       roles: $__env{TRINO_ROLES}
       clientTags: $__env{TRINO_CLIENT_TAGS}
+      enableRowLimit: $__env{TRINO_ENABLE_ROW_LIMIT}
       tokenUrl: $__env{TRINO_TOKEN_URL}
       clientId: $__env{TRINO_CLIENT_ID}
       tlsSkipVerify: $__env{TRINO_TLS_SKIP_VERIFY}

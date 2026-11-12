@@ -67,6 +67,9 @@ export function ConfigEditor(props: Props) {
   const onClientTagsChange = (event: ChangeEvent<HTMLInputElement>) => {
     onOptionsChange({ ...options, jsonData: { ...options.jsonData, clientTags: event.target.value } });
   };
+  const onEnableRowLimitChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onOptionsChange({ ...options, jsonData: { ...options.jsonData, enableRowLimit: event.target.checked } });
+  };
   const onEnableSecureSocksProxyChange = (event: ChangeEvent<HTMLInputElement>) => {
     onOptionsChange({ ...options, jsonData: { ...options.jsonData, enableSecureSocksProxy: event.target.checked } });
   };
@@ -168,6 +171,19 @@ export function ConfigEditor(props: Props) {
             labelWidth={26}
           >
             <Input value={options.jsonData?.clientTags ?? ''} onChange={onClientTagsChange} width={60} placeholder="tag1,tag2,tag3" />
+          </InlineField>
+        </div>
+        <div className="gf-form-inline">
+          <InlineField
+            label="Limit rows"
+            tooltip="If enabled, stop reading the results of a query after the number of rows set by row_limit in the [dataproxy] section of Grafana's configuration, 1000000 by default, and cancel the query. The panel shows a warning when the results are cut."
+            labelWidth={26}
+          >
+            <InlineSwitch
+              id="trino-settings-enable-row-limit"
+              value={options.jsonData?.enableRowLimit ?? false}
+              onChange={onEnableRowLimitChange}
+            />
           </InlineField>
         </div>
       </div>

@@ -90,6 +90,7 @@ export interface TrinoDataSourceOptions extends DataSourceJsonData {
   impersonationUser?: string;
   roles?: string;
   clientTags?: string;
+  enableRowLimit?: boolean;
   enableSecureSocksProxy?: boolean;
   // "Forward OAuth Identity", set by Grafana's HTTP settings
   oauthPassThru?: boolean;

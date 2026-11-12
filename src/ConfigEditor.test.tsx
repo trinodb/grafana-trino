@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { DataSourceSettings } from '@grafana/data';
 import { ConfigEditor } from './ConfigEditor';
 import { TrinoDataSourceOptions, TrinoSecureJsonData } from './types';
@@ -27,6 +27,36 @@ describe('ConfigEditor impersonation warning', () => {
   ])('does not warn for %o', (jsonData) => {
     renderEditor(jsonData);
     expect(screen.queryByText(WARNING)).not.toBeInTheDocument();
+  });
+});
+
+describe('ConfigEditor row limit', () => {
+  function renderRowLimitEditor(jsonData: TrinoDataSourceOptions, onOptionsChange = jest.fn()) {
+    const options = {
+      jsonData,
+      secureJsonData: {},
+      secureJsonFields: {},
+    } as unknown as DataSourceSettings<TrinoDataSourceOptions, TrinoSecureJsonData>;
+    const { container } = render(<ConfigEditor options={options} onOptionsChange={onOptionsChange} />);
+    return container.querySelector<HTMLInputElement>('#trino-settings-enable-row-limit')!;
+  }
+
+  it('is off by default', () => {
+    expect(renderRowLimitEditor({}).checked).toBe(false);
+  });
+
+  it('enables the row limit', () => {
+    const onOptionsChange = jest.fn();
+    fireEvent.click(renderRowLimitEditor({ clientTags: 'tag' }, onOptionsChange));
+    expect(onOptionsChange).toHaveBeenCalledWith(
+      expect.objectContaining({ jsonData: { clientTags: 'tag', enableRowLimit: true } })
+    );
+  });
+
+  it('disables the row limit', () => {
+    const onOptionsChange = jest.fn();
+    fireEvent.click(renderRowLimitEditor({ enableRowLimit: true }, onOptionsChange));
+    expect(onOptionsChange).toHaveBeenCalledWith(expect.objectContaining({ jsonData: { enableRowLimit: false } }));
   });
 });
 

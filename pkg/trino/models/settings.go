@@ -33,6 +33,9 @@ type TrinoDatasourceSettings struct {
 	ImpersonationUser     string             `json:"impersonationUser"`
 	Roles                 string             `json:"roles"`
 	ClientTags            string             `json:"clientTags"`
+	// EnableRowLimit stops reading the results of a query at the row_limit
+	// of Grafana's [dataproxy] configuration.
+	EnableRowLimit bool `json:"enableRowLimit"`
 	// OAuthPassThru is Grafana's "Forward OAuth Identity" setting.
 	OAuthPassThru     bool   `json:"oauthPassThru"`
 	KerberosEnabled   bool   `json:"kerberosEnabled"`
