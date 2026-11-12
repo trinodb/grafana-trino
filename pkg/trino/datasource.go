@@ -34,12 +34,30 @@ func New() *TrinoDatasource {
 	return &TrinoDatasource{}
 }
 
+// defaultRowLimit is the default row_limit of Grafana's [dataproxy]
+// configuration.
+const defaultRowLimit int64 = 1_000_000
+
 func (s *TrinoDatasource) Settings(ctx context.Context, config backend.DataSourceInstanceSettings) sqlds.DriverSettings {
 	return sqlds.DriverSettings{
 		FillMode: &data.FillMissing{
 			Mode: data.FillModeNull,
 		},
+		RowLimit: rowLimit(ctx),
 	}
+}
+
+// rowLimit returns how many rows sqlds reads from the results of a query
+// before it stops, which cancels the query in Trino and adds a warning to the
+// frame. It is never 0: sqlds would then read the limit from an environment
+// variable, which Grafana's plugin policy forbids. Grafana passes its
+// row_limit to plugins since 11.0, so earlier versions get the default.
+func rowLimit(ctx context.Context) int64 {
+	sqlConfig, err := backend.GrafanaConfigFromContext(ctx).SQL()
+	if err != nil || sqlConfig.RowLimit <= 0 {
+		return defaultRowLimit
+	}
+	return sqlConfig.RowLimit
 }
 
 // Connect opens a sql.DB connection using datasource settings
