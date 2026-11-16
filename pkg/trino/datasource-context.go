@@ -14,7 +14,6 @@ import (
 )
 
 const (
-	accessTokenKey     = "accessToken"
 	trinoUserHeader    = "X-Trino-User"
 	trinoClientTagsKey = "X-Trino-Client-Tags"
 	bearerPrefix       = "Bearer "
@@ -78,7 +77,7 @@ func injectAccessToken(ctx context.Context, req *backend.QueryDataRequest) conte
 
 	if strings.HasPrefix(header, bearerPrefix) {
 		token := strings.TrimPrefix(header, bearerPrefix)
-		return context.WithValue(ctx, accessTokenKey, token)
+		return trinoClient.WithForwardedToken(ctx, token)
 	}
 
 	return ctx

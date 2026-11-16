@@ -212,7 +212,6 @@ func TestNewConfigMapsKerberosSettings(t *testing.T) {
 			ServerURI:                        "https://trino.example.com:8443",
 			Source:                           "grafana",
 			HTTPClient:                       httpClient,
-			ForwardAuthorizationHeader:       true,
 			Roles:                            map[string]string{},
 			RequestRetryTimeout:              &retryTimeout,
 			KerberosEnabled:                  true,
