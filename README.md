@@ -89,7 +89,9 @@ Under **Auth**:
 
 Set **Access token** in the **Trino** section to send a static bearer token, such
 as a JWT, with every request. It can't be combined with the OAuth client
-credentials flow.
+credentials flow. With an `http://` URL, the token is sent unencrypted, and
+Trino ignores it unless Trino sits behind a proxy that terminates TLS. The
+same goes for the OAuth client token and the forwarded OAuth identity.
 
 ### OAuth client credentials
 

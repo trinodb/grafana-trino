@@ -99,6 +99,7 @@ export function ConfigEditor(props: Props) {
     });
   };
   const kerberosConflicts = options.jsonData?.kerberosEnabled ? conflictingWithKerberos(options) : [];
+  const tokensOverHTTP = options.url && !/^https:\/\//i.test(options.url) ? configuredTokens(options) : [];
 
   return (
     <div className="gf-form-group">
@@ -108,6 +109,12 @@ export function ConfigEditor(props: Props) {
           Trino only accepts a password over HTTPS unless it is configured to allow it over HTTP, and rejects it
           with 401 Unauthorized if it does not authenticate with passwords. Use an https:// URL, or remove the
           password.
+        </Alert>
+      )}
+      {tokensOverHTTP.length > 0 && (
+        <Alert severity="warning" title="Tokens are sent unencrypted over HTTP">
+          Trino ignores tokens over HTTP unless it sits behind a proxy that terminates TLS, and anyone who sees a
+          token on the network can reuse it. Use an https:// URL. Sent over HTTP: {tokensOverHTTP.join(', ')}
         </Alert>
       )}
 
@@ -409,6 +416,20 @@ function hasOAuthClientCredentials(options: Props['options']): boolean {
       options.secureJsonFields?.clientSecret ||
       options.secureJsonData?.clientSecret
   );
+}
+
+function configuredTokens(options: Props['options']): string[] {
+  const tokens: string[] = [];
+  if (options.secureJsonFields?.accessToken || options.secureJsonData?.accessToken) {
+    tokens.push('access token');
+  }
+  if (options.jsonData?.oauthPassThru) {
+    tokens.push('Forward OAuth Identity');
+  }
+  if (hasOAuthClientCredentials(options)) {
+    tokens.push('OAuth Trino Authentication');
+  }
+  return tokens;
 }
 
 function conflictingWithKerberos(options: Props['options']): string[] {
