@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"database/sql"
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
@@ -23,6 +22,7 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
+	trinoClient "github.com/trinodb/grafana-trino/pkg/trino/client"
 	"github.com/trinodb/grafana-trino/pkg/trino/models"
 )
 
@@ -58,50 +58,55 @@ func TestOpenRejectsBrokenClientCertificates(t *testing.T) {
 	}
 }
 
-// TestOpenSendsBasicAuthThroughTheHTTPClient checks that the basic auth
-// password reaches Trino over plain HTTP, where trino-go-client itself refuses
-// to send one, and that a credential set on the request keeps precedence over
-// the data source password.
-func TestOpenSendsBasicAuthThroughTheHTTPClient(t *testing.T) {
-	var mu sync.Mutex
-	var authorizations, users []string
-	trinoServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		authorizations = append(authorizations, r.Header.Get("Authorization"))
-		users = append(users, r.Header.Get("X-Trino-User"))
-		mu.Unlock()
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	t.Cleanup(trinoServer.Close)
-
-	u, err := url.Parse(trinoServer.URL)
-	if err != nil {
-		t.Fatalf("parse trino URL: %v", err)
-	}
-	u.User = url.User("alice")
-	db, err := Open(models.TrinoDatasourceSettings{
-		URL:  u,
-		Opts: httpclient.Options{BasicAuth: &httpclient.BasicAuthOptions{User: "alice", Password: "s3cret"}},
-	})
-	if err != nil {
-		t.Fatalf("open: %v", err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-
+// TestOpenSendsCredentialsThroughTheHTTPClient checks that the basic auth
+// password, the access token and the forwarded OAuth identity reach Trino over
+// plain HTTP, where trino-go-client itself refuses to send any of them, and
+// that a token keeps precedence over the data source password.
+func TestOpenSendsCredentialsThroughTheHTTPClient(t *testing.T) {
 	tests := []struct {
 		name              string
-		args              []interface{}
+		accessToken       string
+		ctx               context.Context
 		wantAuthorization string
 	}{
-		{name: "password", wantAuthorization: "Basic " + base64.StdEncoding.EncodeToString([]byte("alice:s3cret"))},
-		{name: "forwarded access token", args: []interface{}{sql.Named("accessToken", "forwarded")}, wantAuthorization: "Bearer forwarded"},
+		{name: "password", ctx: context.Background(), wantAuthorization: "Basic " + base64.StdEncoding.EncodeToString([]byte("alice:s3cret"))},
+		{name: "access token", accessToken: "static", ctx: context.Background(), wantAuthorization: "Bearer static"},
+		{
+			name:              "forwarded access token",
+			accessToken:       "static",
+			ctx:               trinoClient.WithForwardedToken(context.Background(), "forwarded"),
+			wantAuthorization: "Bearer forwarded",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mu.Lock()
-			authorizations, users = nil, nil
-			mu.Unlock()
-			_, _ = db.QueryContext(context.Background(), "SELECT 1", tt.args...)
+			var mu sync.Mutex
+			var authorizations, users []string
+			trinoServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				authorizations = append(authorizations, r.Header.Get("Authorization"))
+				users = append(users, r.Header.Get("X-Trino-User"))
+				mu.Unlock()
+				w.WriteHeader(http.StatusInternalServerError)
+			}))
+			t.Cleanup(trinoServer.Close)
+
+			u, err := url.Parse(trinoServer.URL)
+			if err != nil {
+				t.Fatalf("parse trino URL: %v", err)
+			}
+			u.User = url.User("alice")
+			db, err := Open(models.TrinoDatasourceSettings{
+				URL:         u,
+				Opts:        httpclient.Options{BasicAuth: &httpclient.BasicAuthOptions{User: "alice", Password: "s3cret"}},
+				AccessToken: tt.accessToken,
+			})
+			if err != nil {
+				t.Fatalf("open: %v", err)
+			}
+			t.Cleanup(func() { _ = db.Close() })
+
+			_, _ = db.QueryContext(tt.ctx, "SELECT 1")
 			mu.Lock()
 			defer mu.Unlock()
 			if len(authorizations) == 0 {
@@ -116,6 +121,38 @@ func TestOpenSendsBasicAuthThroughTheHTTPClient(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestNewHTTPClientSendsTokensOnlyToTrino guards against the tokens reaching
+// any other host the HTTP client is used for, such as the OAuth token URL.
+func TestNewHTTPClientSendsTokensOnlyToTrino(t *testing.T) {
+	var authorization string
+	otherServer := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		authorization = r.Header.Get("Authorization")
+	}))
+	t.Cleanup(otherServer.Close)
+
+	u, err := url.Parse("http://trino.example.com:8080")
+	if err != nil {
+		t.Fatalf("parse trino URL: %v", err)
+	}
+	client, err := newHTTPClient(models.TrinoDatasourceSettings{URL: u, AccessToken: "static"})
+	if err != nil {
+		t.Fatalf("new HTTP client: %v", err)
+	}
+	ctx := trinoClient.WithForwardedToken(context.Background(), "forwarded")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, otherServer.URL, nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	response, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	_ = response.Body.Close()
+	if authorization != "" {
+		t.Errorf("another host received Authorization %q", authorization)
 	}
 }
 

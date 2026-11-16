@@ -37,6 +37,19 @@ func hasSessionUser(ctx context.Context) bool {
 	return set
 }
 
+type forwardedTokenKey struct{}
+
+// WithForwardedToken passes the signed-in user's OAuth token to every request
+// of the queries run with ctx.
+func WithForwardedToken(ctx context.Context, token string) context.Context {
+	return context.WithValue(ctx, forwardedTokenKey{}, token)
+}
+
+func ForwardedToken(ctx context.Context) string {
+	token, _ := ctx.Value(forwardedTokenKey{}).(string)
+	return token
+}
+
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
 		return nil, fmt.Errorf("unsupported Trino URL scheme %q", req.URL.Scheme)
