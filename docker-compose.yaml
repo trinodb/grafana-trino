@@ -51,7 +51,7 @@ services:
   # mount the volume; DEVELOPMENT.md shows how to copy the keytab out of it.
   kdc:
     profiles: [kerberos]
-    image: ghcr.io/trinodb/testing/kdc:127
+    image: ghcr.io/trinodb/testing/kdc:132
     hostname: kdc
     volumes:
       - trino-kerberos:/etc/trino-kerberos
