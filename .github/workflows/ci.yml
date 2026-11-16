@@ -11,7 +11,7 @@ on:
 jobs:
   vulnerability-scan:
     name: Scan dependencies for known vulnerabilities
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.7.0
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.7.1
     with:
       scan-args: |-
         --no-call-analysis=go
@@ -126,7 +126,7 @@ jobs:
 
       - name: Resolve Grafana E2E versions
         id: resolve-versions
-        uses: grafana/plugin-actions/e2e-version@e2e-version/v3.2.4
+        uses: grafana/plugin-actions/e2e-version@e2e-version/v4.0.0
         with:
           # Resolves against plugin.json's dependencies.grafanaDependency
           # (>=10.4.0): the latest patch of every minor satisfying that
@@ -134,6 +134,9 @@ jobs:
           # is outside our supported Grafana versions.
           version-resolver-type: plugin-grafana-dependency
           skip-grafana-nightly-image: true
+          # The same image `yarn server` runs; e2e-version 4 defaults to the
+          # open source one.
+          grafana-image: grafana-enterprise
 
   e2e:
     name: e2e ${{ matrix.GRAFANA_IMAGE.name }}@${{ matrix.GRAFANA_IMAGE.version }}
@@ -193,7 +196,7 @@ jobs:
             --env KC_DB_USERNAME=keycloak \
             --env KC_DB_PASSWORD=keycloak \
             --volume "$(pwd)/test-data/test-keycloak-realm.json:/opt/keycloak/data/import/realm.json" \
-            quay.io/keycloak/keycloak:26.8.0 \
+            quay.io/keycloak/keycloak:26.8.2 \
             start-dev --import-realm
 
           echo "Waiting for Keycloak to be ready..."
@@ -273,7 +276,7 @@ jobs:
             --net trino \
             --volume trino-kerberos:/etc/trino-kerberos \
             --volume "$(pwd)/test-data/kerberos/init.sh:/docker/kerberos-init.d/init.sh:ro" \
-            ghcr.io/trinodb/testing/kdc:127
+            ghcr.io/trinodb/testing/kdc:132
 
           echo "Waiting for the KDC to create the keytabs..."
           until docker exec kdc test -f /etc/trino-kerberos/ready; do
