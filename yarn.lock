@@ -1080,6 +1080,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@grafana/async-query-data@npm:0.4.3":
+  version: 0.4.3
+  resolution: "@grafana/async-query-data@npm:0.4.3"
+  dependencies:
+    semver: "npm:^7.6.3"
+    tslib: "npm:^2.8.0"
+  checksum: 10c0/1ea4a16b905432781e4713e594c56e2169f5885fb612fe4538ce1484a9303eba0bb48ed042619cc403d86cf1e22739236f9c6e3fd5d16d56329020a84bad4f4b
+  languageName: node
+  linkType: hard
+
 "@grafana/data@npm:13.3.1":
   version: 13.3.1
   resolution: "@grafana/data@npm:13.3.1"
@@ -10219,6 +10229,7 @@ __metadata:
   resolution: "trino-datasource@workspace:."
   dependencies:
     "@emotion/css": "npm:11.13.5"
+    "@grafana/async-query-data": "npm:0.4.3"
     "@grafana/data": "npm:13.3.1"
     "@grafana/eslint-config": "npm:^10.0.0"
     "@grafana/i18n": "npm:13.3.1"
@@ -10333,7 +10344,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.0.0, tslib@npm:^2.1.0, tslib@npm:^2.3.0, tslib@npm:^2.7.0, tslib@npm:^2.8.1":
+"tslib@npm:^2.0.0, tslib@npm:^2.1.0, tslib@npm:^2.3.0, tslib@npm:^2.7.0, tslib@npm:^2.8.0, tslib@npm:^2.8.1":
   version: 2.9.1
   resolution: "tslib@npm:2.9.1"
   checksum: 10c0/8ff46e7a4d19fa62c23483c89cf5ccc3906e742ef6e6d60bd3826b686143b300b4f6f04161cc1cf31a6b11fe70e1058ae4d4e4a108b5c68326d469684736a83c
