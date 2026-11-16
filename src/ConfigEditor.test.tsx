@@ -86,6 +86,39 @@ describe('ConfigEditor OAuth client credentials conflict', () => {
   });
 });
 
+describe('ConfigEditor tokens over HTTP warning', () => {
+  const WARNING = 'Tokens are sent unencrypted over HTTP';
+
+  function renderWithTokens(url: string, accessToken: boolean, jsonData: TrinoDataSourceOptions) {
+    const options = {
+      url,
+      jsonData,
+      secureJsonData: {},
+      secureJsonFields: { accessToken },
+    } as unknown as DataSourceSettings<TrinoDataSourceOptions, TrinoSecureJsonData>;
+    render(<ConfigEditor options={options} onOptionsChange={jest.fn()} />);
+  }
+
+  it('lists the tokens sent with an HTTP URL', () => {
+    renderWithTokens('http://trino.example.com:8080', true, {
+      oauthPassThru: true,
+      tokenUrl: 'https://idp.example.com/token',
+    });
+    expect(screen.getByText(WARNING)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sent over HTTP: access token, Forward OAuth Identity, OAuth Trino Authentication/)
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    { url: 'https://trino.example.com:8443', accessToken: true, jsonData: { oauthPassThru: true } },
+    { url: 'http://trino.example.com:8080', accessToken: false, jsonData: {} },
+  ])('does not warn for %o', ({ url, accessToken, jsonData }) => {
+    renderWithTokens(url, accessToken, jsonData);
+    expect(screen.queryByText(WARNING)).not.toBeInTheDocument();
+  });
+});
+
 describe('ConfigEditor Kerberos section', () => {
   const HTTPS_REQUIRED = 'Kerberos requires HTTPS';
   const CONFLICT = 'Kerberos cannot be combined with other authentication';

@@ -2,6 +2,8 @@
 
 ## 1.4.2
 
+* Warn in the data source settings when an access token, the OAuth client token or the forwarded OAuth identity would be sent unencrypted over HTTP
+
 ## 1.4.1
 
 * Keep the full precision of day-to-second intervals from Trino 484, which used to arrive rounded to milliseconds
