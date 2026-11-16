@@ -104,7 +104,7 @@ jobs:
         uses: grafana/plugin-actions/package-plugin@main
         with:
           node-version: "24"
-          go-version: "1.27.2"
+          go-version: "1.27.4"
 
       # The plugin catalog reviews submissions with the latest validator,
       # which can be ahead of the one the action pins: 0.49.16 started
