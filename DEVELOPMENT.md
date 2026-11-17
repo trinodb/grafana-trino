@@ -78,6 +78,7 @@ provisioning expansion:
 | `TRINO_OAUTH_PASS_THRU` | `true`/`false`: forward the signed-in user's OAuth identity |
 | `TRINO_ENABLE_IMPERSONATION` | `true`/`false` |
 | `TRINO_IMPERSONATION_IDENTITY` | `login`/`email`: which Grafana user attribute to impersonate as |
+| `TRINO_IMPERSONATION_STRIP_SUFFIX` | Optional exact, case-sensitive suffix to remove from the selected login or email |
 | `TRINO_IMPERSONATION_USER` | User to impersonate |
 | `TRINO_ROLES` | `catalog:role;catalog:role` pairs |
 | `TRINO_CLIENT_TAGS` | Comma-separated client tags |

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { DataSourceSettings } from '@grafana/data';
 import { ConfigEditor } from './ConfigEditor';
 import { TrinoDataSourceOptions, TrinoSecureJsonData } from './types';
@@ -27,6 +27,35 @@ describe('ConfigEditor impersonation warning', () => {
   ])('does not warn for %o', (jsonData) => {
     renderEditor(jsonData);
     expect(screen.queryByText(WARNING)).not.toBeInTheDocument();
+  });
+});
+
+describe('ConfigEditor impersonation suffix', () => {
+  it('hides the suffix setting while impersonation is disabled', () => {
+    renderEditor({ enableImpersonation: false, impersonationStripSuffix: '@example.com' });
+    expect(screen.queryByLabelText('Remove username suffix')).not.toBeInTheDocument();
+  });
+
+  it('saves and clears the suffix without changing other settings', () => {
+    const options = {
+      jsonData: { enableImpersonation: true, impersonationIdentity: 'login', roles: 'system:analyst' },
+      secureJsonData: {},
+      secureJsonFields: {},
+    } as unknown as DataSourceSettings<TrinoDataSourceOptions, TrinoSecureJsonData>;
+    const onOptionsChange = jest.fn();
+    const { rerender } = render(<ConfigEditor options={options} onOptionsChange={onOptionsChange} />);
+    const input = screen.getByLabelText('Remove username suffix');
+    expect(input).toHaveValue('');
+    fireEvent.change(input, { target: { value: '@example.com' } });
+    const updated = { ...options, jsonData: { ...options.jsonData, impersonationStripSuffix: '@example.com' } };
+    expect(onOptionsChange).toHaveBeenLastCalledWith(updated);
+    rerender(<ConfigEditor options={updated} onOptionsChange={onOptionsChange} />);
+    expect(input).toHaveValue('@example.com');
+    fireEvent.change(input, { target: { value: '' } });
+    expect(onOptionsChange).toHaveBeenLastCalledWith({
+      ...options,
+      jsonData: { ...options.jsonData, impersonationStripSuffix: '' },
+    });
   });
 });
 

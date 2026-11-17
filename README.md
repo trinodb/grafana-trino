@@ -155,6 +155,20 @@ whether the user's **Login** or **Email** becomes the Trino session user; with
 **Email**, queries from users without an email fail. Trino must allow the
 authenticated user to impersonate other users.
 
+To use short Trino usernames when Grafana stores an email address as the login
+or email, set **Remove username suffix** to the exact suffix, for example
+`@example.com`. This data source then sends `alice` for `alice@example.com`.
+The match is literal and case-sensitive, and only one trailing occurrence is
+removed. Other usernames are unchanged. Leave the setting empty to send the
+selected login or email unchanged. Provision it as
+`jsonData.impersonationStripSuffix`.
+
+Trino must allow the resulting username. Choose a suffix that preserves the
+intended user identities: `alice` and `alice@example.com` will both run as
+`alice`. Removing the entire username fails the query instead of falling back
+to the data source's account. This setting does not change authentication
+credentials, Grafana logins, or other data sources.
+
 Anonymous users are not impersonated, and run as the data source's user, or the
 OAuth impersonation user if set.
 
