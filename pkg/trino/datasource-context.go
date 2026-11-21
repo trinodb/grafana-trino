@@ -34,7 +34,7 @@ func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req 
 	ctx = injectAccessToken(ctx, req)
 
 	if settings.EnableImpersonation {
-		user, err := impersonatedUser(req.PluginContext.User, settings.ImpersonationIdentity)
+		user, err := impersonatedUser(req.PluginContext.User, settings.ImpersonationIdentity, settings.ImpersonationFallback)
 		if err != nil {
 			return errorForEachQuery(req, err), nil
 		}
@@ -90,23 +90,27 @@ func clientTagsFromContext(ctx context.Context) string {
 	return tags
 }
 
-func impersonatedUser(user *backend.User, identity string) (string, error) {
+func impersonatedUser(user *backend.User, identity string, fallback bool) (string, error) {
 	if user == nil {
 		return "", fmt.Errorf("user can't be nil if impersonation is enabled")
 	}
 	if user.Login == "" && user.Email == "" {
 		return "", nil
 	}
+	preferred, other := user.Login, user.Email
 	if identity == models.ImpersonationIdentityEmail {
-		if user.Email == "" {
-			return "", fmt.Errorf("impersonation is configured to use the user's email, but Grafana user %q has no email", user.Login)
-		}
-		return user.Email, nil
+		preferred, other = user.Email, user.Login
 	}
-	if user.Login == "" {
-		return "", fmt.Errorf("impersonation is configured to use the user's login, but Grafana user %q has no login", user.Email)
+	if preferred != "" {
+		return preferred, nil
 	}
-	return user.Login, nil
+	if fallback {
+		return other, nil
+	}
+	if identity == models.ImpersonationIdentityEmail {
+		return "", fmt.Errorf("impersonation is configured to use the user's email, but Grafana user %q has no email; enable \"Fall back to login or email\" to run its queries as its login", user.Login)
+	}
+	return "", fmt.Errorf("impersonation is configured to use the user's login, but Grafana user %q has no login; enable \"Fall back to login or email\" to run its queries as its email", user.Email)
 }
 
 func errorForEachQuery(req *backend.QueryDataRequest, err error) *backend.QueryDataResponse {

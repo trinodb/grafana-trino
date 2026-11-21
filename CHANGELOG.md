@@ -2,6 +2,7 @@
 
 ## 1.4.2
 
+* Add "Fall back to login or email" to impersonation: a Grafana user without the selected attribute is impersonated by the other one instead of failing. With "Impersonate as" set to Email, alert and recording rules, which run as Grafana's `grafana_scheduler` user without an email, now run as `grafana_scheduler` instead of failing with "Grafana user has no email"
 * Warn in the data source settings when an access token, the OAuth client token or the forwarded OAuth identity would be sent unencrypted over HTTP
 * Keep the session user on every request of a query that doesn't impersonate the Grafana user. Earlier versions replaced it with an empty `X-Trino-User` header after the first request, which some deployments reject with "400 Bad Request: Ambiguous or empty X-Trino-User header"
 * Stop reading the results of a query after Grafana's `row_limit` rows (`[dataproxy]` section, 1000000 by default), like Grafana's built-in SQL data sources, so a query returning millions of rows can no longer exhaust the memory of the Grafana server. The plugin cancels such a query in Trino and shows a warning on the panel. Earlier versions read every row. To read more rows, raise `row_limit`; on Grafana before 11.0, the limit is 1000000
