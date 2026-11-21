@@ -34,7 +34,7 @@ func (ds *SQLDatasourceWithTrinoUserContext) QueryData(ctx context.Context, req 
 	ctx = injectAccessToken(ctx, req)
 
 	if settings.EnableImpersonation {
-		user, err := impersonatedUser(req.PluginContext.User, settings.ImpersonationIdentity)
+		user, err := impersonatedUser(req.PluginContext.User, settings.ImpersonationIdentity, settings.ImpersonationStripSuffix)
 		if err != nil {
 			return errorForEachQuery(req, err), nil
 		}
@@ -90,23 +90,27 @@ func clientTagsFromContext(ctx context.Context) string {
 	return tags
 }
 
-func impersonatedUser(user *backend.User, identity string) (string, error) {
+func impersonatedUser(user *backend.User, identity, stripSuffix string) (string, error) {
 	if user == nil {
 		return "", fmt.Errorf("user can't be nil if impersonation is enabled")
 	}
 	if user.Login == "" && user.Email == "" {
 		return "", nil
 	}
+	name := user.Login
 	if identity == models.ImpersonationIdentityEmail {
 		if user.Email == "" {
 			return "", fmt.Errorf("impersonation is configured to use the user's email, but Grafana user %q has no email", user.Login)
 		}
-		return user.Email, nil
-	}
-	if user.Login == "" {
+		name = user.Email
+	} else if user.Login == "" {
 		return "", fmt.Errorf("impersonation is configured to use the user's login, but Grafana user %q has no login", user.Email)
 	}
-	return user.Login, nil
+	name = strings.TrimSuffix(name, stripSuffix)
+	if name == "" {
+		return "", fmt.Errorf("removing the impersonation username suffix leaves an empty user; change Remove username suffix in the data source settings")
+	}
+	return name, nil
 }
 
 func errorForEachQuery(req *backend.QueryDataRequest, err error) *backend.QueryDataResponse {

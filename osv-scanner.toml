@@ -5,3 +5,10 @@ reason = "The plugin does not use React Router SSR hydration, which is the affec
 [[IgnoredVulns]]
 id = "GHSA-wrjc-x8rr-h8h6"
 reason = "The plugin does not import React Router or render navigation links, and Grafana UI requires React Router 6."
+
+# No patched picomatch release exists as of 2026-11-17. Recheck upstream before
+# this exception expires: https://github.com/advisories/GHSA-fc5q-39xc-vjpf
+[[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+effectiveUntil = 2026-12-17
+reason = "Picomatch is used by build/test/lint tooling with repository-controlled glob patterns, not datasource input. The production bundle and source map contain no picomatch code; imported Grafana UI/runtime/data packages are external, and their transitive picomatch dependency comes from ESLint tooling. Both catalog validators pass without this exception. Remove it when an upstream fix is available."

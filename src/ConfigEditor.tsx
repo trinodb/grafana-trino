@@ -32,6 +32,9 @@ export function ConfigEditor(props: Props) {
   const onImpersonationIdentityChange = (value: ImpersonationIdentity) => {
     onOptionsChange({ ...options, jsonData: { ...options.jsonData, impersonationIdentity: value } });
   };
+  const onImpersonationStripSuffixChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onOptionsChange({ ...options, jsonData: { ...options.jsonData, impersonationStripSuffix: event.target.value } });
+  };
   const onTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
     onOptionsChange({ ...options, secureJsonData: { ...options.secureJsonData, accessToken: event.target.value } });
   };
@@ -134,19 +137,36 @@ export function ConfigEditor(props: Props) {
           </InlineField>
         </div>
         {options.jsonData?.enableImpersonation && (
-          <div className="gf-form-inline">
-            <InlineField
-              label="Impersonate as"
-              tooltip="Which attribute of the Grafana user to send as the Trino session user. Queries fail for users without an email if Email is selected."
-              labelWidth={26}
-            >
-              <RadioButtonGroup
-                options={SelectableImpersonationIdentities}
-                value={options.jsonData?.impersonationIdentity ?? 'login'}
-                onChange={onImpersonationIdentityChange}
-              />
-            </InlineField>
-          </div>
+          <>
+            <div className="gf-form-inline">
+              <InlineField
+                label="Impersonate as"
+                tooltip="Which attribute of the Grafana user to send as the Trino session user. Queries fail for users without an email if Email is selected."
+                labelWidth={26}
+              >
+                <RadioButtonGroup
+                  options={SelectableImpersonationIdentities}
+                  value={options.jsonData?.impersonationIdentity ?? 'login'}
+                  onChange={onImpersonationIdentityChange}
+                />
+              </InlineField>
+            </div>
+            <div className="gf-form-inline">
+              <InlineField
+                label="Remove username suffix"
+                tooltip="Optional, case-sensitive suffix to remove from the selected login or email. Non-matching usernames are unchanged. Trino must allow the resulting username."
+                labelWidth={26}
+              >
+                <Input
+                  id="trino-settings-impersonation-strip-suffix"
+                  value={options.jsonData?.impersonationStripSuffix ?? ''}
+                  onChange={onImpersonationStripSuffixChange}
+                  placeholder="@example.com"
+                  width={40}
+                />
+              </InlineField>
+            </div>
+          </>
         )}
         <div className="gf-form-inline">
           <InlineField label="Access token" tooltip="If set, use the access token for authentication to Trino" labelWidth={26}>
