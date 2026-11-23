@@ -155,6 +155,24 @@ whether the user's **Login** or **Email** becomes the Trino session user; with
 **Email**, queries from users without an email fail. Trino must allow the
 authenticated user to impersonate other users.
 
+If Grafana already stores the short username as the login, select **Login** and
+leave **Remove username suffix** empty. Generic OAuth can map that login with
+`login_attribute_path`, LDAP with `servers.attributes.username`, and SAML with
+`assertion_attribute_login`.
+
+Use **Remove username suffix** when the selected login or email includes a domain
+that Trino usernames omit. For example, when an OAuth provider supplies
+`alice@example.com` as the login, enter `@example.com` to send `alice`. The suffix
+is matched literally, ignoring case, and only one trailing occurrence is removed.
+Leave the setting empty to send the selected login or email as stored. Provision
+it as `jsonData.impersonationStripSuffix`.
+
+Trino must allow the resulting username. Choose a suffix that preserves the
+intended user identities: `alice` and `alice@example.com` will both run as
+`alice`. Removing the entire username fails the query instead of falling back
+to the data source's account. This setting does not change authentication
+credentials, Grafana logins, or other data sources.
+
 Anonymous users are not impersonated, and run as the data source's user, or the
 OAuth impersonation user if set.
 

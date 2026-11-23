@@ -13,6 +13,7 @@ datasources:
       enableImpersonation: $__env{TRINO_ENABLE_IMPERSONATION}
       enableAsyncQueryData: $__env{TRINO_ENABLE_ASYNC_QUERY_DATA}
       impersonationIdentity: $__env{TRINO_IMPERSONATION_IDENTITY}
+      impersonationStripSuffix: $__env{TRINO_IMPERSONATION_STRIP_SUFFIX}
       impersonationUser: $__env{TRINO_IMPERSONATION_USER}
       roles: $__env{TRINO_ROLES}
       clientTags: $__env{TRINO_CLIENT_TAGS}

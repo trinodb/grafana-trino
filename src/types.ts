@@ -85,6 +85,7 @@ export const SelectableImpersonationIdentities: Array<SelectableValue<Impersonat
 export interface TrinoDataSourceOptions extends DataSourceJsonData {
   enableImpersonation?: boolean;
   impersonationIdentity?: ImpersonationIdentity;
+  impersonationStripSuffix?: string;
   enableAsyncQueryData?: boolean;
   tokenUrl?: string;
   clientId?: string;

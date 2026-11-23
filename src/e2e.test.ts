@@ -550,6 +550,42 @@ test('test impersonation with user email', async ({ page }) => {
     await expect(page.getByText('admin@localhost', {exact: true})).toBeVisible({timeout: 15000});
 });
 
+for (const {suffix, user, error} of [
+    {suffix: '@LocalHost', user: 'admin'},
+    {suffix: '@other.example', user: 'admin@localhost'},
+    {suffix: 'admin@localhost', error: 'removing the impersonation username suffix leaves an empty user'},
+]) {
+    test(`test impersonation suffix ${suffix}`, async ({ page }, testInfo) => {
+        await login(page);
+        await goToTrinoSettings(page);
+        await page.getByTestId('data-testid Datasource HTTP settings url').fill('http://trino:8080');
+        await page.locator('label[for="trino-settings-enable-impersonation"]').last().click();
+        await page.getByRole('radio', {name: 'Email'}).check();
+        await page.getByLabel('Remove username suffix', {exact: true}).fill(suffix);
+        await page.getByTestId('data-testid Data source settings page Save and Test button').click();
+        await expect(page.getByText('Data source is working')).toBeVisible();
+        await page.reload();
+        await expect(page.getByLabel('Remove username suffix', {exact: true})).toHaveValue(suffix);
+        await page.screenshot({path: testInfo.outputPath('impersonation-settings.png'), fullPage: true});
+        // After a reload, Grafana 13.3 renders this link without an aria-label.
+        await page.getByRole('link', {name: EXPORT_DATA, exact: true}).click();
+        await setQuery(page, 'SELECT current_user AS trino_user');
+        await page.getByTestId('data-testid Code editor container').click();
+        await selectFormat(page, 'Time Series', 'Table');
+        await page.getByTestId('data-testid Code editor container').click();
+        const runButton = page.getByTestId('data-testid RefreshPicker run button');
+        await expect(runButton).toHaveAttribute('aria-label', /run/i, {timeout: 15000});
+        await runButton.click();
+        if (error) {
+            await expect(page.getByText(error, {exact: false}).first()).toBeVisible({timeout: 15000});
+        } else {
+            await expect(page.getByText(user!, {exact: true})).toBeVisible({timeout: 15000});
+        }
+        await expect(runButton).toHaveAttribute('aria-label', /run/i, {timeout: 15000});
+        await page.screenshot({path: testInfo.outputPath('impersonation-suffix.png')});
+    });
+}
+
 async function setQuery(page: Page, query: string) {
     const editor = page.getByTestId('data-testid Code editor container');
     // Give Monaco a moment to finish mounting before selecting-all - a
