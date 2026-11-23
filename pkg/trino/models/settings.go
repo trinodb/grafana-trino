@@ -22,18 +22,19 @@ type TrinoDatasourceSettings struct {
 	// URL names the Trino session user, without the basic auth password: the
 	// HTTP client built from Opts sends the credentials, so they are accepted
 	// wherever Trino is configured to take them, including over HTTP.
-	URL                   *url.URL           `json:"-"`
-	Opts                  httpclient.Options `json:"-"`
-	EnableImpersonation   bool               `json:"enableImpersonation"`
-	ImpersonationIdentity string             `json:"impersonationIdentity"`
-	EnableAsyncQueryData  bool               `json:"enableAsyncQueryData"`
-	AccessToken           string             `json:"accessToken"`
-	TokenUrl              string             `json:"tokenUrl"`
-	ClientId              string             `json:"clientId"`
-	ClientSecret          string             `json:"clientSecret"`
-	ImpersonationUser     string             `json:"impersonationUser"`
-	Roles                 string             `json:"roles"`
-	ClientTags            string             `json:"clientTags"`
+	URL                      *url.URL           `json:"-"`
+	Opts                     httpclient.Options `json:"-"`
+	EnableImpersonation      bool               `json:"enableImpersonation"`
+	ImpersonationIdentity    string             `json:"impersonationIdentity"`
+	ImpersonationStripSuffix string             `json:"impersonationStripSuffix"`
+	EnableAsyncQueryData     bool               `json:"enableAsyncQueryData"`
+	AccessToken              string             `json:"accessToken"`
+	TokenUrl                 string             `json:"tokenUrl"`
+	ClientId                 string             `json:"clientId"`
+	ClientSecret             string             `json:"clientSecret"`
+	ImpersonationUser        string             `json:"impersonationUser"`
+	Roles                    string             `json:"roles"`
+	ClientTags               string             `json:"clientTags"`
 	// OAuthPassThru is Grafana's "Forward OAuth Identity" setting.
 	OAuthPassThru     bool   `json:"oauthPassThru"`
 	KerberosEnabled   bool   `json:"kerberosEnabled"`

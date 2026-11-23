@@ -79,6 +79,7 @@ provisioning expansion:
 | `TRINO_ENABLE_IMPERSONATION` | `true`/`false` |
 | `TRINO_ENABLE_ASYNC_QUERY_DATA` | `true`/`false`: poll long-running queries instead of one long request |
 | `TRINO_IMPERSONATION_IDENTITY` | `login`/`email`: which Grafana user attribute to impersonate as |
+| `TRINO_IMPERSONATION_STRIP_SUFFIX` | Optional literal suffix to remove from the selected login or email, ignoring case |
 | `TRINO_IMPERSONATION_USER` | User to impersonate |
 | `TRINO_ROLES` | `catalog:role;catalog:role` pairs |
 | `TRINO_CLIENT_TAGS` | Comma-separated client tags |
