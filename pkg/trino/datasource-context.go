@@ -232,12 +232,9 @@ func impersonatedUser(user *backend.User, identity, stripSuffix string) (string,
 		return "", nil
 	}
 	name := user.Login
-	if identity == models.ImpersonationIdentityEmail {
-		if user.Email == "" {
-			return "", fmt.Errorf("impersonation is configured to use the user's email, but Grafana user %q has no email", user.Login)
-		}
+	if identity == models.ImpersonationIdentityEmail && user.Email != "" {
 		name = user.Email
-	} else if user.Login == "" {
+	} else if name == "" {
 		return "", fmt.Errorf("impersonation is configured to use the user's login, but Grafana user %q has no login", user.Email)
 	}
 	name = trimSuffixFold(name, stripSuffix)
