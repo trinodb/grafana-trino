@@ -6,33 +6,6 @@ The Trino datasource allows to query and visualize [Trino](https://trino.io/) da
 
 ## Getting started
 
-### Install the plugin
-
-The plugin is published in the [Grafana plugin catalog](https://grafana.com/grafana/plugins/trino-datasource/).
-Install it in one of these ways:
-
-* In the Grafana UI, go to **Administration > Plugins and data > Plugins**, search for
-  "Trino" and click **Install**.
-* With the Grafana CLI, then restart Grafana:
-
-  ```bash
-  grafana cli plugins install trino-datasource
-  ```
-
-  Older Grafana installations provide the same command as `grafana-cli`.
-* In Docker, let Grafana install it on startup:
-
-  ```bash
-  docker run -d -p 3000:3000 \
-    -e "GF_PLUGINS_PREINSTALL=trino-datasource" \
-    --name=grafana \
-    grafana/grafana-oss
-  ```
-
-  Grafana versions that don't support `GF_PLUGINS_PREINSTALL` use
-  `GF_INSTALL_PLUGINS=trino-datasource` instead; newer versions still accept it,
-  but log a deprecation warning.
-
 To run a locally built, unsigned copy of the plugin, see
 [DEVELOPMENT.md](https://github.com/trinodb/grafana-trino/blob/main/DEVELOPMENT.md).
 
