@@ -13,12 +13,17 @@ import (
 	"time"
 )
 
+// Client authenticates requests to Trino with a token from the OAuth client
+// credentials flow. It sends the requests, and the token requests, through
+// the embedded client's transport, and adds the token only to requests to
+// TrinoHost, so that a redirect never carries it to another host.
 type Client struct {
 	*http.Client
 	ClientId          string
 	ClientSecret      string
 	Url               string
 	ImpersonationUser string
+	TrinoHost         string
 
 	// lock and token are per-instance so that concurrent datasource instances
 	// with different credentials never share or clobber each other's token.
@@ -50,24 +55,35 @@ func ForwardedToken(ctx context.Context) string {
 	return token
 }
 
-func (c *Client) Do(req *http.Request) (*http.Response, error) {
+func (c *Client) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
 		return nil, fmt.Errorf("unsupported Trino URL scheme %q", req.URL.Scheme)
 	}
 	if req.URL.Host == "" {
 		return nil, errors.New("Trino URL must include a host")
 	}
+	if req.URL.Host != c.TrinoHost {
+		return c.transport().RoundTrip(req)
+	}
 
 	token, err := c.getToken()
 	if err != nil {
 		return nil, err
 	}
+	// A RoundTripper must not modify the request it was given.
+	req = req.Clone(req.Context())
 	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
 	if c.ImpersonationUser != "" && !hasSessionUser(req.Context()) {
 		req.Header.Set("X-Trino-User", c.ImpersonationUser)
 	}
-	// #nosec G704 -- the administrator-configured Trino URL is restricted to HTTP(S) above.
-	return c.Client.Do(req)
+	return c.transport().RoundTrip(req)
+}
+
+func (c *Client) transport() http.RoundTripper {
+	if c.Client.Transport == nil {
+		return http.DefaultTransport
+	}
+	return c.Client.Transport
 }
 
 func (c *Client) getToken() (*Token, error) {

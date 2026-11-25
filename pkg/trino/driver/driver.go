@@ -25,17 +25,6 @@ import (
 // short while still covering a brief blip or a coordinator restart.
 const requestRetryTimeout = 10 * time.Second
 
-// just compile time assertion
-var _ http.RoundTripper = &customTransport{}
-
-type customTransport struct {
-	client *trinoClient.Client
-}
-
-func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	return t.client.Do(req)
-}
-
 // Open connects to Trino through the HTTP client built from the data source
 // settings. The client is handed to trino-go-client directly instead of
 // through its process-global custom client registry, so nothing is shared
@@ -92,15 +81,15 @@ func newHTTPClient(settings models.TrinoDatasourceSettings) (*http.Client, error
 		return nil, err
 	}
 	return &http.Client{
-		Transport: &customTransport{
-			client: &trinoClient.Client{
-				Client:            client,
-				ClientId:          settings.ClientId,
-				ClientSecret:      settings.ClientSecret,
-				Url:               settings.TokenUrl,
-				ImpersonationUser: settings.ImpersonationUser,
-			},
+		Transport: &trinoClient.Client{
+			Client:            client,
+			ClientId:          settings.ClientId,
+			ClientSecret:      settings.ClientSecret,
+			Url:               settings.TokenUrl,
+			ImpersonationUser: settings.ImpersonationUser,
+			TrinoHost:         settings.URL.Host,
 		},
+		Timeout: client.Timeout,
 	}, nil
 }
 

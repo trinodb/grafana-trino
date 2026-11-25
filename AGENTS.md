@@ -117,7 +117,9 @@ the catalog enforce:
 - `govulncheck` (`go run golang.org/x/vuln/cmd/govulncheck@<version> ./...`)
   for reachable Go vulnerabilities.
 - `gosec` (`go run github.com/securego/gosec/v2/cmd/gosec@<version> -quiet
-  ./...`) for the Go sources. A `#nosec` needs the rule ID and a reason.
+  -nosec ./...`) for the Go sources. `-nosec` ignores `#nosec` annotations,
+  as the latest validator does, so fix a finding instead of annotating it:
+  1.5.0 got a review warning for the G704 that a `#nosec` hid from CI.
 
 Bump a scanner's pinned version deliberately, in its own commit, after
 running it and dealing with what the new version reports.

@@ -77,6 +77,73 @@ func TestClient_TokensAreNotSharedAcrossInstances(t *testing.T) {
 	}
 }
 
+func TestClient_AuthenticatesRequestsToTrino(t *testing.T) {
+	tokenServer, _ := newTokenServer(t, "token-a")
+	var authorization, user string
+	trino := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorization = r.Header.Get("Authorization")
+		user = r.Header.Get("X-Trino-User")
+	}))
+	t.Cleanup(trino.Close)
+	trinoURL, err := url.Parse(trino.URL)
+	if err != nil {
+		t.Fatalf("parse trino URL: %v", err)
+	}
+	c := &Client{Client: http.DefaultClient, ClientId: "id-a", ClientSecret: "secret-a", Url: tokenServer.URL, ImpersonationUser: "alice", TrinoHost: trinoURL.Host}
+
+	req, err := http.NewRequest(http.MethodGet, trino.URL, nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	response, err := (&http.Client{Transport: c}).Do(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	_ = response.Body.Close()
+
+	if authorization != "Bearer token-a" {
+		t.Errorf("got Authorization %q, want the OAuth token", authorization)
+	}
+	if user != "alice" {
+		t.Errorf("got X-Trino-User %q, want the impersonation user", user)
+	}
+	if req.Header.Get("Authorization") != "" {
+		t.Error("the caller's request was modified")
+	}
+}
+
+func TestClient_DoesNotSendTheTokenToAnotherHost(t *testing.T) {
+	tokenServer, _ := newTokenServer(t, "token-a")
+	var authorization, user string
+	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorization = r.Header.Get("Authorization")
+		user = r.Header.Get("X-Trino-User")
+	}))
+	t.Cleanup(other.Close)
+	trino := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, other.URL, http.StatusFound)
+	}))
+	t.Cleanup(trino.Close)
+	trinoURL, err := url.Parse(trino.URL)
+	if err != nil {
+		t.Fatalf("parse trino URL: %v", err)
+	}
+	c := &Client{Client: http.DefaultClient, ClientId: "id-a", ClientSecret: "secret-a", Url: tokenServer.URL, ImpersonationUser: "alice", TrinoHost: trinoURL.Host}
+
+	response, err := (&http.Client{Transport: c}).Get(trino.URL)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	_ = response.Body.Close()
+
+	if authorization != "" {
+		t.Errorf("the redirect target got Authorization %q", authorization)
+	}
+	if user != "" {
+		t.Errorf("the redirect target got X-Trino-User %q", user)
+	}
+}
+
 func TestClient_RejectsInvalidRequestURLs(t *testing.T) {
 	tests := []struct {
 		name string
@@ -89,7 +156,7 @@ func TestClient_RejectsInvalidRequestURLs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := Client{}
-			_, err := client.Do(&http.Request{URL: tt.url})
+			_, err := client.RoundTrip(&http.Request{URL: tt.url})
 			if err == nil {
 				t.Fatal("expected an invalid URL error")
 			}
