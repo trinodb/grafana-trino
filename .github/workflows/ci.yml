@@ -13,7 +13,10 @@ jobs:
     name: Scan dependencies for known vulnerabilities
     uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.7.1
     with:
+      # The config lives outside the root, where the plugin validator warns
+      # that it ignores it; its suppressions only apply to this scan.
       scan-args: |-
+        --config=./.github/osv-scanner.toml
         --no-call-analysis=go
         --lockfile=./go.mod
         --lockfile=./yarn.lock

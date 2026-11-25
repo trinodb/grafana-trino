@@ -110,9 +110,10 @@ or older scanner reports a different set of advisories than the one CI and
 the catalog enforce:
 
 - `google/osv-scanner-action` over `go.mod` and `yarn.lock`. Its
-  `osv-scanner.toml` suppressions only apply to CI: the catalog scans with
-  the latest validator, which ignores that file, so a suppressed advisory can
-  still reject a release. Prefer updating the dependency; suppress only
+  `.github/osv-scanner.toml` suppressions only apply to CI: the catalog scans
+  with the latest validator, which ignores them, so a suppressed advisory can
+  still reject a release. The file stays out of the root, where the validator
+  warns that it ignores it. Prefer updating the dependency; suppress only
   with a reason that holds for the catalog too, and expect to argue it there.
 - `govulncheck` (`go run golang.org/x/vuln/cmd/govulncheck@<version> ./...`)
   for reachable Go vulnerabilities.
