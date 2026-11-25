@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.2
+
+* With **Impersonate as** set to **Email**, run queries from Grafana users without an email as their login instead of failing. Alert and recording rules run as Grafana's `grafana_scheduler` user, which has no email, so they now run as `grafana_scheduler`. Trino must allow impersonating `grafana_scheduler`, or deny it to keep alert rules off the data source. Signed-in users and service accounts always have an email, so they run as before
+
 ## 1.5.1
 
 * Read the access token and the OAuth client secret only from the encrypted `secureJsonData`. Earlier versions also read them from the unencrypted `jsonData`. If queries fail to authenticate after the update, set the access token or the client secret again in the data source settings or its provisioning file

@@ -144,7 +144,7 @@ export function ConfigEditor(props: Props) {
             <div className="gf-form-inline">
               <InlineField
                 label="Impersonate as"
-                tooltip="Which attribute of the Grafana user to send as the Trino session user. Queries fail for users without an email if Email is selected."
+                tooltip="Which attribute of the Grafana user to send as the Trino session user. With Email, users without an email, such as alert rules, run as their login."
                 labelWidth={26}
               >
                 <RadioButtonGroup

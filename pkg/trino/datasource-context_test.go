@@ -75,7 +75,9 @@ func TestImpersonatedUser(t *testing.T) {
 		{name: "login", user: alice, identity: models.ImpersonationIdentityLogin, want: "alice"},
 		{name: "email", user: alice, identity: models.ImpersonationIdentityEmail, want: "alice@example.com"},
 		{name: "login when user has no email", user: noEmail, identity: models.ImpersonationIdentityLogin, want: "bob"},
-		{name: "email when user has no email", user: noEmail, identity: models.ImpersonationIdentityEmail, wantErr: true},
+		{name: "email falls back to login when user has no email", user: noEmail, identity: models.ImpersonationIdentityEmail, want: "bob"},
+		{name: "email falls back to login for alert rules", user: &backend.User{Login: "grafana_scheduler"}, identity: models.ImpersonationIdentityEmail, want: "grafana_scheduler"},
+		{name: "login fallback strips suffix", user: &backend.User{Login: "bob@example.com"}, identity: models.ImpersonationIdentityEmail, suffix: "@example.com", want: "bob"},
 		{name: "anonymous user is not impersonated by login", user: &backend.User{}, identity: models.ImpersonationIdentityLogin, want: ""},
 		{name: "anonymous user is not impersonated by email", user: &backend.User{}, identity: models.ImpersonationIdentityEmail, want: ""},
 		{name: "email for user without login", user: &backend.User{Email: "carol@example.com"}, identity: models.ImpersonationIdentityEmail, want: "carol@example.com"},
@@ -158,10 +160,10 @@ func TestQueryDataReportsImpersonationErrorPerQuery(t *testing.T) {
 	ds := NewDatasource(New())
 	resp, err := ds.QueryData(context.Background(), &backend.QueryDataRequest{
 		PluginContext: backend.PluginContext{
-			User: &backend.User{Login: "bob"},
+			User: &backend.User{Email: "carol@example.com"},
 			DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
 				URL:      "http://localhost:8080",
-				JSONData: []byte(`{"enableImpersonation":true,"impersonationIdentity":"email"}`),
+				JSONData: []byte(`{"enableImpersonation":true,"impersonationIdentity":"login"}`),
 			},
 		},
 		Queries: []backend.DataQuery{{RefID: "A"}, {RefID: "B"}},
@@ -171,7 +173,7 @@ func TestQueryDataReportsImpersonationErrorPerQuery(t *testing.T) {
 	}
 	for _, refID := range []string{"A", "B"} {
 		r := resp.Responses[refID]
-		if r.Error == nil || !strings.Contains(r.Error.Error(), `"bob" has no email`) {
+		if r.Error == nil || !strings.Contains(r.Error.Error(), `"carol@example.com" has no login`) {
 			t.Errorf("query %s: got error %v", refID, r.Error)
 		}
 		if r.Status != backend.StatusBadRequest {
