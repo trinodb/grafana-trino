@@ -67,7 +67,9 @@ Behavior the review also expects of a data source backend:
   instance; do not open one per query) and keep queries concurrent.
 - When a release changes what the plugin sends, such as a password that
   earlier versions dropped, say so plainly in the changelog and README and
-  make the error users will hit point at the setting to change.
+  make the error users will hit point at the setting to change. Error
+  messages and the README describe the current behavior; keep version
+  numbers and what earlier versions did in the changelog.
 
 ## Changelog
 
