@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1
+
+* Read the access token and the OAuth client secret only from the encrypted `secureJsonData`. Earlier versions also read them from the unencrypted `jsonData`. If queries fail to authenticate after the update, set the access token or the client secret again in the data source settings or its provisioning file
+
 ## 1.5.0
 
 * Warn in the data source settings when an access token, the OAuth client token or the forwarded OAuth identity would be sent unencrypted over HTTP

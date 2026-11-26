@@ -28,10 +28,10 @@ type TrinoDatasourceSettings struct {
 	ImpersonationIdentity    string             `json:"impersonationIdentity"`
 	ImpersonationStripSuffix string             `json:"impersonationStripSuffix"`
 	EnableAsyncQueryData     bool               `json:"enableAsyncQueryData"`
-	AccessToken              string             `json:"accessToken"`
+	AccessToken              string             `json:"-"`
 	TokenUrl                 string             `json:"tokenUrl"`
 	ClientId                 string             `json:"clientId"`
-	ClientSecret             string             `json:"clientSecret"`
+	ClientSecret             string             `json:"-"`
 	ImpersonationUser        string             `json:"impersonationUser"`
 	Roles                    string             `json:"roles"`
 	ClientTags               string             `json:"clientTags"`

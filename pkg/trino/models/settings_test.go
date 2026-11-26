@@ -272,3 +272,48 @@ func TestLoad_NullJSONData(t *testing.T) {
 		t.Errorf("got URL user %v, want grafana", settings.URL.User)
 	}
 }
+
+func TestLoad_ReadsSecretsOnlyFromSecureJSONData(t *testing.T) {
+	tests := []struct {
+		name             string
+		instanceSettings backend.DataSourceInstanceSettings
+		wantAccessToken  string
+		wantClientSecret string
+	}{
+		{
+			name: "secrets in jsonData are ignored",
+			instanceSettings: backend.DataSourceInstanceSettings{
+				URL:      "https://trino.example.com:8443",
+				JSONData: []byte(`{"accessToken": "clear token", "clientSecret": "clear secret"}`),
+			},
+		},
+		{
+			name: "secrets in secureJsonData are used",
+			instanceSettings: backend.DataSourceInstanceSettings{
+				URL:      "https://trino.example.com:8443",
+				JSONData: []byte(`{"accessToken": "clear token", "clientSecret": "clear secret"}`),
+				DecryptedSecureJSONData: map[string]string{
+					"accessToken":  "secure token",
+					"clientSecret": "secure secret",
+				},
+			},
+			wantAccessToken:  "secure token",
+			wantClientSecret: "secure secret",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			settings := TrinoDatasourceSettings{}
+			if err := settings.Load(context.Background(), tt.instanceSettings); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if settings.AccessToken != tt.wantAccessToken {
+				t.Errorf("got access token %q, want %q", settings.AccessToken, tt.wantAccessToken)
+			}
+			if settings.ClientSecret != tt.wantClientSecret {
+				t.Errorf("got client secret %q, want %q", settings.ClientSecret, tt.wantClientSecret)
+			}
+		})
+	}
+}
