@@ -258,3 +258,17 @@ func TestLoad_KerberosUser(t *testing.T) {
 		})
 	}
 }
+
+func TestLoad_NullJSONData(t *testing.T) {
+	settings := TrinoDatasourceSettings{}
+	err := settings.Load(context.Background(), backend.DataSourceInstanceSettings{
+		URL:      "https://trino.example.com:8443",
+		JSONData: []byte(`null`),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !reflect.DeepEqual(settings.URL.User, url.User("grafana")) {
+		t.Errorf("got URL user %v, want grafana", settings.URL.User)
+	}
+}

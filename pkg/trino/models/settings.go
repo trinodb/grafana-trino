@@ -64,7 +64,7 @@ func (s *TrinoDatasourceSettings) Load(ctx context.Context, config backend.DataS
 		return err
 	}
 	s.Opts = opts
-	err = json.Unmarshal(config.JSONData, &s)
+	err = json.Unmarshal(config.JSONData, s)
 	if err != nil {
 		return err
 	}
